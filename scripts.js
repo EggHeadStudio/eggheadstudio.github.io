@@ -48,10 +48,13 @@ $(document).ready(function () {
       html2pdf()
         .set(opt)
         .from(royaltyElement)
-        .save()
-        .then(() => {
+        .outputPdf()
+        .then(function (pdfBuffer) {
+          const pdfBlob = new Blob([pdfBuffer], { type: "application/pdf" });
+          saveAs(pdfBlob, "royalty-recipe.pdf");
+    
           document.body.removeChild(royaltyElement);
-
+    
           $("#payer").val("");
           $("#amount").val("");
           $("#vat").val("");
