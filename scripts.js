@@ -27,20 +27,22 @@ $(document).ready(function () {
         const royaltyElement = document.createElement('div');
         royaltyElement.innerHTML = royaltyContent;
 
-        html2canvas(royaltyElement, { scale: 2 }).then(function (canvas) {
-            const imgData = canvas.toDataURL('image/jpeg', 0.98);
-            const pdf = new jsPDF({
-                unit: 'in',
-                format: 'a4',
-                orientation: 'portrait'
-            });
+        const opt = {
+          margin: 1,
+          filename: 'royalty-recipe.pdf',
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2 },
+          jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
+        };
 
-            const imgProps = pdf.getImageProperties(imgData);
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-
-            pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
-            pdf.save('royalty-recipe.pdf');
+        html2pdf().set(opt).from(royaltyElement).toPdf().get('pdf').then(function (pdf) {
+          const totalPages = pdf.internal.getNumberOfPages();
+          for (let i = 1; i <= totalPages; i++) {
+            pdf.setPage(i);
+            pdf.setFontSize(12);
+            pdf.setTextColor(150);
+          }
+          window.open(pdf.output('bloburl'), '_blank');
         });
 
         $("#payer").val("");
