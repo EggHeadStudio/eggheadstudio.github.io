@@ -35,14 +35,16 @@ $(document).ready(function () {
           jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
         };
 
-        html2pdf().set(opt).from(royaltyElement).toPdf().get('pdf').then(function (pdf) {
+        html2pdf().set(opt).from(royaltyElement).outputPdf('arraybuffer').then(function (pdfBuffer) {
           const totalPages = pdf.internal.getNumberOfPages();
           for (let i = 1; i <= totalPages; i++) {
             pdf.setPage(i);
             pdf.setFontSize(12);
             pdf.setTextColor(150);
           }
-          window.open(pdf.output('bloburl'), '_blank');
+          const pdfBlob = new Blob([pdfBuffer], { type: 'application/pdf' });
+          saveAs(pdfBlob, 'royalty-recipe.pdf');
+
         });
 
         $("#payer").val("");
