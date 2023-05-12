@@ -12,6 +12,12 @@ body {
     gap: 10px;
 }
 
+#title {
+    font-weight: bold;
+    color: #ffd700;
+    font-size: 25px; /* tai haluamasi fonttikoko */
+}
+
 input {
     background-color: transparent;
     border: 1px solid #fff;
