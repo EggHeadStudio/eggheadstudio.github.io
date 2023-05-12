@@ -8,6 +8,7 @@ $(document).ready(function () {
       const year = $("#year").val();
       const period = $("#period").val();
       const amount = parseFloat($("#amount").val());
+      const comission = $("#comission").val();
       const vatPercentage = parseFloat($("#vat").val());
       const perPlay = parseFloat($("#perPlay").val());
       const recipient = $("#recipient").val();
@@ -15,7 +16,7 @@ $(document).ready(function () {
       const yearPattern = /^\d{4}$/; // Regex for four digits, representing a year
       const periodPattern = /^[a-zA-Z]+ - [a-zA-Z]+$/; // Regex for 'month - month' format
 
-      if (!payer || !amount || !vatPercentage || !perPlay || !recipient) {
+      if (!payer || !comission || !amount || !vatPercentage || !perPlay || !recipient) {
           alert("Täytä kaikki syöttökentät.");
           return;
       }
@@ -35,13 +36,15 @@ $(document).ready(function () {
 
       const royaltyContent = `
       <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
+        <h1 style="font-size: 18px; font-weight: bold;">Royalty Revenue Recipe</h1>
         <div style="font-size: 14px; text-align: center;">${payer}</div>
         <div style="font-size: 14px; text-align: center;">Year: ${year}</div>
         <div style="font-size: 14px; text-align: center;">Period: ${period}</div>
         <div style="font-size: 14px; text-align: center;">Royalty payd: ${amount.toFixed(2)}€</div>
+        <div style="font-size: 14px; text-align: center;">Comission on sales: ${comission}%</div>
         <div style="font-size: 14px; text-align: center;">VAT: ${vatAmount.toFixed(2)}€</div>
         <div style="font-size: 14px; text-align: center;">Estimated streaming times: ${listeningTimes.toFixed(0)}</div>
-        <div style="font-size: 14px; text-align: center;">Payd to: ${recipient}</div>
+        <div style="font-size: 14px; text-align: center;">Payd (${amount.toFixed(2)}€) to: ${recipient}</div>
       </div>
       `;
 
@@ -77,6 +80,7 @@ $(document).ready(function () {
       $("#year").val("");
       $("#period").val("");
       $("#amount").val("");
+      $("#comission").val("10");
       $("#vat").val("");
       $("#perPlay").val("0.005");
       $("#recipient").val("");
