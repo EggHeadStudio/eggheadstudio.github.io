@@ -36,6 +36,7 @@ input {
     margin-bottom: 12px;
     cursor: pointer;
     font-size: 14px;
+    color: #fae04e;
     user-select: none;
 }
 
@@ -61,7 +62,7 @@ input {
 
 /* Kun checkbox on valittuna, muuta taustan väriä */
 .checkbox-container input:checked ~ .checkmark {
-    background-color: #abfa6b;
+    background-color: #fae04e;
 }
 
 /* Luo merkki, joka näkyy, kun checkbox on valittuna */
