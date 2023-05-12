@@ -40,7 +40,7 @@ $(document).ready(function () {
         <div style="font-size: 14px; text-align: center;">Period: ${period}</div>
         <div style="font-size: 14px; text-align: center;">Royalty payd: ${amount.toFixed(2)}€</div>
         <div style="font-size: 14px; text-align: center;">VAT: ${vatAmount.toFixed(2)}€</div>
-        <div style="font-size: 14px; text-align: center;">Listening times: ${listeningTimes.toFixed(0)}</div>
+        <div style="font-size: 14px; text-align: center;">Estimated streaming times: ${listeningTimes.toFixed(0)}</div>
         <div style="font-size: 14px; text-align: center;">Payd to: ${recipient}</div>
       </div>
       `;
