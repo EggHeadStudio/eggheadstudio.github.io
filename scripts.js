@@ -59,7 +59,7 @@ $(document).ready(function () {
         $("#payer").val("");
         $("#amount").val("");
         $("#vat").val("");
-        $("#perPlay").val("0.0005");
+        $("#perPlay").val("0.005");
         $("#recipient").val("");
     });
 });
