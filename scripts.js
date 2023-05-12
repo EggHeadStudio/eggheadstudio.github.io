@@ -51,16 +51,38 @@ $(document).ready(function () {
       const royaltyContent = `
       <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
         <h1 style="font-size: 18px; font-weight: bold;">Royalty Revenue Recipe</h1>
-        <div style="font-size: 14px; text-align: center;">${payer}</div>
-        <div style="font-size: 14px; text-align: center;">Year: ${year}</div>
-        <div style="font-size: 14px; text-align: center;">Period: ${period}</div>
-        <div style="font-size: 14px; text-align: center;">Royalty payd: ${amount.toFixed(2)}€</div>
-        <div style="font-size: 14px; text-align: center;">Comission on sales: ${comission}%</div>
-        <div style="font-size: 14px; text-align: center;">VAT: ${vatAmount.toFixed(2)}€</div>
-        <div style="font-size: 14px; text-align: center;">Estimated streaming times: ${listeningTimes.toFixed(0)}</div>
-        <div style="font-size: 14px; text-align: center;">Payd (${amount.toFixed(2)}€) to: ${recipient}</div> 
+        <div style="display: flex; flex-direction: column; align-items: center; width: 80%; margin: auto;">
+        <div style="font-size: 18px; text-align: center; margin-bottom: 20px;">${payer}</div>
+      <div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 10px;">
+          <span style="font-size: 14px;">Year:</span>
+          <span style="font-size: 14px; text-align: right;">${year}</span>
       </div>
-      `;
+      <div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 10px;">
+          <span style="font-size: 14px;">Period:</span>
+          <span style="font-size: 14px; text-align: right;">${period}</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 10px;">
+          <span style="font-size: 14px;">Royalty payd:</span>
+          <span style="font-size: 14px; text-align: right;">${amount.toFixed(2)}€</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 10px;">
+          <span style="font-size: 14px;">Comission on sales:</span>
+          <span style="font-size: 14px; text-align: right;">${comission}%</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 10px;">
+          <span style="font-size: 14px;">VAT:</span>
+          <span style="font-size: 14px; text-align: right;">${vatAmount.toFixed(2)}€</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 10px;">
+          <span style="font-size: 14px;">Estimated streaming times:</span>
+          <span style="font-size: 14px; text-align: right;">${listeningTimes.toFixed(0)}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 10px;">
+          <span style="font-size: 14px;">Payd (${amount.toFixed(2)}€) to:</span>
+          <span style="font-size: 14px; text-align: right;">${recipient}</span>
+        </div>
+        </div>
+        `;
 
       const royaltyElement = document.createElement('div');
       royaltyElement.innerHTML = royaltyContent;
