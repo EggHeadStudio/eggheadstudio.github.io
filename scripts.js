@@ -8,12 +8,20 @@ $(document).ready(function () {
       const year = $("#year").val();
       const period = $("#period").val();
       let amount = parseFloat($("#amount").val());
-      const originalAmount = amount;  // Säilytetään alkuperäinen summa
+      //const originalAmount = amount;  // Säilytetään alkuperäinen summa
       const comission = parseFloat($("#comission").val());
       const vatPercentage = parseFloat($("#vat").val());
       const perPlay = parseFloat($("#perPlay").val());
       const recipient = $("#recipient").val();
-      const commissionSwitch = $("#commissionSwitch").is(":checked");  // Uusi rivi
+      const commissionSwitch = $("#commissionSwitch").is(":checked");
+
+      let originalAmount = 0;  // Alustetaan alkuperäinen summa
+
+      if (!commissionSwitch) {  // Jos checkboxia ei ole valittu
+          originalAmount = amount / (1 - comission / 100);
+      } else {  // Jos checkbox on valittu
+          originalAmount = amount;
+      }
 
       const yearPattern = /^\d{4}$/; // Regex for four digits, representing a year
       const periodPattern = /^[a-zA-Z]+ - [a-zA-Z]+$/; // Regex for 'month - month' format
@@ -33,12 +41,12 @@ $(document).ready(function () {
           return;
       }
 
-      if (commissionSwitch) {  // Uusi rivi
-          amount = amount * (1 - comission / 100);  // Uusi rivi
-      }  // Uusi rivi
+      if (commissionSwitch) {
+          amount = amount * (1 - comission / 100);
+      }
         
-      const vatAmount = amount * (vatPercentage / 100);  // Muutettu amount -> finalAmount
-      const listeningTimes = originalAmount / perPlay;  // Muutettu amount -> originalAmount
+      const vatAmount = amount * (vatPercentage / 100);
+      const listeningTimes = originalAmount / perPlay;
 
       const royaltyContent = `
       <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
