@@ -7,11 +7,13 @@ $(document).ready(function () {
       const payer = $("#payer").val();
       const year = $("#year").val();
       const period = $("#period").val();
-      const amount = parseFloat($("#amount").val());
-      const comission = $("#comission").val();
+      let amount = parseFloat($("#amount").val());
+      const originalAmount = amount;  // Säilytetään alkuperäinen summa
+      const comission = parseFloat($("#comission").val());
       const vatPercentage = parseFloat($("#vat").val());
       const perPlay = parseFloat($("#perPlay").val());
       const recipient = $("#recipient").val();
+      const commissionSwitch = $("#commissionSwitch").is(":checked");  // Uusi rivi
 
       const yearPattern = /^\d{4}$/; // Regex for four digits, representing a year
       const periodPattern = /^[a-zA-Z]+ - [a-zA-Z]+$/; // Regex for 'month - month' format
@@ -31,8 +33,12 @@ $(document).ready(function () {
           return;
       }
 
-      const vatAmount = amount * (vatPercentage / 100);
-      const listeningTimes = amount / perPlay;
+      if (commissionSwitch) {  // Uusi rivi
+          amount = amount * (1 - comission / 100);  // Uusi rivi
+      }  // Uusi rivi
+        
+      const vatAmount = amount * (vatPercentage / 100);  // Muutettu amount -> finalAmount
+      const listeningTimes = originalAmount / perPlay;  // Muutettu amount -> originalAmount
 
       const royaltyContent = `
       <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
@@ -44,7 +50,7 @@ $(document).ready(function () {
         <div style="font-size: 14px; text-align: center;">Comission on sales: ${comission}%</div>
         <div style="font-size: 14px; text-align: center;">VAT: ${vatAmount.toFixed(2)}€</div>
         <div style="font-size: 14px; text-align: center;">Estimated streaming times: ${listeningTimes.toFixed(0)}</div>
-        <div style="font-size: 14px; text-align: center;">Payd (${amount.toFixed(2)}€) to: ${recipient}</div>
+        <div style="font-size: 14px; text-align: center;">Payd (${amount.toFixed(2)}€) to: ${recipient}</div> 
       </div>
       `;
 
@@ -76,13 +82,15 @@ $(document).ready(function () {
           });
       }
 
+      // Resetting the fields
       $("#payer").val("");
       $("#year").val("");
       $("#period").val("");
       $("#amount").val("");
-      $("#comission").val("10");
+      $("#comission").val("");
       $("#vat").val("");
       $("#perPlay").val("0.005");
       $("#recipient").val("");
+      $("#commissionSwitch").prop("checked", false);
   });
 });
