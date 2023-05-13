@@ -6,6 +6,7 @@ $(document).ready(function () {
   $("#makeRoyaltyRecipe").click(function () {
       const payer = $("#payer").val();
       const year = $("#year").val();
+      const monthPaid = $("#monthPaid").val();
       const period = $("#period").val();
       let amount = parseFloat($("#amount").val());
       //const originalAmount = amount;  // Säilytetään alkuperäinen summa
@@ -26,7 +27,7 @@ $(document).ready(function () {
       const yearPattern = /^\d{4}$/; // Regex for four digits, representing a year
       const periodPattern = /^[a-zA-Z]+ - [a-zA-Z]+$/; // Regex for 'month - month' format
 
-      if (!payer || !comission || !amount || !vatPercentage || !perPlay || !recipient) {
+      if (!payer || !monthPaid || !comission || !amount || !vatPercentage || !perPlay || !recipient) {
           alert("Täytä kaikki syöttökentät.");
           return;
       }
@@ -47,6 +48,7 @@ $(document).ready(function () {
         
       const vatAmount = amount * (vatPercentage / 100);
       const listeningTimes = originalAmount / perPlay;
+      const comissionAmount = originalAmount * (comission / 100);
 
       const royaltyContent = `
       <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
@@ -58,6 +60,10 @@ $(document).ready(function () {
           <span style="font-size: 14px; text-align: right;">${year}</span>
       </div>
       <div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 10px;">
+          <span style="font-size: 14px;">Month in revenue is paid:</span>
+          <span style="font-size: 14px; text-align: right;">${monthPaid}</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 10px;">
           <span style="font-size: 14px;">Period:</span>
           <span style="font-size: 14px; text-align: right;">${period}</span>
       </div>
@@ -67,11 +73,11 @@ $(document).ready(function () {
       </div>
       <div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 10px;">
           <span style="font-size: 14px;">Comission on sales:</span>
-          <span style="font-size: 14px; text-align: right;">${comission}%</span>
+          <span style="font-size: 14px; text-align: right;">(${comissionAmount.toFixed(2)}€)   ${comission}%</span>
       </div>
       <div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 10px;">
-          <span style="font-size: 14px;">VAT:</span>
-          <span style="font-size: 14px; text-align: right;">${vatAmount.toFixed(2)}€</span>
+          <span style="font-size: 14px;">VAT from Royalty payd:</span>
+          <span style="font-size: 14px; text-align: right;">(${vatAmount.toFixed(2)}€)   ${vatPercentage}%</span>
       </div>
       <div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 10px;">
           <span style="font-size: 14px;">Estimated streaming times:</span>
@@ -81,6 +87,13 @@ $(document).ready(function () {
           <span style="font-size: 14px;">Payd (${amount.toFixed(2)}€) to:</span>
           <span style="font-size: 14px; text-align: right;">${recipient}</span>
         </div>
+        <hr style="width: 100%;"> <!-- Uusi rivi: lisää viiva -->
+          <div style="display: flex; justify-content: flex-end; width: 100%; margin-bottom: 10px;"> <!-- Uusi rivi: total amount -->
+              <span style="font-size: 14px; text-align: right;">Total amount: ${amount.toFixed(2)}€</span>
+          </div>
+          <div style="display: flex; justify-content: flex-end; width: 100%; margin-bottom: 10px;"> <!-- Uusi rivi: VAT -->
+              <span style="font-size: 14px; text-align: right;">VAT: ${vatAmount.toFixed(2)}€</span>
+          </div>
         </div>
         `;
 
@@ -115,6 +128,7 @@ $(document).ready(function () {
       // Resetting the fields
       $("#payer").val("");
       $("#year").val("");
+      $("#monthPaid").val("");
       $("#period").val("");
       $("#amount").val("");
       $("#comission").val("");
