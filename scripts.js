@@ -133,7 +133,7 @@ $(document).ready(function () {
       $("#amount").val("");
       $("#comission").val("");
       $("#vat").val("");
-      $("#perPlay").val("0.005");
+      $("#perPlay").val("0.0042");
       $("#recipient").val("");
       $("#commissionSwitch").prop("checked", false);
   });
