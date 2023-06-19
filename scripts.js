@@ -46,7 +46,8 @@ $(document).ready(function () {
           amount = amount * (1 - comission / 100);
       }
         
-      const vatAmount = amount * (vatPercentage / 100);
+      //const vatAmount = amount * (vatPercentage / 100);
+      const vatAmount = amount - (amount / (1 + vatPercentage / 100));
       const listeningTimes = originalAmount / perPlay;
       const comissionAmount = originalAmount * (comission / 100);
 
