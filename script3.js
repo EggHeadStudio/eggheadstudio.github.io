@@ -1,3 +1,6 @@
+function isMobileDevice() {
+    return (typeof window.orientation !== "undefined") || (navigator.userAgent.indexOf('IEMobile') !== -1);
+};
 function calculateReferenceNumber(number) {
     const weights = [7, 3, 1];
     let sum = 0;
