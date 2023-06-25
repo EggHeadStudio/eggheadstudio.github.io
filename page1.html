@@ -86,6 +86,9 @@
     </div>
 
     <script>
+      function isMobileDevice() {
+        return (typeof window.orientation !== "undefined") || (navigator.userAgent.indexOf('IEMobile') !== -1);
+      };
       function generateBarcode() {
         let inputVal = document.getElementById('input-barcode').value;
         JsBarcode("#barcode", inputVal, {
