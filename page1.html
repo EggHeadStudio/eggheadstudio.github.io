@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Barcode Generator</title>
+    <script src="jsbarcode.min.js"></script>
+    <style>
+      .logo {
+          display: flex;
+          margin-left: auto;
+          margin-right: auto;
+          justify-content: center;
+          align-items: center;
+          padding-top: 20px;
+          width: 5%;
+      }
+      #header {
+          display: flex;
+          color: rgb(78, 78, 78);
+          font-family: sans-serif;
+          font-weight: bold;
+          text-transform: uppercase;
+          font-size: 10px;
+          justify-content: center;
+          align-items: center;
+      }
+      #input-container {
+        text-align: center;
+      }
+      #input-container input{
+          margin-top: 20px;
+          margin-bottom: 10px;
+      }
+      #input-container button {
+        margin-bottom: 20px;
+      }
+      .barcode-container {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: auto;
+          padding-top: 20px;
+          padding-bottom: 20px;
+      }
+            .home-button {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background-color: rgb(65, 65, 65);
+        border-radius: 8px;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        z-index: 9999;
+      }
+
+      .house-icon {
+        display: block;
+        width: 24px;
+        height: 24px;
+        background-image: url('house-icon.png'); /* Replace with the path to your house icon */
+        background-size: cover;
+      }
+    </style>
+  </head>
+  <body>
+    <a href="index.html" class="home-button">
+      <span class="house-icon"></span>
+    </a>
+      <img class="logo" src="EHS-logo.png" alt="Logo">
+      <h2 id="header">Barcode Generator</h2>
+    <div class="barcode-container">
+      <svg id="barcode"></svg>
+    </div>
+
+    <div id="input-container">
+      <input type="text" id="input-barcode" placeholder="Enter value..." />
+      <div>
+        <button onclick="generateBarcode()">Generate Barcode</button>
+      </div>
+        <div>
+          <a id="download-link" download="barcode.png">Download Barcode</a>
+        </div>
+    </div>
+
+    <script>
+      function generateBarcode() {
+        let inputVal = document.getElementById('input-barcode').value;
+        JsBarcode("#barcode", inputVal, {
+            font: "sans-serif",
+            fontSize: 16,
+            //fontOptions: "bold"
+        });
+
+        // Create a new image element
+        let img = new Image();
+
+        // When the image is loaded, create a new Blob and set the download link href
+        img.onload = function() {
+          let canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          let ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+          let url = canvas.toDataURL('image/png');
+
+          // Remove any invalid characters from the inputVal
+          let filename = inputVal.replace(/[\/\\?<>:\*\|"]/g, '_');
+
+          // Get the download link element
+          let downloadLink = document.getElementById('download-link');
+
+          // Set the href and download attributes
+          downloadLink.href = url;
+          downloadLink.download = filename + '.png';
+        };
+
+        // Set the image src to the SVG data URL
+        img.src = 'data:image/svg+xml;base64,' + btoa(document.getElementById('barcode').outerHTML);
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Invoice Barcode Generator</title>
+    <script src="jsbarcode.min.js"></script>
+    <link rel="stylesheet" href="style2.css">
+  </head>
+  <body>
+    <a href="index.html" class="home-button">
+      <span class="house-icon"></span>
+    </a>
+    <div>
+      <label for="account">Account number (without "FI"): </label>
+      <input type="text" id="account" required>
+    </div>
+    <div>
+      <label for="amount">Amount (in euros): </label>
+      <input type="number" id="amount" step="0.01" required>
+    </div>
+    <div>
+      <label for="reference">Reference number: </label>
+      <input type="text" id="reference" required>
+    </div>
+    <div>
+      <label for="dueDate">Due date (DD.MM.YYYY format): </label>
+      <input type="text" id="dueDate" required>
+    </div>
+    <button onclick="generateBarcode()">Generate Barcode</button>
+    <svg id="barcode"></svg>
+    <a id="download-link" download="barcode.png">Download Barcode</a>
+
+    <script>
+      function generateBarcode() {
+        let account = document.getElementById('account').value;
+        let amount = (document.getElementById('amount').value * 100).toFixed(0).padStart(8, '0');
+        let reference = document.getElementById('reference').value.padStart(20, '0');
+        let dueDate = document.getElementById('dueDate').value;
+
+        // Remove dots from the date
+        dueDate = dueDate.replace(/\./g, '');
+
+        // Rearrange the date parts to DDMMYY format
+        //dueDate = dueDate.substr(0, 4) + dueDate.substr(6, 2);
+
+        // Get the year, month, and day substrings from the input date (in DDMMYYYY format)
+        const year = dueDate.substr(6, 2);
+        const month = dueDate.substr(2, 2);
+        const day = dueDate.substr(0, 2);
+
+        // Concatenate the substrings in YYMMDD format
+        const rearrangedDate = year + month + day;
+
+        let barcodeData = "4" + account + amount + "000" + reference + rearrangedDate;
+        JsBarcode("#barcode", barcodeData);
+
+        // Create a new image element
+        let img = new Image();
+
+        // When the image is loaded, create a new Blob and set the download link href
+        img.onload = function() {
+          let canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          let ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+          let url = canvas.toDataURL('image/png');
+
+          // Get the download link element
+          let downloadLink = document.getElementById('download-link');
+
+          // Set the href and download attributes
+          downloadLink.href = url;
+          downloadLink.download = 'barcode.png';
+
+          // Show the download link
+          downloadLink.style.display = 'block';
+        };
+
+        // Set the image src to the SVG data URL
+        img.src = 'data:image/svg+xml;base64,' + btoa(document.getElementById('barcode').outerHTML);
+      }
+    </script>
+  </body>
+</html

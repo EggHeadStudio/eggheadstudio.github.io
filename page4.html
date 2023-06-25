@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Royalty Recipe App</title>
+    <link rel="stylesheet" href="styles4.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.3.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/1.0.272/jspdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="/FileSaver.min.js"></script>
+</head>
+<body>
+    <a href="index.html" class="home-button">
+        <span class="house-icon"></span>
+      </a>
+    <div class="container">
+        <h1 id="title">Royalty Revenue Recipe</h1>
+        <input type="text" id="payer" placeholder="Maksajan nimi (yritys)">
+        <input type="text" id="year" placeholder="Vuosi (vvvv)">
+        <input type="text" id="monthPaid" placeholder="Kuukausi jolloin tulot maksettu">
+        <input type="text" id="period" placeholder="Aikajakso (kk - kk)">
+        <input type="number" id="amount" placeholder="Maksettu summa (Brutto)">
+        <input type="number" id="comission" placeholder="Maksajan komissio osuus (%)">
+        <input type="number" id="vat" placeholder="Arvolisävero prosentti (ALV%)">
+        <input type="number" id="perPlay" value="0.0042" step="0.001" min="0">
+        <input type="text" id="recipient" placeholder="Vastaanottajan nimi/yritys">
+        <label class="checkbox-container">
+            <input type="checkbox" id="commissionSwitch">
+            <span class="checkmark"></span>
+            Calculate commission from paid amount
+        </label>        
+        <button id="makeRoyaltyRecipe">Make Royalty Recipe</button>
+    </div>
+    <script src="scripts4.js"></script>
+</body>
+</html>
