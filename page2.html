@@ -2,6 +2,11 @@
 <html>
   <head>
     <title>Invoice Barcode Generator</title>
+    <script>
+          function isMobileDevice() {
+        return (typeof window.orientation !== "undefined") || (navigator.userAgent.indexOf('IEMobile') !== -1);
+    };
+    </script>
     <script src="jsbarcode.min.js"></script>
     <link rel="stylesheet" href="style2.css">
   </head>
@@ -30,9 +35,6 @@
     <a id="download-link" download="barcode.png">Download Barcode</a>
 
     <script>
-      function isMobileDevice() {
-        return (typeof window.orientation !== "undefined") || (navigator.userAgent.indexOf('IEMobile') !== -1);
-      };
       function generateBarcode() {
         let account = document.getElementById('account').value;
         let amount = (document.getElementById('amount').value * 100).toFixed(0).padStart(8, '0');
