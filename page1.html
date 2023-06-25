@@ -66,6 +66,11 @@
     </style>
   </head>
   <body>
+    <script>
+    function isMobileDevice() {
+        return (typeof window.orientation !== "undefined") || (navigator.userAgent.indexOf('IEMobile') !== -1);
+    };
+    </script>
     <a href="index.html" class="home-button">
       <span class="house-icon"></span>
     </a>
@@ -86,9 +91,6 @@
     </div>
 
     <script>
-      function isMobileDevice() {
-        return (typeof window.orientation !== "undefined") || (navigator.userAgent.indexOf('IEMobile') !== -1);
-      };
       function generateBarcode() {
         let inputVal = document.getElementById('input-barcode').value;
         JsBarcode("#barcode", inputVal, {
