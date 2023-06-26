@@ -8,19 +8,27 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      height: auto;
+      height: 100vh; /* Set the height of the body to fit the viewport */
       margin: 0;
       background-color: #333333;
       font-family: Arial, sans-serif;
       margin-top: 20px;
+      overflow: hidden; /* Prevent scrolling */
+    }
+    @media (min-width: 768px) {
+      /* Styles for screens wider than 768px */
+      body {
+        height: auto; /* Reset the body height for larger screens */
+        overflow: visible; /* Allow scrolling */
+      }
     }
     .container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: auto;
-    gap: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%; /* Set the height of the container to fill the body */
+      gap: 10px;
     }
     h1 {
       color: #ffdd00;
