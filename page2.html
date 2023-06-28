@@ -6,11 +6,6 @@
     <link rel="stylesheet" href="style2.css">
   </head>
   <body>
-    <script>
-          function isMobileDevice() {
-        return (typeof window.orientation !== "undefined") || (navigator.userAgent.indexOf('IEMobile') !== -1);
-    };
-    </script>
     <a href="index.html" class="home-button">
       <span class="house-icon"></span>
     </a>
@@ -29,10 +24,10 @@
     <div>
       <label for="dueDate">Due date (DD.MM.YYYY format): </label>
       <input type="text" id="dueDate" required>
-    </div>
     <button onclick="generateBarcode()">Generate Barcode</button>
     <svg id="barcode"></svg>
     <a id="download-link" download="barcode.png">Download Barcode</a>
+  </div>
 
     <script>
       function generateBarcode() {
