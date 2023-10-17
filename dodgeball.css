@@ -1,0 +1,150 @@
+/* Style for the entire body - makes it flex and centers children */
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    font-family: 'Arial', sans-serif;  /* Optional: set a default font */
+    background-color: #5A6273;  /* Optional: set a background color */
+}
+
+#game {
+    background-color: #F2F2F2;
+    position: relative;
+    border-radius: 2vw;
+    border: 5px solid rgb(93, 93, 93);  /* Optional: set a border to better visualize the game area */
+    margin: 1vw;  /* Adds space around the game area */
+    margin-top: 3vw;
+    width: 98vw;
+    height: 88vh;
+    overflow: hidden;
+    cursor: grab;
+}
+:root {
+    --base-size: 50px;
+    --scale-factor: max(5vw, var(--base-size));
+}
+
+/* Labels styling */
+#highscore, #current-time {
+    position: absolute;
+    top: 10px;
+    z-index: 2; /* Ensure it's above other game elements */
+    color: #E7F2BD; /* Or any other color that's visible on your game background */
+    font-size: calc(0.2 * var(--scale-factor));
+}
+#highscore {
+    position: absolute;
+    top: 10px;  /* Padding from the top */
+    left: 10px;  /* Padding from the left */
+    z-index: 10;  /* Ensures the label is above game elements */
+}
+#highscore::selection {
+    background-color: none; /* Background color of the selected text */
+    color: #E7F2BD;                /* Color of the selected text */
+}
+#current-time {
+    position: absolute;
+    top: 10px;  /* Padding from the top */
+    right: 10px;  /* Padding from the right */
+    z-index: 10;  /* Ensures the label is above game elements */
+}
+#current-time::selection {
+    background-color: none; /* Background color of the selected text */
+    color: #E7F2BD;                /* Color of the selected text */
+}
+
+/*joystick*/
+.joystick {
+    position: absolute;
+    bottom: 10%;  /* Position it at the bottom of the game area */
+    right: 10%; 
+    width: 100px;
+    height: 100px;
+    background: rgba(255,255,255,0.3);  /* semi-transparent white */
+    border-radius: 50%;
+    display: none;  /* Initially hidden */
+}
+.joystick-handle {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 50px;
+    height: 50px;
+    background: rgba(0,0,0,0.4);  /* semi-transparent black */
+    border-radius: 50%;
+    transform: translate(-50%, -50%); /* Center the handle within the joystick */
+}
+
+/* Ball and Player */
+.ball {
+    position: absolute;
+    border-radius: 50%;
+}
+
+.player {
+    width: 50px;
+    height: 50px;
+    background-color: blue;
+    cursor: none;
+}
+.ball.player {
+    width: var(--scale-factor);
+    height: var(--scale-factor);
+    z-index: 1;
+}
+
+.spawn-marker-vertical {
+    position: absolute;
+    width: 2px;
+    height: 10px;
+    background-color: red;
+}
+.spawn-marker-horizontal {
+    position: absolute;
+    width: 10px;
+    height: 2px;
+    background-color: red;
+}
+.enemy {
+    width: 20px;
+    height: 20px;
+    background-color: red;
+    box-shadow: 
+        3px 3px 5px rgba(0, 0, 0, 0.3),         /* Outer shadow */
+        inset 3px 3px 5px rgba(255, 255, 255, 0.703);   /* Inner shadow */
+}
+.ball.enemy {
+    width: calc(0.7 * var(--scale-factor));
+    height: calc(0.7 * var(--scale-factor));
+    /* Other styles... */
+}
+
+/*Modal*/
+.modal {
+    display: none;
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.6);
+    z-index: 1000;
+  }
+  
+  .modal-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: white;
+    padding: 16px;
+    border-radius: 4px;
+    text-align: center;
+  }
+  
+  .modal-content button {
+    margin: 5px;
+  }
+  
