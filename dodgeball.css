@@ -6,14 +6,17 @@ body {
     height: 100vh;
     margin: 0;
     font-family: 'Arial', sans-serif;  /* Optional: set a default font */
-    background-color: #5A6273;  /* Optional: set a background color */
+    background-color: #201d14;  /* Optional: set a background color */
 }
 
 #game {
-    background-color: #F2F2F2;
+    background-color: #F0ECD3;
     position: relative;
     border-radius: 2vw;
-    border: 5px solid rgb(93, 93, 93);  /* Optional: set a border to better visualize the game area */
+    border: 5px solid #201d14;  /* Optional: set a border to better visualize the game area */
+    box-shadow: 
+        inset -8px 8px 20px rgba(24, 24, 24, 0.7),
+        inset 4px -4px 20px rgba(24, 24, 24, 0.5);   /* Inner shadow */
     margin: 1vw;  /* Adds space around the game area */
     margin-top: 3vw;
     width: 98vw;
@@ -31,7 +34,7 @@ body {
     position: absolute;
     top: 10px;
     z-index: 2; /* Ensure it's above other game elements */
-    color: #E7F2BD; /* Or any other color that's visible on your game background */
+    color: #ecffc6; /* Or any other color that's visible on your game background */
     font-size: calc(0.2 * var(--scale-factor));
 }
 #highscore {
@@ -42,7 +45,7 @@ body {
 }
 #highscore::selection {
     background-color: none; /* Background color of the selected text */
-    color: #E7F2BD;                /* Color of the selected text */
+    color: #ecffc6;                /* Color of the selected text */
 }
 #current-time {
     position: absolute;
@@ -52,7 +55,7 @@ body {
 }
 #current-time::selection {
     background-color: none; /* Background color of the selected text */
-    color: #E7F2BD;                /* Color of the selected text */
+    color: #ecffc6;                /* Color of the selected text */
 }
 
 /*joystick*/
@@ -86,12 +89,15 @@ body {
 .player {
     width: 50px;
     height: 50px;
-    background-color: blue;
+    background-color: #009fe2;
     cursor: none;
 }
 .ball.player {
     width: var(--scale-factor);
     height: var(--scale-factor);
+    box-shadow: 
+        -7px 7px 8px rgba(0, 0, 0, 0.6),         /* Outer shadow */
+        inset -8px 8px 20px rgba(255, 255, 255, 0.7);   /* Inner shadow */
     z-index: 1;
 }
 
@@ -99,21 +105,21 @@ body {
     position: absolute;
     width: 2px;
     height: 10px;
-    background-color: red;
+    background-color: #123d044e;
 }
 .spawn-marker-horizontal {
     position: absolute;
     width: 10px;
     height: 2px;
-    background-color: red;
+    background-color: #123d044e;
 }
 .enemy {
     width: 20px;
     height: 20px;
-    background-color: red;
-    box-shadow: 
-        3px 3px 5px rgba(0, 0, 0, 0.3),         /* Outer shadow */
-        inset 3px 3px 5px rgba(255, 255, 255, 0.703);   /* Inner shadow */
+    background-color: #123D04;
+    /* box-shadow: 
+        3px 3px 5px rgba(0, 0, 0, 0.3),         Outer shadow */
+        /* inset 3px 3px 5px rgba(255, 255, 255, 0.703);   Inner shadow */
 }
 .ball.enemy {
     width: calc(0.7 * var(--scale-factor));
