@@ -137,14 +137,16 @@ body {
     height: 100%;
     background-color: rgba(0,0,0,0.6);
     z-index: 1000;
+    backdrop-filter: blur(2px);  /* This line adds the blur effect */
   }
   
   .modal-content {
     position: absolute;
+    color: #ecffc6;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background-color: white;
+    background-color: #201d14;
     padding: 16px;
     border-radius: 4px;
     text-align: center;
@@ -152,5 +154,8 @@ body {
   
   .modal-content button {
     margin: 5px;
+    padding: 5px;
+    border: none;
+    border-radius: 3px;
+    background-color: #ecffc6;
   }
-  
