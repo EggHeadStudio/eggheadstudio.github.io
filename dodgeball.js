@@ -83,8 +83,8 @@ function movePlayerTo() {
             const dx = targetX - player.offsetLeft - (playerSize / 2);
             const dy = targetY - player.offsetTop - (playerSize / 2);
             const distance = Math.sqrt(dx*dx + dy*dy);
-            moveX = 3 * (dx / distance); // speed is constant 3
-            moveY = 3 * (dy / distance);
+            moveX = 6 * (dx / distance); // speed is constant 3
+            moveY = 6 * (dy / distance);
         }
 
         const nextLeft = player.offsetLeft + moveX;
@@ -138,7 +138,7 @@ joystick.addEventListener('touchmove', (e) => {
         
         // Set speed based on joystick's displacement
         const proportion = distance / maxDistance;
-        const calculatedSpeed = 3 * proportion; // max speed is 3
+        const calculatedSpeed = 6 * proportion; // max speed is 3
 
         joystickSpeed.x = calculatedSpeed * Math.cos(angle);
         joystickSpeed.y = calculatedSpeed * Math.sin(angle);
@@ -196,31 +196,33 @@ function spawnEnemy() {
 
     // Random velocity but also ensure it's not too slow (i.e., > 0.5 in either direction)
     do {
-        enemy.dx = (Math.random() * 4) - 2; 
+        enemy.dx = (Math.random() * 8) - 2; 
     } while (Math.abs(enemy.dx) < 0.5);
     
     do {
-        enemy.dy = (Math.random() * 4) - 2;
+        enemy.dy = (Math.random() * 8) - 2;
     } while (Math.abs(enemy.dy) < 0.5);
     
     gameArea.appendChild(enemy);
     enemies.push(enemy);
 }
 
-const MAX_SPEED = 4;  // Adjust this value as per your requirements
+const MAX_SPEED = 8;  // Adjust this value as per your requirements
 
 function moveEnemies() {
+    const enemyComputedSize = enemies.length > 0 ? parseInt(getComputedStyle(enemies[0]).width, 10) : 20; // default to 20
     enemies.forEach((enemy, index) => {
         let x = enemy.offsetLeft + enemy.dx;
         let y = enemy.offsetTop + enemy.dy;
 
-        if (x < 0 || x > gameArea.clientWidth - 20) {
+        // Correctly account for enemy's size
+        if (x < 0 || x > gameArea.clientWidth - enemyComputedSize) {
             enemy.dx = -enemy.dx;
-            x = x < 0 ? 0 : gameArea.clientWidth - 20;
+            x = x < 0 ? 0 : gameArea.clientWidth - enemyComputedSize;
         }
-        if (y < 0 || y > gameArea.clientHeight - 20) {
+        if (y < 0 || y > gameArea.clientHeight - enemyComputedSize) {
             enemy.dy = -enemy.dy;
-            y = y < 0 ? 0 : gameArea.clientHeight - 20;
+            y = y < 0 ? 0 : gameArea.clientHeight - enemyComputedSize;
         }
 
         // Check for collision with other enemies
@@ -229,19 +231,20 @@ function moveEnemies() {
                 const dx = otherEnemy.offsetLeft - x;
                 const dy = otherEnemy.offsetTop - y;
                 const distance = Math.sqrt(dx*dx + dy*dy);
-                if (distance < enemySize) { 
-                    enemy.dx = -enemy.dx + (Math.random() - 0.5);
-                    enemy.dy = -enemy.dy + (Math.random() - 0.5);
+                if (distance < enemyComputedSize) { 
+                    // Separate them
+                    const overlap = enemyComputedSize - distance;
+                    const angle = Math.atan2(dy, dx);
 
-                    otherEnemy.dx = -otherEnemy.dx + (Math.random() - 0.5);
-                    otherEnemy.dy = -otherEnemy.dy + (Math.random() - 0.5);
-                    
-                    // Clamp velocities to MAX_SPEED
-                    enemy.dx = Math.sign(enemy.dx) * Math.min(MAX_SPEED, Math.abs(enemy.dx));
-                    enemy.dy = Math.sign(enemy.dy) * Math.min(MAX_SPEED, Math.abs(enemy.dy));
+                    x -= overlap * Math.cos(angle) / 2;
+                    y -= overlap * Math.sin(angle) / 2;
 
-                    otherEnemy.dx = Math.sign(otherEnemy.dx) * Math.min(MAX_SPEED, Math.abs(otherEnemy.dx));
-                    otherEnemy.dy = Math.sign(otherEnemy.dy) * Math.min(MAX_SPEED, Math.abs(otherEnemy.dy));
+                    // Inverse directions
+                    enemy.dx = -enemy.dx;
+                    enemy.dy = -enemy.dy;
+
+                    otherEnemy.dx = -otherEnemy.dx;
+                    otherEnemy.dy = -otherEnemy.dy;
                 }
             }
         });
@@ -320,7 +323,7 @@ function startGame() {
     enemySpawnInterval = setInterval(spawnEnemy, 2000);
 }
 
-startGame();
+//startGame();
 
 //Ui----------------------------------------------------------------------------------------------------------------------------------------
 // For background and character image swapping, you might want a more advanced setup.
@@ -331,6 +334,8 @@ function changePlayerImage(url) {
     playerSize = parseFloat(getComputedStyle(player).width);  // Recalculate the size
     enemySize = playerSize * 0.7;  // Recalculate the enemy's size too
 }
+//changePlayerImage('/static/cloud.png');
+
 function changeBackgroundImage(url) {
     gameArea.style.backgroundImage = `url(${url})`;
     gameArea.style.backgroundSize = 'cover';
