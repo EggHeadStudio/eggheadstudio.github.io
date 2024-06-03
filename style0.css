@@ -1,53 +1,76 @@
 body {
-    background-color: #333333;
-    font-family: Arial, sans-serif;
-  }
-
-  .container {
-    max-width: 600px;
-    margin: 0 auto;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100%; /* Set the height of the container to fill the body */
-  }
-
-  h1 {
-    color: #ffdd00;
-    margin-top: 50px;
-  }
-
-  .logo {
-    display: flex;
-    margin-left: auto;
-    margin-right: auto;
-    justify-content: center;
-    align-items: center;
-    padding-top: 0px;
-    padding-bottom: 5px;
-    width: 20%;
+  background-color: #050505;
+  font-family: Arial, sans-serif;
+  margin: 0;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
-  h2 {
-    color: #ffffff;
-    margin-top: 0px;
-    margin-bottom: 40px;
-  }
+.container {
+  position: relative; /* New */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 350px; /* Ensure enough space */
+  height: 350px; /* Ensure enough space */
+}
 
-  a {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    margin: 20px;
-    padding: 10px 20px;
-    text-decoration: none;
-    color: #00d5ff;
-    background-color: #4f4f4f;
-    border-radius: 5px;
-    transition: background-color 0.3s ease;
-  }
-  a:hover {
-    background-color: #29b3e6;
-  }
+.logo {
+  width: 300px;
+  transition: width 0.5s ease-in-out, transform 1s ease-in-out;
+  z-index: 1; /* Make sure logo is above buttons */
+}
+
+.button-container {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-40%, -40%);
+  width: 300px;  /* Match logo size for easier alignment */
+  height: 300px; /* Match logo size */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.5s ease, visibility 0s 0.5s; /* Adjust visibility delay */
+  pointer-events: none; /* Prevent interaction when not visible */
+}
+
+.button-container.visible {
+  visibility: visible;
+  opacity: 1;
+  transition: opacity 0.5s ease, visibility 0s 0s; /* Remove delay when becoming visible */
+  pointer-events: auto; /* Enable interaction when visible */
+}
+
+a {
+  position: absolute;
+  width: 60px; /* Smaller width for circle */
+  height: 60px; /* Ensure height is the same as width for perfect circle */
+  line-height: 60px; /* Vertical alignment for text */
+  text-align: center;
+  padding: 0; /* Adjust padding */
+  text-decoration: none;
+  color: #fafafa;
+  background-color: #4f4f4f;
+  border-radius: 50%; /* Circular buttons */
+  transition: height 0.3s ease, width 0.3s ease, background-color 0.3s ease;
+}
+
+a:hover {
+  background-color: #b0b0b0;
+  height: 70px;
+  width: 70px;
+  line-height: 70px;
+}
+
+/* Placement adjustments for each button */
+a:nth-child(1) { transform: translate(-50%, -50%) translate(120px, 0); }
+a:nth-child(2) { transform: translate(-50%, -50%) translate(0, -120px); }
+a:nth-child(3) { transform: translate(-50%, -50%) translate(-85px, 85px); }
+a:nth-child(4) { transform: translate(-50%, -50%) translate(0, 120px); }
+a:nth-child(5) { transform: translate(-50%, -50%) translate(85px, -85px); }
