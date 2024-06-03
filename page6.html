@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vuokrasopimus</title>
+  <link rel="stylesheet" href="style6.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <input type="text" id="contractTitle" value="EggHeadStudio Vuokrasopimus" class="title-input">
+
+    <div class="terms">
+      <h2>Yleiset vuokrausehdot</h2>
+      <p id="rentalTerms">
+        1. Vuokra-aika alkaa ja päättyy vuokrasopimuksessa mainittuna aikana.<br>
+        2. Vuokralainen vastaa vuokrattavan laitteiston asianmukaisesta käytöstä ja huolellisesta säilyttämisestä.<br>
+        3. Vuokralaitteisto on palautettava samassa kunnossa kuin se oli vuokraushetkellä.<br>
+        4. Vuokraaja on vastuussa kaikista vahingoista ja katoamisista vuokrauksen aikana (laitteiston uutta vastaavalla hinnalla).<br>
+        5. Vuokran hinta maksetaan etukäteen sopimuksen hyväksymisen yhteydessä, ellei toisin ole lisäehdoissa sovittu.<br>
+        6. Vuokralaitteiston käyttö kaupallisiin tarkoituksiin ilman lupaa on kielletty.<br>
+        7. Vuokraaja pidättää oikeuden periä ylimääräisiä maksuja, mikäli laitteisto palautetaan myöhässä tai vaurioituneena.
+      </p>
+    </div>
+
+    <form id="rentalForm">
+      <label for="logo">Lataa logo:</label>
+      <input type="file" id="logo" accept="image/*">
+      <label for="bg">Lataa tausta:</label>
+      <input type="file" id="background" accept="image/*">
+
+      <label for="additionalTerms">Lisäehdot:</label>
+      <textarea id="additionalTerms" rows="4"></textarea>
+
+      <label for="equipment">Vuokrattavat laitteet:</label>
+      <textarea id="equipment" rows="4"></textarea>
+
+      <label for="renterName">Vuokraajan nimi tai yritys:</label>
+      <input type="text" id="renterName">
+
+      <label for="contactPerson">Vastuuhenkilö:</label>
+      <input type="text" id="contactPerson">
+
+      <label for="phoneNumber">Puhelinnumero:</label>
+      <input type="tel" id="phoneNumber">
+
+      <label for="email">Sähköposti:</label>
+      <input type="email" id="email">
+
+      <label for="startDate">Vuokra-aika alkaen:</label>
+      <input type="date" id="startDate">
+
+      <label for="endDate">Vuokra-aika päättyen:</label>
+      <input type="date" id="endDate">
+
+      <label for="price">Vuokran hinta (ilman ALV):</label>
+      <input type="number" id="price" step="0.01">
+
+      <label for="vat">ALV%:</label>
+      <input type="number" id="vat" step="0.01">
+
+      <label for="totalPrice">Vuokran kokonaishinta (sis. ALV):</label>
+      <input type="text" id="totalPrice" readonly>
+
+      <button type="button" onclick="generatePDF()">Luo PDF</button>
+    </form>
+  </div>
+  <script src="script6.js"></script>
+</body>
+</html>
