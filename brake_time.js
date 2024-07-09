@@ -4,7 +4,12 @@ const plusButton = document.getElementById('plusButton');
 const headLabel = document.getElementById('headLabel');
 const timerDisplay = document.getElementById('timer');
 const counterLabel = document.getElementById('counterLabel');
-const audio = new Audio('brake1.mp3');
+
+const audioFiles = [
+    'brake1.mp3'
+];
+const audio = new Audio();
+
 let countdownInterval;
 let remainingSeconds = 0;
 let running = false;
@@ -12,6 +17,11 @@ let running = false;
 // Initialize counter value to 0
 let counterValue = 0;
 counterLabel.textContent = counterValue + " Items";
+
+function getRandomAudioFile() {
+    const randomIndex = Math.floor(Math.random() * audioFiles.length);
+    return audioFiles[randomIndex];
+}
 
 document.addEventListener('keypress', function(event) {
     if (event.key === 's') {
@@ -66,6 +76,7 @@ function updateTimer() {
         countdownInterval = setTimeout(updateTimer, 1000);
     } else if (remainingSeconds === 0) {
         timerDisplay.textContent = "NOW IT IS TIME FOR A BRAKE!";
+        audio.src = getRandomAudioFile();
         audio.play();
     }
 }
