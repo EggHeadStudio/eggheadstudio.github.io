@@ -36,7 +36,7 @@ timerButton.addEventListener('click', () => {
         remainingSeconds = 0;
         timerDisplay.textContent = "00:00:00";
         timerButton.textContent = 'Start';
-        headLabel.textContent = 'Break Time Countdown';
+        headLabel.textContent = 'Brake Time Countdown';
         timerButton.style.backgroundColor = '#28a745'; // Green color for Start
         incrementCounter();
         audio.pause();  // Pause audio when reset button is pressed
@@ -65,7 +65,7 @@ function updateTimer() {
         remainingSeconds--;
         countdownInterval = setTimeout(updateTimer, 1000);
     } else if (remainingSeconds === 0) {
-        timerDisplay.textContent = "NOW IT IS TIME FOR A BREAK!";
+        timerDisplay.textContent = "NOW IT IS TIME FOR A BRAKE!";
         audio.play();
     }
 }
