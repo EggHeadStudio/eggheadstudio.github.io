@@ -6,7 +6,15 @@ const timerDisplay = document.getElementById('timer');
 const counterLabel = document.getElementById('counterLabel');
 
 const audioFiles = [
-    'brake1.mp3'
+    'brake1.mp3',
+    'brake2.mp3',
+    'brake3.mp3',
+    'brake4.mp3',
+    'brake5.mp3',
+    'brake6.mp3',
+    'brake7.mp3',
+    'brake8.mp3',
+    'brake9.mp3'
 ];
 const audio = new Audio();
 
