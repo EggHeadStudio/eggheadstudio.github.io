@@ -75,3 +75,81 @@ h1 {
     background-color: #636363;
     transition: background-color 0.3s ease-in-out;
 }
+
+#slideImage {
+    position: absolute;
+    top: 0;
+    left: 0;
+    transform: translate(-50%, 0%);
+    height: 20vw;
+    width: 20vw;
+    transition: opacity 2s;
+    mix-blend-mode: darken;
+    opacity: 0; /* Hide the image initially */
+}
+
+/* CSS for the slide-in animation */
+@keyframes slide-in {
+    from { transform: translateX(0); }
+    to { transform: translateX(40vw); }
+}
+
+/* smoke container */
+#smoke {
+    position: absolute;
+    z-index: 3;
+    height: 20vw;
+    width: 20vw;
+    top: 0;
+    left: 60vw;
+    transform: translate(-50%, -60%);
+    transition: opacity 2s;
+    mix-blend-mode: multiply;
+    filter: blur(8px);
+    opacity: 0; /* Hide the smoke initially */
+    animation: fadeIn 2s ease-in-out 2s forwards; /* Add this line */
+}
+
+/* Add this keyframes rule */
+@keyframes fadeIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+}
+
+/* smoke balls */
+
+#smoke span { 
+  display: block;
+	position: absolute;
+	bottom: -35px; left: 50%; margin-left:-20px;
+	height: 0px; width: 0px;
+	border: 35px solid #4b4b4b81;
+	border-radius: 35px;
+	left: -14px; opacity: 0;
+	transform: scale(0.2);
+}
+
+/* Smoke animation */
+
+@keyframes smokeL {
+	0%   { transform: scale(0.2) translate(0, 0) }
+	10%  { opacity: 1; transform: scale(0.2) translate(0, -5px) }
+	100% { opacity: 0; transform: scale(1) translate(-20px, -130px) }
+}
+
+@keyframes smokeR {
+	0%   { transform: scale(0.2) translate(0, 0) }
+	10%  { opacity: 1; transform: scale(0.2) translate(0, -5px) }
+	100% { opacity: 0; transform: scale(1) translate(20px, -130px) }
+}
+
+#smoke .s0 { animation: smokeL 10s 0s infinite }
+#smoke .s1 { animation: smokeR 10s 1s infinite }
+#smoke .s2 { animation: smokeL 10s 2s infinite }
+#smoke .s3 { animation: smokeR 10s 3s infinite }
+#smoke .s4 { animation: smokeL 10s 4s infinite }
+#smoke .s5 { animation: smokeR 10s 5s infinite }
+#smoke .s6 { animation: smokeL 10s 6s infinite }
+#smoke .s7 { animation: smokeR 10s 7s infinite }
+#smoke .s8 { animation: smokeL 10s 8s infinite }
+#smoke .s9 { animation: smokeR 10s 9s infinite }
