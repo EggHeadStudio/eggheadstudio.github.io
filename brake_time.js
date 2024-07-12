@@ -60,8 +60,11 @@ timerButton.addEventListener('click', () => {
         audio.pause();  // Pause audio when reset button is pressed
         audio.currentTime = 0;  // Reset audio to the beginning
 
-        slideImage.style.animation = ''; // Remove slide-in animation
+        setTimeout(function() {
+            slideImage.style.animation = 'slide-out 2s forwards'; // Remove slide-in animation
+        }, 2000); // Delay of 2 seconds
         slideImage.style.opacity = '0'; // Hide the image
+        smoke.style.animation = ''; // Remove fadeIn animation
         smoke.style.opacity = '0'; // Make the image visible
     }
 });
@@ -93,8 +96,10 @@ function updateTimer() {
 
         slideImage.style.animation = 'slide-in 2s forwards'; // Add slide-in animation
         slideImage.style.opacity = '1'; // Make the image visible
-        smoke.style.animation = 'fade-in 2s forwards'; // Add slide-in animation
-        smoke.style.opacity = '1'; // Make the image visible
+        setTimeout(function() {
+            smoke.style.animation = 'fadeIn 2s ease-in-out forwards';
+            smoke.style.opacity = '1'; // Make the smoke visible
+        }, 2000); // Delay of 2 seconds
     }
 }
 
