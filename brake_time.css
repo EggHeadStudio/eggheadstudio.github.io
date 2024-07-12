@@ -10,11 +10,12 @@ body {
 }
 
 .container {
-    background: white;
+    background: rgba(255, 255, 255, 0.877);
     padding: 20px;
     border-radius: 8px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
     text-align: center;
+    z-index: 2;
 }
 
 h1 {
@@ -94,6 +95,11 @@ h1 {
     to { transform: translateX(40vw); }
 }
 
+@keyframes slide-out {
+    from { transform: translateX(40vw); }
+    to { transform: translateX(0); }
+}
+
 /* smoke container */
 #smoke {
     position: absolute;
@@ -108,12 +114,6 @@ h1 {
     filter: blur(8px);
     opacity: 0; /* Hide the smoke initially */
     animation: fadeIn 2s ease-in-out 2s forwards; /* Add this line */
-}
-
-/* Add this keyframes rule */
-@keyframes fadeIn {
-    0% { opacity: 0; }
-    100% { opacity: 1; }
 }
 
 /* smoke balls */
@@ -153,3 +153,56 @@ h1 {
 #smoke .s7 { animation: smokeR 10s 7s infinite }
 #smoke .s8 { animation: smokeL 10s 8s infinite }
 #smoke .s9 { animation: smokeR 10s 9s infinite }
+
+/*BLOB*/
+
+.container2 {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    display: grid;
+    place-items: center;
+    isolation: isolate;
+    overflow: hidden;
+    opacity: 1;
+  }
+  
+  .blob {
+    position: absolute;
+    opacity: 0.5;
+    width: 80vw;
+    aspect-ratio: 1/1;
+    animation: animate 10s cubic-bezier(0.68, -0.55, 0.27, 1.55) infinite
+      alternate forwards;
+    filter: blur(40px);
+    z-index: -1;
+    background: linear-gradient(
+      47deg,
+      rgb(255, 214, 227) 21%,
+      rgb(171, 251, 255) 67%,
+      rgb(221, 189, 255) 81%
+    );
+  
+    /*  Optional  */
+    box-shadow: inset 50px 50px 17px 0px rgb(255, 221, 221),
+      inset 100px 100px 17px 0px #ecdaff;
+  }
+  
+  @keyframes animate {
+    0% {
+      translate: 40% -25%;
+      border-radius: 60% 40% 30% 70% / 100% 85% 92% 74%;
+    }
+    50% {
+      translate: 0% 13%;
+      border-radius: 20% 71% 47% 70% / 81% 15% 22% 54%;
+      rotate: 41deg;
+      scale: 1.15;
+    }
+    100% {
+      translate: -45% 39%;
+      border-radius: 100% 75% 92% 74% / 60% 80% 30% 70%;
+      rotate: -60deg;
+      scale: 1.05;
+    }
+  }
