@@ -11,6 +11,9 @@
     #pdf-container {
       width: 100%;
       height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     #pdf-iframe {
       width: 100%;
@@ -18,12 +21,23 @@
       border: none;
     }
     #fallback-message {
-      padding: 20px;
       text-align: center;
     }
-    #fallback-message a {
-      color: blue;
-      text-decoration: underline;
+    #fallback-message p {
+      font-size: 18px;
+      margin-bottom: 20px;
+    }
+    #fallback-message a.button {
+      display: inline-block;
+      padding: 12px 24px;
+      font-size: 18px;
+      color: #fff;
+      background-color: #007BFF;
+      text-decoration: none;
+      border-radius: 5px;
+    }
+    #fallback-message a.button:hover {
+      background-color: #0056b3;
     }
   </style>
 </head>
@@ -43,9 +57,8 @@
       var isEdge = /Edge\/\d+/.test(ua);
       var isIE = /Trident.*rv[ :]*11\./.test(ua);
 
-      // Firefox, Chrome, Safari työpöydällä tukevat PDF:ää iframe:ssa
-      return (typeof navigator.pdfViewerEnabled !== 'undefined' && navigator.pdfViewerEnabled)
-        || (typeof navigator.mimeTypes['application/pdf'] !== 'undefined')
+      // Tarkistetaan PDF-tuki selaimessa
+      return (typeof navigator.mimeTypes !== 'undefined' && navigator.mimeTypes['application/pdf'])
         || isEdge;
     }
 
@@ -56,13 +69,23 @@
       // Selaimilla, jotka tukevat PDF:n upottamista
       var iframe = document.createElement('iframe');
       iframe.id = 'pdf-iframe';
-      iframe.src = 'myyntikatalogi.pdf';
+      iframe.src = 'myyntikatalogi.pdf#toolbar=0&navpanes=0&scrollbar=0';
       document.getElementById('pdf-container').appendChild(iframe);
     } else {
       // Selaimilla, jotka eivät tue PDF:n upottamista
       var messageDiv = document.createElement('div');
       messageDiv.id = 'fallback-message';
-      messageDiv.innerHTML = 'PDF-tiedoston näyttäminen ei ole mahdollista selaimessasi. <a href="myyntikatalogi.pdf">Lataa PDF-tiedosto tästä</a>.';
+
+      var messageParagraph = document.createElement('p');
+      messageParagraph.textContent = 'Selaimesi ei tue PDF-tiedoston näyttämistä.';
+
+      var downloadButton = document.createElement('a');
+      downloadButton.href = 'myyntikatalogi.pdf';
+      downloadButton.className = 'button';
+      downloadButton.textContent = 'Avaa Myyntikatalogi';
+
+      messageDiv.appendChild(messageParagraph);
+      messageDiv.appendChild(downloadButton);
       document.getElementById('pdf-container').appendChild(messageDiv);
     }
   </script>
