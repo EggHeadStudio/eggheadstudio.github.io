@@ -1,20 +1,70 @@
 <!DOCTYPE html>
 <html lang="fi">
 <head>
-    <meta charset="UTF-8">
-    <title>Myyntikatalogi</title>
-    <style>
-        html, body {
-            height: 100%;
-            margin: 0;
-        }
-        embed {
-            width: 100%;
-            height: 100%;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <title>Myyntikatalogi</title>
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+    }
+    #pdf-container {
+      width: 100%;
+      height: 100%;
+    }
+    #pdf-iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+    #fallback-message {
+      padding: 20px;
+      text-align: center;
+    }
+    #fallback-message a {
+      color: blue;
+      text-decoration: underline;
+    }
+  </style>
 </head>
 <body>
-    <embed src="myyntikatalogi.pdf" type="application/pdf">
+  <div id="pdf-container">
+    <!-- iframe tai viesti lisätään tähän -->
+  </div>
+
+  <script>
+    function isiOS() {
+      return /iPad|iPhone|iPod/.test(navigator.platform)
+        || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    }
+
+    function supportsPDFs() {
+      var ua = navigator.userAgent;
+      var isEdge = /Edge\/\d+/.test(ua);
+      var isIE = /Trident.*rv[ :]*11\./.test(ua);
+
+      // Firefox, Chrome, Safari työpöydällä tukevat PDF:ää iframe:ssa
+      return (typeof navigator.pdfViewerEnabled !== 'undefined' && navigator.pdfViewerEnabled)
+        || (typeof navigator.mimeTypes['application/pdf'] !== 'undefined')
+        || isEdge;
+    }
+
+    if (isiOS()) {
+      // iOS-laitteilla ohjataan suoraan PDF-tiedostoon
+      window.location.href = 'myyntikatalogi.pdf';
+    } else if (supportsPDFs()) {
+      // Selaimilla, jotka tukevat PDF:n upottamista
+      var iframe = document.createElement('iframe');
+      iframe.id = 'pdf-iframe';
+      iframe.src = 'myyntikatalogi.pdf';
+      document.getElementById('pdf-container').appendChild(iframe);
+    } else {
+      // Selaimilla, jotka eivät tue PDF:n upottamista
+      var messageDiv = document.createElement('div');
+      messageDiv.id = 'fallback-message';
+      messageDiv.innerHTML = 'PDF-tiedoston näyttäminen ei ole mahdollista selaimessasi. <a href="myyntikatalogi.pdf">Lataa PDF-tiedosto tästä</a>.';
+      document.getElementById('pdf-container').appendChild(messageDiv);
+    }
+  </script>
 </body>
 </html>
