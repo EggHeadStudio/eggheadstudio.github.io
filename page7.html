@@ -13,24 +13,29 @@
       height: 100%;
       border: none;
     }
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
   </style>
 </head>
 <body>
-  <div id="pdf-container"></div>
+  <div id="pdf-container">
+    <!-- iframe lisätään tänne tarvittaessa -->
+  </div>
 
   <script>
-    function isSafari() {
-      var ua = navigator.userAgent.toLowerCase(); 
-      return ua.indexOf('safari') != -1 && ua.indexOf('chrome') == -1;
+    function isiOS() {
+      return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
     }
 
-    if (isSafari()) {
-      // Safari-selaimella ohjataan suoraan PDF-tiedostoon
+    if (isiOS()) {
+      // iOS-laitteilla ohjataan suoraan PDF-tiedostoon
       window.location.href = 'myyntikatalogi.pdf';
     } else {
-      // Muille selaimille upotetaan PDF iframeen
+      // Muille laitteille upotetaan PDF iframeen
       var iframe = document.createElement('iframe');
-      iframe.id = 'pdf-iframe';
       iframe.src = 'myyntikatalogi.pdf#toolbar=0&navpanes=0&scrollbar=0';
       document.getElementById('pdf-container').appendChild(iframe);
     }
