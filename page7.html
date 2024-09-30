@@ -13,11 +13,7 @@
       height: 100%;
       border: none;
     }
-    iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
-    }
+    /* Poistetaan ylimääräinen iframe-tyyli */
   </style>
 </head>
 <body>
@@ -27,7 +23,8 @@
 
   <script>
     function isiOS() {
-      return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+      return /iPad|iPhone|iPod/.test(navigator.platform)
+        || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     }
 
     if (isiOS()) {
@@ -36,6 +33,7 @@
     } else {
       // Muille laitteille upotetaan PDF iframeen
       var iframe = document.createElement('iframe');
+      iframe.id = 'pdf-iframe';
       iframe.src = 'myyntikatalogi.pdf#toolbar=0&navpanes=0&scrollbar=0';
       document.getElementById('pdf-container').appendChild(iframe);
     }
