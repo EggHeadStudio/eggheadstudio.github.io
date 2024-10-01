@@ -47,31 +47,59 @@ body {
   pointer-events: auto; /* Enable interaction when visible */
 }
 
-a {
+/*a {
   position: absolute;
-  width: 60px; /* Smaller width for circle */
-  height: 60px; /* Ensure height is the same as width for perfect circle */
-  line-height: 60px; /* Vertical alignment for text */
+  width: 60px;
+  height: 60px;
+  line-height: 60px;
   text-align: center;
-  padding: 0; /* Adjust padding */
+  padding: 0;
   text-decoration: none;
   color: #fafafa;
   background-color: #4f4f4f;
-  border-radius: 50%; /* Circular buttons */
+  border-radius: 50%;
   transition: height 0.3s ease, width 0.3s ease, background-color 0.3s ease;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
-
 a:hover {
   background-color: #b0b0b0;
   height: 70px;
   width: 70px;
   line-height: 70px;
+}*/
+a {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  line-height: 140px;
+  text-align: center;
+  padding: 0;
+  text-decoration: none;
+  color: #fff9cd;
+  font-size: 80%;
+  background-color: #4f4f4f;
+  border-top-left-radius: 5%;
+  border-top-right-radius: 5%;
+  border-bottom-left-radius: 50%;
+  border-bottom-right-radius: 50%;
+  transition: top 0.3s ease, width 0.3s ease, background-color 0.3s ease;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.8);
+}
+a:hover {
+  background-color: #606060;
+  top: 55%;
 }
 
 /* Placement adjustments for each button */
-a:nth-child(1) { transform: translate(-50%, -50%) translate(120px, 0); }
+a:nth-child(1) { transform: translate(-50%, -50%) translate(-27px, 40px); }
+/*a:nth-child(1) { transform: translate(-50%, -50%) translate(120px, 0); }
 a:nth-child(2) { transform: translate(-50%, -50%) translate(0, -120px); }
 a:nth-child(3) { transform: translate(-50%, -50%) translate(-85px, 85px); }
 a:nth-child(4) { transform: translate(-50%, -50%) translate(0, 120px); }
 a:nth-child(5) { transform: translate(-50%, -50%) translate(85px, -85px); }
-a:nth-child(6) { transform: translate(-50%, -50%) translate(185px, -75px); }
+a:nth-child(6) { transform: translate(-50%, -50%) translate(185px, -75px); }*/
