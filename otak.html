@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Ohjelmiston tarpeellisuusarviointi</title>
+  <link rel="stylesheet" href="otak_styles.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+  <h1>Ohjelmiston tarpeellisuusarviointi</h1>
+
+  <form id="arviointilomake">
+
+    <div class="osio"> 
+      <h2>1. Käyttäjien tarve</h2>
+      <div class="kysymys">
+        <label class="otsikkoK" for="kysymys1.1">Kuinka paljon ohjelmisto parantaa työtehtävän tehokkuutta?</label><br>
+        <textarea id="kysymys1.1-kommentti" placeholder="Lisää kommentti"></textarea><br>
+        <div class="pisteytys">
+          <input type="radio" name="kysymys1.1" value="5" title="Merkittävästi"> 5
+          <input type="radio" name="kysymys1.1" value="4" title="Huomattavasti"> 4
+          <input type="radio" name="kysymys1.1" value="3" title="Jonkin verran"> 3
+          <input type="radio" name="kysymys1.1" value="2" title="Vähän"> 2
+          <input type="radio" name="kysymys1.1" value="1" title="Marginaalisesti"> 1
+          <input type="radio" name="kysymys1.1" value="0" title="Ei lainkaan" checked> 0
+        </div>
+      </div>
+      <div class="kysymys">
+        <label class="otsikkoK" for="kysymys1.2">Kuinka paljon ohjelmisto vähentää inhimillisiä virheitä?</label><br>
+        <textarea id="kysymys1.2-kommentti" placeholder="Lisää kommentti"></textarea><br>
+        <div class="pisteytys">
+          <input type="radio" name="kysymys1.2" value="5" title="Merkittävästi, pokayoke"> 5
+          <input type="radio" name="kysymys1.2" value="4" title="Huomattavasti"> 4
+          <input type="radio" name="kysymys1.2" value="3" title="Jonkin verran"> 3
+          <input type="radio" name="kysymys1.2" value="2" title="Vähän"> 2
+          <input type="radio" name="kysymys1.2" value="1" title="Marginaalisesti"> 1
+          <input type="radio" name="kysymys1.2" value="0" title="Ei lainkaan" checked> 0
+        </div>
+      </div>
+      <div class="kysymys">
+        <label class="otsikkoK" for="kysymys1.3">Kuinka paljon ohjelmisto parantaa käyttäjien välistä kommunikaatiota ja yhteistyötä?</label><br>
+        <textarea id="kysymys1.3-kommentti" placeholder="Lisää kommentti"></textarea><br>
+        <div class="pisteytys">
+          <input type="radio" name="kysymys1.3" value="5" title="Merkittävästi"> 5
+          <input type="radio" name="kysymys1.3" value="4" title="Huomattavasti"> 4
+          <input type="radio" name="kysymys1.3" value="3" title="Jonkin verran"> 3
+          <input type="radio" name="kysymys1.3" value="2" title="Vähän"> 2
+          <input type="radio" name="kysymys1.3" value="1" title="Marginaalisesti"> 1
+          <input type="radio" name="kysymys1.3" value="0" title="Ei lainkaan" checked> 0
+        </div>
+      </div>
+      <div class="kysymys">
+        <label class="otsikkoK" for="kysymys1.4">Kuinka helppokäyttöinen ja intuitiivinen ohjelmisto on?</label><br>
+        <textarea id="kysymys1.4-kommentti" placeholder="Lisää kommentti"></textarea><br>
+        <div class="pisteytys">
+          <input type="radio" name="kysymys1.4" value="5" title="Erittäin helppokäyttöinen ja selkeä, ei vaadi koulutusta"> 5
+          <input type="radio" name="kysymys1.4" value="4" title="Helppokäyttöinen ja intuitiivinen, vaatii vain vähän koulutusta"> 4
+          <input type="radio" name="kysymys1.4" value="3" title="Melko helppokäyttöinen, vaatii jonkin verran koulutusta"> 3
+          <input type="radio" name="kysymys1.4" value="2" title="Käyttö vaatii totuttelua ja koulutusta"> 2
+          <input type="radio" name="kysymys1.4" value="1" title="Ohjelmisto on melko vaikeaselkoinen ja vaatii paljon koulutusta"> 1
+          <input type="radio" name="kysymys1.4" value="0" title="Vaikeaselkoinen ja vaatii paljon koulutusta" checked> 0
+        </div>
+      </div>
+      <div class="kysymys">
+        <label class="otsikkoK" for="kysymys1.5">Kuinka paljon ohjelmisto vähentää käyttäjien stressiä ja työkuormaa?</label><br>
+        <textarea id="kysymys1.5-kommentti" placeholder="Lisää kommentti"></textarea><br>
+        <div class="pisteytys">
+          <input type="radio" name="kysymys1.5" value="5" title="Merkittävästi"> 5
+          <input type="radio" name="kysymys1.5" value="4" title="Huomattavasti"> 4
+          <input type="radio" name="kysymys1.5" value="3" title="Jonkin verran"> 3
+          <input type="radio" name="kysymys1.5" value="2" title="Vähän"> 2
+          <input type="radio" name="kysymys1.5" value="1" title="Marginaalisesti"> 1
+          <input type="radio" name="kysymys1.5" value="0" title="Ei lainkaan" checked> 0
+        </div>
+      </div>
+      <div class="kysymys">
+        <label class="otsikkoK" for="kysymys1.6">Kuinka tärkeä ohjelmisto on käyttäjille päivittäisessä työssä?</label><br>
+        <textarea id="kysymys1.6-kommentti" placeholder="Lisää kommentti"></textarea><br>
+        <div class="pisteytys">
+          <input type="radio" name="kysymys1.6" value="5" title="Välttämätön"> 5
+          <input type="radio" name="kysymys1.6" value="4" title="Erittäin tärkeä"> 4
+          <input type="radio" name="kysymys1.6" value="3" title="Tärkeä"> 3
+          <input type="radio" name="kysymys1.6" value="2" title="Hyödyllinen"> 2
+          <input type="radio" name="kysymys1.6" value="1" title="Vähän hyödyllinen"> 1
+          <input type="radio" name="kysymys1.6" value="0" title="Ei tarpeellinen" checked> 0
+        </div>
+      </div>
+      <div class="kysymys">
+        <label class="otsikkoK" for="kysymys1.7">Kuinka monta käyttäjää ohjelmistolla tulee olemaan?</label><br>
+        <textarea id="kysymys1.7-kommentti" placeholder="Lisää kommentti"></textarea><br>
+        <div class="pisteytys">
+          <input type="radio" name="kysymys1.7" value="5" title="Koko talon laajuudella"> 5
+          <input type="radio" name="kysymys1.7" value="4" title="Koko osaston laajuudella (kiekkovalmistus, testaus, jne.)"> 4
+          <input type="radio" name="kysymys1.7" value="3" title="Alueen laajuudella (sop alue, jne.)"> 3
+          <input type="radio" name="kysymys1.7" value="2" title="Työpisteen laajuudella (WAVI, DRIE, jne.)"> 2
+          <input type="radio" name="kysymys1.7" value="1" title="Muutaman käyttäjän laajuudella"> 1
+          <input type="radio" name="kysymys1.7" value="0" title="Harvoilla käyttäjillä, harvoin käytössä" checked> 0
+        </div>
+      </div>
+      <div class="osio-yhteispisteet">
+        Osion yhteispisteet: <span id="osio1-pisteet">0</span>
+      </div>
+    </div>
+
+    <div class="osio">
+      <h2>2. Yrityksen tarve</h2>
+      <div class="kysymys">
+        <label class="otsikkoK" for="kysymys2.1">Kuinka paljon ohjelmisto auttaa säästämään kustannuksissa?</label><br>
+        <textarea id="kysymys2.1-kommentti" placeholder="Lisää kommentti"></textarea><br>
+        <div class="pisteytys">
+          <input type="radio" name="kysymys2.1" value="5" title="Merkittävästi ( > 100K€ vuodessa)"> 5
+          <input type="radio" name="kysymys2.1" value="4" title="Huomattavasti ( > 10K€ vuodessa)"> 4
+          <input type="radio" name="kysymys2.1" value="3" title="Kohtalaisesti ( > 1K€ vuodessa)"> 3
+          <input type="radio" name="kysymys2.1" value="2" title="Vähän ( > 100€ vuodessa)"> 2
+          <input type="radio" name="kysymys2.1" value="1" title="Marginaalisesti ( > 10€ vuodessa)"> 1
+          <input type="radio" name="kysymys2.1" value="0" title="Mitättömästi ( 0€ vuodessa)" checked> 0
+        </div>
+      </div>
+      <div class="kysymys">
+        <label class="otsikkoK" for="kysymys2.2">Kuinka paljon ohjelmisto parantaa ja nopeuttaa päätöksentekoprosessia?</label><br>
+        <textarea id="kysymys2.2-kommentti" placeholder="Lisää kommentti"></textarea><br>
+        <div class="pisteytys">
+          <input type="radio" name="kysymys2.2" value="5" title="Merkittävästi"> 5
+          <input type="radio" name="kysymys2.2" value="4" title="Huomattavasti"> 4
+          <input type="radio" name="kysymys2.2" value="3" title="Kohtalaisesti"> 3
+          <input type="radio" name="kysymys2.2" value="2" title="Vähän"> 2
+          <input type="radio" name="kysymys2.2" value="1" title="Marginaalisesti"> 1
+          <input type="radio" name="kysymys2.2" value="0" title="Mitättömästi" checked> 0
+        </div>
+      </div>
+      <div class="kysymys">
+        <label class="otsikkoK" for="kysymys2.3">Kuinka paljon ohjelmisto parantaa tuotteen saantoa?</label><br>
+        <textarea id="kysymys2.3-kommentti" placeholder="Lisää kommentti"></textarea><br>
+        <div class="pisteytys">
+          <input type="radio" name="kysymys2.3" value="5" title="Merkittävästi"> 5
+          <input type="radio" name="kysymys2.3" value="4" title="Huomattavasti"> 4
+          <input type="radio" name="kysymys2.3" value="3" title="Kohtalaisesti"> 3
+          <input type="radio" name="kysymys2.3" value="2" title="Vähän"> 2
+          <input type="radio" name="kysymys2.3" value="1" title="Marginaalisesti"> 1
+          <input type="radio" name="kysymys2.3" value="0" title="Mitättömästi" checked> 0
+        </div>
+      </div>
+      <div class="kysymys">
+        <label class="otsikkoK" for="kysymys2.4">Kuinka paljon ohjelmisto vaikuttaa tuotteen laatuun?</label><br>
+        <textarea id="kysymys2.4-kommentti" placeholder="Lisää kommentti"></textarea><br>
+        <div class="pisteytys">
+          <input type="radio" name="kysymys2.4" value="5" title="Merkittävästi"> 5
+          <input type="radio" name="kysymys2.4" value="4" title="Huomattavasti"> 4
+          <input type="radio" name="kysymys2.4" value="3" title="Kohtalaisesti"> 3
+          <input type="radio" name="kysymys2.4" value="2" title="Vähän"> 2
+          <input type="radio" name="kysymys2.4" value="1" title="Marginaalisesti"> 1
+          <input type="radio" name="kysymys2.4" value="0" title="Mitättömästi" checked> 0
+        </div>
+      </div>
+      <div class="kysymys">
+        <label class="otsikkoK" for="kysymys2.5">Kuinka paljon ohjelmisto vähentää tuotteen läpimenoaikaa?</label><br>
+        <textarea id="kysymys2.5-kommentti" placeholder="Lisää kommentti"></textarea><br>
+        <div class="pisteytys">
+          <input type="radio" name="kysymys2.5" value="5" title="Merkittävästi"> 5
+          <input type="radio" name="kysymys2.5" value="4" title="Huomattavasti"> 4
+          <input type="radio" name="kysymys2.5" value="3" title="Kohtalaisesti"> 3
+          <input type="radio" name="kysymys2.5" value="2" title="Vähän"> 2
+          <input type="radio" name="kysymys2.5" value="1" title="Marginaalisesti"> 1
+          <input type="radio" name="kysymys2.5" value="0" title="Mitättömästi" checked> 0
+        </div>
+      </div>
+      <div class="kysymys">
+        <label class="otsikkoK" for="kysymys2.6">Kuinka paljon ohjelmisto parantaa työprosessin tehokkuutta / kapasiteettia?</label><br>
+        <textarea id="kysymys2.6-kommentti" placeholder="Lisää kommentti"></textarea><br>
+        <div class="pisteytys">
+          <input type="radio" name="kysymys2.6" value="5" title="Merkittävästi"> 5
+          <input type="radio" name="kysymys2.6" value="4" title="Huomattavasti"> 4
+          <input type="radio" name="kysymys2.6" value="3" title="Kohtalaisesti"> 3
+          <input type="radio" name="kysymys2.6" value="2" title="Vähän"> 2
+          <input type="radio" name="kysymys2.6" value="1" title="Marginaalisesti"> 1
+          <input type="radio" name="kysymys2.6" value="0" title="Mitättömästi" checked> 0
+        </div>
+      </div>
+      <div class="kysymys">
+        <label class="otsikkoK" for="kysymys2.7">Kuinka paljon ohjelmisto tasoittaa tuotantoa (vähentää puskurien tarvetta)?</label><br>
+        <textarea id="kysymys2.7-kommentti" placeholder="Lisää kommentti"></textarea><br>
+        <div class="pisteytys">
+          <input type="radio" name="kysymys2.7" value="5" title="Merkittävästi"> 5
+          <input type="radio" name="kysymys2.7" value="4" title="Huomattavasti"> 4
+          <input type="radio" name="kysymys2.7" value="3" title="Kohtalaisesti"> 3
+          <input type="radio" name="kysymys2.7" value="2" title="Vähän"> 2
+          <input type="radio" name="kysymys2.7" value="1" title="Marginaalisesti"> 1
+          <input type="radio" name="kysymys2.7" value="0" title="Mitättömästi" checked> 0
+        </div>
+      </div>
+      <div class="kysymys">
+        <label class="otsikkoK" for="kysymys2.8">Kuinka paljon ohjelmisto vähentää manuaalista työtä?</label><br>
+        <textarea id="kysymys2.8-kommentti" placeholder="Lisää kommentti"></textarea><br>
+        <div class="pisteytys">
+          <input type="radio" name="kysymys2.8" value="5" title="Merkittävästi"> 5
+          <input type="radio" name="kysymys2.8" value="4" title="Huomattavasti"> 4
+          <input type="radio" name="kysymys2.8" value="3" title="Kohtalaisesti"> 3
+          <input type="radio" name="kysymys2.8" value="2" title="Vähän"> 2
+          <input type="radio" name="kysymys2.8" value="1" title="Marginaalisesti"> 1
+          <input type="radio" name="kysymys2.8" value="0" title="Mitättömästi" checked> 0
+        </div>
+      </div>
+      <div class="kysymys">
+        <label class="otsikkoK" for="kysymys2.9">Kuinka hyvin ohjelmisto korvaa jonkin vanhentuneen ja tehottoman järjestelmän?</label><br>
+        <textarea id="kysymys2.9-kommentti" placeholder="Lisää kommentti"></textarea><br>
+        <div class="pisteytys">
+          <input type="radio" name="kysymys2.9" value="5" title="Korvaa täysin vanhentuneen tai tehottoman järjestelmän"> 5
+          <input type="radio" name="kysymys2.9" value="4" title="Korvaa suurimman osan vanhentuneesta tai tehottomasta järjestelmästä"> 4
+          <input type="radio" name="kysymys2.9" value="3" title="Korvaa osan vanhentuneesta tai tehottomasta järjestelmästä"> 3
+          <input type="radio" name="kysymys2.9" value="2" title="Korvaa pienen osan vanhentuneesta tai tehottomasta järjestelmästä"> 2
+          <input type="radio" name="kysymys2.9" value="1" title="Korvaa marginaalisesti vanhentuneen tai tehottoman järjestelmän"> 1
+          <input type="radio" name="kysymys2.9" value="0" title="Ei korvaa ollenkaan mitään vanhaa järjestelmää" checked> 0
+        </div>
+      </div>
+      <div class="kysymys">
+        <label class="otsikkoK" for="kysymys2.10">Mikä on ohjelmiston arvioitu ROI-jakso (Return on Investment)?</label><br>
+        <textarea id="kysymys2.10-kommentti" placeholder="Lisää kommentti"></textarea><br>
+        <div class="pisteytys">
+          <input type="radio" name="kysymys2.10" value="5" title="Merkittävän nopea (välittömästi tai 1-2kk)"> 5
+          <input type="radio" name="kysymys2.10" value="4" title="Huomattavan nopea (noin 3kk)"> 4
+          <input type="radio" name="kysymys2.10" value="3" title="Kohtalaisen nopea (3-6kk)"> 3
+          <input type="radio" name="kysymys2.10" value="2" title="Keskimääräinen (6-12kk)"> 2
+          <input type="radio" name="kysymys2.10" value="1" title="Marginaalinen (1-2v)"> 1
+          <input type="radio" name="kysymys2.10" value="0" title="Merkillisen hidas (yli 2v)" checked> 0
+        </div>
+      </div>
+      <div class="kysymys">
+        <label class="otsikkoK" for="kysymys2.11">Kuinka hyvin ohjelmisto tukee yrityksen ydintoimintaa ja tulevaisuuden strategiatarpeita?</label><br>
+        <textarea id="kysymys2.11-kommentti" placeholder="Lisää kommentti"></textarea><br>
+        <div class="pisteytys">
+          <input type="radio" name="kysymys2.11" value="5" title="Täysin kaikilta osin"> 5
+          <input type="radio" name="kysymys2.11" value="4" title="Hyvin"> 4
+          <input type="radio" name="kysymys2.11" value="3" title="Joiltain osin"> 3
+          <input type="radio" name="kysymys2.11" value="2" title="Vähän"> 2
+          <input type="radio" name="kysymys2.11" value="1" title="Marginaalisesti"> 1
+          <input type="radio" name="kysymys2.11" value="0" title="Ei ollenkaan" checked> 0
+        </div>
+      </div>
+      <div class="kysymys">
+        <label class="otsikkoK" for="kysymys2.12">Kuinka hyvin ohjelmisto lisää tiedonkeruuta verrattuna nykyiseen / aiempaan tapaan?</label><br>
+        <textarea id="kysymys2.12-kommentti" placeholder="Lisää kommentti"></textarea><br>
+        <div class="pisteytys">
+          <input type="radio" name="kysymys2.12" value="5" title="Merkittävästi ja myöskin vähentää turhaa / tupla tiedonkeruuta"> 5
+          <input type="radio" name="kysymys2.12" value="4" title="Huomattavasti"> 4
+          <input type="radio" name="kysymys2.12" value="3" title="Kohtalaisesti"> 3
+          <input type="radio" name="kysymys2.12" value="2" title="Vähän"> 2
+          <input type="radio" name="kysymys2.12" value="1" title="Marginaalisesti"> 1
+          <input type="radio" name="kysymys2.12" value="0" title="Mitättömästi, vähentää sitä" checked> 0
+        </div>
+      </div>
+      <div class="osio-yhteispisteet">
+        Osion yhteispisteet: <span id="osio2-pisteet">0</span>
+      </div>
+    </div>
+
+    <div class="osio"> 
+      <h2>3. Tekninen toteutettavuus</h2>
+      <div class="kysymys">
+        <label class="otsikkoK" for="kysymys3.1">Kuinka helppoa ja nopeaa ohjelmiston komponenttien muokkaaminen on?</label><br>
+        <textarea id="kysymys3.1-kommentti" placeholder="Lisää kommentti"></textarea><br>
+        <div class="pisteytys">
+          <input type="radio" name="kysymys3.1" value="5" title="Erittäin helppoa ja nopeaa (muokattavissa täysin UI:ssa)"> 5
+          <input type="radio" name="kysymys3.1" value="4" title="Melko helppoa ja nopeaa (muokattavissa melkein kokonaan UI:ssa)"> 4
+          <input type="radio" name="kysymys3.1" value="3" title="Kohtuullisen helppoa ja nopeaa (muokattavissa osittain UI:ssa)"> 3
+          <input type="radio" name="kysymys3.1" value="2" title="Melko vaikeaa (muokattavissa vähäisesti UI:ssa, osa txt, excel, sql ulkoisissa tiedostoissa)"> 2
+          <input type="radio" name="kysymys3.1" value="1" title="Vaikeaa ja hidasta (API pyynnöt vain UI:ssa, muut muutokset ulkoisissa tiedostoissa)"> 1
+          <input type="radio" name="kysymys3.1" value="0" title="Erittäin monimutkaista (muokattavissa vain source koodissa)" checked> 0
+        </div>
+      </div>
+      <div class="kysymys">
+        <label class="otsikkoK" for="kysymys3.2">Onko ohjelmiston kehittämiseen tarvittava teknologia saatavilla ja hallussa?</label><br>
+        <textarea id="kysymys3.2-kommentti" placeholder="Lisää kommentti"></textarea><br>
+        <div class="pisteytys">
+          <input type="radio" name="kysymys3.2" value="5" title="Kaikki tarvittava teknologia on saatavilla ja hallussa"> 5
+          <input type="radio" name="kysymys3.2" value="4" title="Lähes kaikki tarvittava teknologia on saatavilla ja hallussa"> 4
+          <input type="radio" name="kysymys3.2" value="3" title="Suurin osa tarvittavasta teknologiasta on saatavilla ja hallussa"> 3
+          <input type="radio" name="kysymys3.2" value="2" title="Osa tarvittavasta teknologiasta on saatavilla ja hallussa"> 2
+          <input type="radio" name="kysymys3.2" value="1" title="Pieni osa tarvittavasta teknologiasta on saatavilla ja hallussa"> 1
+          <input type="radio" name="kysymys3.2" value="0" title="Tarvittavaa teknologiaa ei ole saatavilla tai hallussa" checked> 0
+        </div>
+      </div>
+      <div class="kysymys">
+        <label class="otsikkoK" for="kysymys3.3">Kuinka helppoa ohjelmiston integrointi nykyisiin järjestelmiin on?</label><br>
+        <textarea id="kysymys3.3-kommentti" placeholder="Lisää kommentti"></textarea><br>
+        <div class="pisteytys">
+          <input type="radio" name="kysymys3.3" value="5" title="Erittäin helppoa, ei tarvitse apua muilta sidosryhmiltä"> 5
+          <input type="radio" name="kysymys3.3" value="4" title="Melko helppoa, tarvitaan apua mahdollisesti sidosryhmältä"> 4
+          <input type="radio" name="kysymys3.3" value="3" title="Kuhtuullisen helppoa, tarvitaan apua useilta sidosryhmiltä"> 3
+          <input type="radio" name="kysymys3.3" value="2" title="Melko vaikeaa, tarvitaan jatkuva muiden sidosryhmien työpanostus"> 2
+          <input type="radio" name="kysymys3.3" value="1" title="Erittäin vaikeaa, tarvitaan ulkopuolista apua"> 1
+          <input type="radio" name="kysymys3.3" value="0" title="Erittäin haastavaa tai jopa mahdotonta" checked> 0
+        </div>
+      </div>
+      <div class="kysymys">
+        <label class="otsikkoK" for="kysymys3.4">Kuinka hyvin ohjelmisto skaalautuu tulevaisuuden tarpeisiin?</label><br>
+        <textarea id="kysymys3.4-kommentti" placeholder="Lisää kommentti"></textarea><br>
+        <div class="pisteytys">
+          <input type="radio" name="kysymys3.4" value="5" title="Erittäin hyvin"> 5
+          <input type="radio" name="kysymys3.4" value="4" title="Hyvin"> 4
+          <input type="radio" name="kysymys3.4" value="3" title="Melko hyvin"> 3
+          <input type="radio" name="kysymys3.4" value="2" title="Kohtalaisesti"> 2
+          <input type="radio" name="kysymys3.4" value="1" title="Marginaalisesti"> 1
+          <input type="radio" name="kysymys3.4" value="0" title="Ei skaalattavissa" checked> 0
+        </div>
+      </div>
+      <div class="kysymys">
+        <label class="otsikkoK" for="kysymys3.5">Kuinka vaivatonta ohjelmiston tekninen ylläpito on?</label><br>
+        <textarea id="kysymys3.5-kommentti" placeholder="Lisää kommentti"></textarea><br>
+        <div class="pisteytys">
+          <input type="radio" name="kysymys3.5" value="5" title="Erittäin vaivatonta, ei vaadi ylläpitoa"> 5
+          <input type="radio" name="kysymys3.5" value="4" title="Melko vaivatonta, vaatii harvoin ylläpitoa"> 4
+          <input type="radio" name="kysymys3.5" value="3" title="Kohtuullisen vaivatonta, vaatii hieman ylläpitoa"> 3
+          <input type="radio" name="kysymys3.5" value="2" title="Normaalia, vaatii ylläpitoa tietyin väliajoin"> 2
+          <input type="radio" name="kysymys3.5" value="1" title="Vaivalloista, vaatii jatkuvaa ylläpitoa ja hieman kehitystä"> 1
+          <input type="radio" name="kysymys3.5" value="0" title="Erittäin vaivalloista, vaatii jatkuvaa kehittämistä ja ylläpitoa" checked> 0
+        </div>
+      </div>
+      <div class="kysymys">
+        <label class="otsikkoK" for="kysymys3.6">Kuinka hyvin ohjelmiston tietoturva on varmistettu?</label><br>
+        <textarea id="kysymys3.6-kommentti" placeholder="Lisää kommentti"></textarea><br>
+        <div class="pisteytys">
+          <input type="radio" name="kysymys3.6" value="5" title="Täydellisesti"> 5
+          <input type="radio" name="kysymys3.6" value="4" title="Erittäin hyvin"> 4
+          <input type="radio" name="kysymys3.6" value="3" title="Standardien mukaisesti"> 3
+          <input type="radio" name="kysymys3.6" value="2" title="Joitakin puitteita"> 2
+          <input type="radio" name="kysymys3.6" value="1" title="Useita puitteita"> 1
+          <input type="radio" name="kysymys3.6" value="0" title="Merkittäviä puitteita" checked> 0
+        </div>
+      </div>
+      <div class="kysymys">
+        <label class="otsikkoK" for="kysymys3.7">Kuinka todennäköisesti ohjelma vaatii aliohjelman luomisen?</label><br>
+        <textarea id="kysymys3.7-kommentti" placeholder="Lisää kommentti"></textarea><br>
+        <div class="pisteytys">
+          <input type="radio" name="kysymys3.7" value="5" title="Ei vaadi aliohjelmaa"> 5
+          <input type="radio" name="kysymys3.7" value="4" title="Ei vaadi aliohjelmaa, mutta vaatii konfiguraatiotiedoston"> 4
+          <input type="radio" name="kysymys3.7" value="3" title="Vaatii yhden yksinkertaisen aliohjelman"> 3
+          <input type="radio" name="kysymys3.7" value="2" title="Vaatii yhden monimutkaisemman aliohjelman"> 2
+          <input type="radio" name="kysymys3.7" value="1" title="Vaatii yhden yksinkertaisen aliohjelman ja konfiguraatiotiedoston"> 1
+          <input type="radio" name="kysymys3.7" value="0" title="Vaatii useita aliohjelmia" checked> 0
+        </div>
+      </div>
+      <div class="kysymys">
+        <label class="otsikkoK" for="kysymys3.8">Kuinka monimutkainen tietokanta on tarpeen ohjelman toiminnallisuuden kannalta?</label><br>
+        <textarea id="kysymys3.8-kommentti" placeholder="Lisää kommentti"></textarea><br>
+        <div class="pisteytys">
+          <input type="radio" name="kysymys3.8" value="5" title="Tietokantaa ei tarvita lainkaan ohjelman toiminnallisuuden kannalta"> 5
+          <input type="radio" name="kysymys3.8" value="4" title="Erittäin yksinkertainen tietokanta, joka ei tarjoa merkittäviä toimintoja"> 4
+          <input type="radio" name="kysymys3.8" value="3" title="Yksinkertainen tietokanta, joka tukee vain perustason toimintoja"> 3
+          <input type="radio" name="kysymys3.8" value="2" title="Kohtuullisen monimutkainen tietokanta, joka kattaa perustoiminnot"> 2
+          <input type="radio" name="kysymys3.8" value="1" title="Monimutkainen tietokanta, joka mahdollistaa useita kehittyneitä toimintoja"> 1
+          <input type="radio" name="kysymys3.8" value="0" title="Erittäin monimutkainen tietokanta, joka tukee laajoja ja monitasoisia toimintoja" checked> 0
+        </div>
+      </div>
+      <div class="kysymys">
+        <label class="otsikkoK" for="kysymys3.9">Kuinka riippuvainen yritys tulee olemaan tietokannan toiminnasta?</label><br>
+        <textarea id="kysymys3.9-kommentti" placeholder="Lisää kommentti"></textarea><br>
+        <div class="pisteytys">
+          <input type="radio" name="kysymys3.9" value="5" title="Tietokannan käyttö ei ole tarpeellista yrityksen toiminnalle"> 5
+          <input type="radio" name="kysymys3.9" value="4" title="Tietokanta ei ole merkittävässä roolissa yrityksen toiminnassa"> 4
+          <input type="radio" name="kysymys3.9" value="3" title="Tietokanta on vain vähäisessä määrin riippuvainen yrityksen toiminnoista"> 3
+          <input type="radio" name="kysymys3.9" value="2" title="Tietokanta on tärkeä, mutta yritys voi toimia myös osittain ilman sitä"> 2
+          <input type="radio" name="kysymys3.9" value="1" title="Tietokanta on erittäin tärkeä, ja sen toimintahäiriöt vaikuttavat merkittävästi yrityksen toimintaan"> 1
+          <input type="radio" name="kysymys3.9" value="0" title="Yritys on täysin riippuvainen tietokannan toiminnasta, eikä se voi toimia ilman sitä" checked> 0
+        </div>
+      </div>
+      <div class="kysymys">
+        <label class="otsikkoK" for="kysymys3.10">Millainen suorituskyky tietokannalta odotetaan ottaen huomioon sen laajuus?</label><br>
+        <textarea id="kysymys3.10-kommentti" placeholder="Lisää kommentti"></textarea><br>
+        <div class="pisteytys">
+          <input type="radio" name="kysymys3.10" value="5" title="Kevyt suorituskyky, ei tarvitse olla nopea"> 5
+          <input type="radio" name="kysymys3.10" value="4" title="Mediaani suorituskyky, riittävä perustoimintoihin"> 4
+          <input type="radio" name="kysymys3.10" value="3" title="Kohtuullinen suorituskyky, selviää keskisuurista tietomääristä kohtuu ajassa"> 3
+          <input type="radio" name="kysymys3.10" value="2" title="Hyvä suorituskyky, selviää suurista tietomääristä kohtuu ajassa"> 2
+          <input type="radio" name="kysymys3.10" value="1" title="Erinomainen suorituskyky, selviää suurista tietomääristä nopeassa ajassa"> 1
+          <input type="radio" name="kysymys3.10" value="0" title="Merkittävä suorituskyky, selviää erittäin suurista tietomääristä salaman nopeasti" checked> 0
+        </div>
+      </div>
+      <div class="osio-yhteispisteet">
+        Osion yhteispisteet: <span id="osio3-pisteet">0</span>
+      </div>
+    </div>
+
+    <div class="osio"> 
+      <h2>4. Kustannus / Resurssit / Aikataulutus</h2>
+      <div class="kysymys">
+        <label class="otsikkoK" for="kysymys4.1">Kuinka paljon ohjelmiston kehittäminen sitoo työaikaa?</label><br>
+        <textarea id="kysymys4.1-kommentti" placeholder="Lisää kommentti"></textarea><br>
+        <div class="pisteytys">
+          <input type="radio" name="kysymys4.1" value="5" title="Sitoo erittäin vähän työaikaa, alle kuukauden"> 5
+          <input type="radio" name="kysymys4.1" value="4" title="Sitoo vähän työaikaa, 1-3 kuukautta"> 4
+          <input type="radio" name="kysymys4.1" value="3" title="Sitoo kohtuullisesti työaikaa, 3-6 kuukautta"> 3
+          <input type="radio" name="kysymys4.1" value="2" title="Sitoo paljon työaikaa, 6-12 kuukautta"> 2
+          <input type="radio" name="kysymys4.1" value="1" title="Sitoo erittäin paljon työaikaa, yli 12 kuukautta"> 1
+          <input type="radio" name="kysymys4.1" value="0" title="Sitoo erittäin paljon työaikaa, yli 12 kuukautta ja monia eri sidosryhmiä" checked> 0
+        </div>
+      </div>
+      <div class="kysymys">
+        <label class="otsikkoK" for="kysymys4.2">Millaisia henkilöstöresursseja tarvitaan ohjelmiston kehittämiseen?</label><br>
+        <textarea id="kysymys4.2-kommentti" placeholder="Lisää kommentti"></textarea><br>
+        <div class="pisteytys">
+          <input type="radio" name="kysymys4.2" value="5" title="Vain yksi henkilö, vähäinen työmäärä"> 5
+          <input type="radio" name="kysymys4.2" value="4" title="Yksi henkilö, kohtuullinen työmäärä"> 4
+          <input type="radio" name="kysymys4.2" value="3" title="Yksi henkilö, merkittävä työmäärä"> 3
+          <input type="radio" name="kysymys4.2" value="2" title="Yksi henkilö ja osittain konsultointia muilta sidosryhmiltä"> 2
+          <input type="radio" name="kysymys4.2" value="1" title="Vähintään kaksi henkilöä"> 1
+          <input type="radio" name="kysymys4.2" value="0" title="Enemmän kuin kaksi henkilöä" checked> 0
+        </div>
+      </div>
+      <div class="kysymys">
+        <label class="otsikkoK" for="kysymys4.3">Millaisia kehittämis- ja ylläpitokustannuksia arvioidaan ohjelmistoon olevan?</label><br>
+        <textarea id="kysymys4.3-kommentti" placeholder="Lisää kommentti"></textarea><br>
+        <div class="pisteytys">
+          <input type="radio" name="kysymys4.3" value="5" title="Erittäin alhaiset ja hyvin hallittavissa"> 5
+          <input type="radio" name="kysymys4.3" value="4" title="Kohtuulliset ja hyvin ennakoitavissa"> 4
+          <input type="radio" name="kysymys4.3" value="3" title="Keskimääräiset, ja niihin liittyy jonkin verran epävarmuutta"> 3
+          <input type="radio" name="kysymys4.3" value="2" title="Korkeat ja vaativat tarkkaa seurantaa"> 2
+          <input type="radio" name="kysymys4.3" value="1" title="Erittäin korkeat ja hyvin epäselvät"> 1
+          <input type="radio" name="kysymys4.3" value="0" title="Kustannuksia ei ole arvioitu tai ne ovat täysin epäselvät" checked> 0
+        </div>
+      </div>
+      <div class="kysymys">
+        <label class="otsikkoK" for="kysymys4.4">Kuinka kriittinen ohjelmiston käyttöönotto on?</label><br>
+        <textarea id="kysymys4.4-kommentti" placeholder="Lisää kommentti"></textarea><br>
+        <div class="pisteytys">
+          <input type="radio" name="kysymys4.4" value="5" title="Ei tarvita kiireellisesti; ohjelmistoa ei odoteta käyttöön"> 5
+          <input type="radio" name="kysymys4.4" value="4" title="Ei tarvita kiireellisesti, mutta ohjelmistoa odoteta käyttöön"> 4
+          <input type="radio" name="kysymys4.4" value="3" title="Joustavalla aikataululla"> 3
+          <input type="radio" name="kysymys4.4" value="2" title="Kiirehdityllä aikataululla"> 2
+          <input type="radio" name="kysymys4.4" value="1" title="Tarvitaan mahdollisimman pian"> 1
+          <input type="radio" name="kysymys4.4" value="0" title="Tarvitaan erittäin nopeasti ja kriittisesti" checked> 0
+        </div>
+      </div>
+      <div class="kysymys">
+        <label class="otsikkoK" for="kysymys4.5">Voidaanko ohjelmisto ottaa käyttöön vaiheittain?</label><br>
+        <textarea id="kysymys4.5-kommentti" placeholder="Lisää kommentti"></textarea><br>
+        <div class="pisteytys">
+          <input type="radio" name="kysymys4.5" value="5" title="Kyllä, ohjelmisto voidaan ottaa joustavasti käyttöön vaiheittain"> 5
+          <input type="radio" name="kysymys4.5" value="4" title="Kyllä, ohjelmisto voidaan ottaa suunnitellusti käyttöön vaiheittain"> 4
+          <input type="radio" name="kysymys4.5" value="3" title="Ohjelmisto voidaan ottaa käyttöön suurimmaksi osaksi vaiheittain"> 3
+          <input type="radio" name="kysymys4.5" value="2" title="Ohjelmisto voidaan ottaa käyttöön osittain vaiheittain, vaatii tarkkaa suunnittelua"> 2
+          <input type="radio" name="kysymys4.5" value="1" title="Ohjelmistoa on vaikea ottaa käyttöön vaiheittain"> 1
+          <input type="radio" name="kysymys4.5" value="0" title="Ohjelmistoa ei voida ottaa käyttöön vaiheittain" checked> 0
+        </div>
+      </div>
+      <div class="kysymys">
+        <label class="otsikkoK" for="kysymys4.6">Kuinka suuret kustannukset ohjelmistoon tarvittavaan hardwareen on?</label><br>
+        <textarea id="kysymys4.6-kommentti" placeholder="Lisää kommentti"></textarea><br>
+        <div class="pisteytys">
+          <input type="radio" name="kysymys4.6" value="5" title="Olemattomat, ylimääräistä hardwarea ei tarvita"> 5
+          <input type="radio" name="kysymys4.6" value="4" title="Erittäin olemattomat, kaikki tarvittava on jo saatavilla"> 4
+          <input type="radio" name="kysymys4.6" value="3" title="Pienet kustannukset, suurin osa tarvittavasta on jo saatavilla"> 3
+          <input type="radio" name="kysymys4.6" value="2" title="Kohtuulliset kustannukset"> 2
+          <input type="radio" name="kysymys4.6" value="1" title="Korkeat kustannukset"> 1
+          <input type="radio" name="kysymys4.6" value="0" title="Erittäin korkeat kustannukset, tarvitaan täysin uutta teknologiaa (konsepti idea)" checked> 0
+        </div>
+      </div>
+      <div class="osio-yhteispisteet">
+        Osion yhteispisteet: <span id="osio4-pisteet">0</span>
+      </div>
+    </div>
+
+    <div class="osio"> 
+      <h2>5. Riskit</h2>
+      <div class="kysymys">
+        <label class="otsikkoK" for="kysymys5.1">Mitä riskejä liittyy ohjelmiston kehittämiseen, ja voiko kehitysprosessi aiheuttaa vahinkoa?</label><br>
+        <textarea id="kysymys5.1-kommentti" placeholder="Lisää kommentti"></textarea><br>
+        <div class="pisteytys">
+          <input type="radio" name="kysymys5.1" value="5" title="Ei riskejä"> 5
+          <input type="radio" name="kysymys5.1" value="4" title="Ei riskejä tiedossa"> 4
+          <input type="radio" name="kysymys5.1" value="3" title="Ei arvioituja riskejä"> 3
+          <input type="radio" name="kysymys5.1" value="2" title="Mahdollisesti pieniä riskejä"> 2
+          <input type="radio" name="kysymys5.1" value="1" title="Mahdollisesti suuria riskejä"> 1
+          <input type="radio" name="kysymys5.1" value="0" title="Tiedostettuja riskejä kuten: Voi korruptoida olemassa olevan tietokannan yms." checked> 0
+        </div>
+      </div>
+      <div class="kysymys">
+        <label class="otsikkoK" for="kysymys5.2">Miten ohjelmiston käyttöönotto muuttaa toimintatapoja?</label><br>
+        <textarea id="kysymys5.2-kommentti" placeholder="Lisää kommentti"></textarea><br>
+        <div class="pisteytys">
+          <input type="radio" name="kysymys5.2" value="5" title="Toimintatavat helpottuvat merkittävästi"> 5
+          <input type="radio" name="kysymys5.2" value="4" title="Toimintatavat helpottuvat jonkin verran"> 4
+          <input type="radio" name="kysymys5.2" value="3" title="Toimintatavat eivät oikeastaan muutu"> 3
+          <input type="radio" name="kysymys5.2" value="2" title="Toimintatavat poikkeavat hieman alkuperäisestä"> 2
+          <input type="radio" name="kysymys5.2" value="1" title="Toimintatavat poikkeavat ja monimutkaistuvat selkeästi alkuperäisestä"> 1
+          <input type="radio" name="kysymys5.2" value="0" title="Toimintatavat poikkeavat ja monimutkaistuvat täysin alkuperäisestä" checked> 0
+        </div>
+      </div>
+      <div class="kysymys">
+        <label class="otsikkoK" for="kysymys5.3">Kuinka helppoa on palata vanhaan toimintatapaan, jos ohjelmisto ei toimi odotetulla tavalla?</label><br>
+        <textarea id="kysymys5.3-kommentti" placeholder="Lisää kommentti"></textarea><br>
+        <div class="pisteytys">
+          <input type="radio" name="kysymys5.3" value="5" title="Erittäin helppoa"> 5
+          <input type="radio" name="kysymys5.3" value="4" title="Melko helppoa"> 4
+          <input type="radio" name="kysymys5.3" value="3" title="Kohtuullisen helppoa"> 3
+          <input type="radio" name="kysymys5.3" value="2" title="Melko vaikeaa"> 2
+          <input type="radio" name="kysymys5.3" value="1" title="Vaikeaa"> 1
+          <input type="radio" name="kysymys5.3" value="0" title="Erittäin vaikeaa tai sitä ei olla mietitty lainkaan" checked> 0
+        </div>
+      </div>
+      <div class="osio-yhteispisteet">
+        Osion yhteispisteet: <span id="osio5-pisteet">0</span>
+      </div>
+    </div>
+
+    <div class="kokonaispisteet">
+      Kokonaispisteet: <span id="kokonaispisteet">0</span>
+    </div>
+
+    <button type="button" onclick="generoiRaportti()">VALMIS</button>
+  </form>
+
+  <script src="otak_script.js"></script>
+  <script src="otak_export.js"></script>
+</body>
+</html>
