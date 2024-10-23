@@ -61,3 +61,7 @@ function autoResize() {
     this.style.height = 'auto'; // Reset height to auto to shrink if needed
     this.style.height = this.scrollHeight + 'px'; // Set height to scrollHeight
 }
+
+function nollaaRaportti() {
+    window.location.href = window.location.href;
+}

@@ -16,35 +16,35 @@ function generoiRaportti() {
     const osioThresholds = [
         { 
             thresholdEasy: 1.5,
-            thresholdMedium: 2.5,
+            thresholdMedium: 2,
+            thresholdHard: 3.5,
+            texts: { // Tekstit haetaan otak_texts.js filestä
+                easy: osio1easy,
+                medium: osio1medium, 
+                hard: osio1hard, 
+                default: osio1default
+            }
+        },
+        { 
+            thresholdEasy: 1.5,
+            thresholdMedium: 2,
             thresholdHard: 3.5,
             texts: {
-                easy: "Käyttäjien tarpeet ovat erittäin hyvin ymmärretty ja ohjelmisto tulee vastaamaan \nniihin erinomaisesti.",
-                medium: "Käyttäjien tarpeet on huomioitu ja ohjelmisto tulee vastaamaan niihin tyydyttävästi.", 
-                hard: "Käyttäjien tarpeissa on vielä kehittämisen varaa, jotta ohjelmisto vastaisi niihin \nparhaalla mahdollisella tavalla.", 
-                default: "Käyttäjien tarpeita ei ole vielä riittävästi kartoitettu."
+                easy: osio2easy, 
+                medium: osio2medium, 
+                hard: osio2hard,
+                default: osio2default
             }
         },
         { 
-            thresholdEasy: 2,
-            thresholdMedium: 3,
-            thresholdHard: 4,
-            texts: {
-                easy: "Ohjelmisto tulee olemaan erittäin tärkeä yrityksen toiminnan kannalta ja sillä on \nmerkittävä vaikutus sen tavoitteiden saavuttamiseen.", 
-                medium: "Ohjelmisto tulee olemaan hyödyllinen yrityksen toiminnalle ja sillä on positiivinen \nvaikutus sen tavoitteisiin.", 
-                hard: "Ohjelmiston hyödyt yrityksen toiminnalle ovat olemassa, mutta ne eivät ole kriittisiä.",
-                default: "Ohjelmiston hyödyt yrityksen toiminnalle ovat vähäiset tai epäselvät."
-            }
-        },
-        { 
-            thresholdEasy: 1,
+            thresholdEasy: 1.5,
             thresholdMedium: 2,
-            thresholdHard: 3,
+            thresholdHard: 3.5,
             texts: {
-                easy: "Ohjelmiston tekninen toteutus on erittäin helppoa ja nopeaa, ja se integroituu \nsaumattomasti nykyisiin järjestelmiin.", 
-                medium: "Ohjelmiston tekninen toteutus on mahdollista, mutta se voi vaatia jonkin verran \ntyötä ja resursseja.", 
-                hard: "Ohjelmiston tekninen toteutus on haastavaa ja voi vaatia merkittäviä resursseja.", 
-                default: "Ohjelmiston tekninen toteutus on erittäin haastavaa tai jopa mahdotonta \nnykyisillä resursseilla."
+                easy: osio3easy, 
+                medium: osio3medium, 
+                hard: osio3hard,
+                default: osio3default
             }
         },
         { 
@@ -52,10 +52,10 @@ function generoiRaportti() {
             thresholdMedium: 2.5,
             thresholdHard: 3.5,
             texts: {
-                easy: "Ohjelmiston kehittäminen onnistuu helposti ja nopeasti, eikä se vaadi suuria \nkustannuksia tai resursseja.", 
-                medium: "Ohjelmiston kehittäminen on mahdollista, mutta se vaatii jonkin verran aikaa, \nresursseja ja kustannuksia.", 
-                hard: "Ohjelmiston kehittäminen on haastavaa ja aikaa vievää, ja se vaatii merkittäviä \nresursseja ja kustannuksia.", 
-                default: "Ohjelmiston kehittäminen on erittäin haastavaa ja kallista, ja se voi vaatia \nhuomattavia resursseja."
+                easy: osio4easy, 
+                medium: osio4medium, 
+                hard: osio4hard,
+                default: osio4default
             }
         },
         { 
@@ -63,10 +63,10 @@ function generoiRaportti() {
             thresholdMedium: 3,
             thresholdHard: 4,
             texts: {
-                easy: "Ohjelmiston kehittämiseen ja käyttöönottoon liittyy erittäin vähän riskejä.", 
-                medium: "Ohjelmiston kehittämiseen ja käyttöönottoon liittyy joitakin riskejä, jotka \non kuitenkin hallittavissa.", 
-                hard: "Ohjelmiston kehittämiseen ja käyttöönottoon liittyy merkittäviä riskejä, jotka \nvoivat vaikuttaa projektin onnistumiseen.", 
-                default: "Ohjelmiston kehittämiseen ja käyttöönottoon liittyy erittäin suuria riskejä, \njotka voivat vaarantaa koko projektin."
+                easy: osio5easy, 
+                medium: osio5medium, 
+                hard: osio5hard,
+                default: osio5default
             }
         }
     ];
@@ -89,6 +89,11 @@ function generoiRaportti() {
         
         const osionNimi = osio.querySelector('h2').textContent;
         const osionPisteet = parseInt(osio.querySelector('.osio-yhteispisteet span').textContent);
+        // Tarkista, onko tilaa nykyisellä sivulla
+        if (y + 20 > doc.internal.pageSize.height) {
+            doc.addPage(); // Lisää uusi sivu
+            y = 10; // Palauta y-koordinaatti
+        }
         doc.setFontSize(14);
         doc.setFont(undefined, 'bold').text(osionNimi, 10, y).setFont(undefined, 'normal');
         y += 8;
@@ -96,6 +101,7 @@ function generoiRaportti() {
         vastaukset.forEach(vastaus => {
             const kysymys = vastaus.querySelector('label').textContent;
             const pisteet = vastaus.querySelector('input[type="radio"]:checked')?.value || 0;
+            const title = vastaus.querySelector('input[type="radio"]:checked')?.title || ''; // Retrieve the title attribute
             const kommentti = vastaus.querySelector('textarea')?.value || ''; // Hae kommentti
             doc.setFontSize(12);
 
@@ -107,14 +113,44 @@ function generoiRaportti() {
 
             doc.text(`${kysymys}`, 10, y);
             y += 6;
-            doc.text(`Pisteytys: ${pisteet}`, 10, y);
+            doc.setFontSize(10);
+            doc.setTextColor('#00647d');
+            doc.text(`Pisteytys: ${pisteet} - ${title}`, 10, y);
+            doc.setTextColor('black');
+            doc.setFontSize(12);
             if (kommentti) {
                 const kommenttiLines = kommentti.split('\n'); // Split by newline character
                 for (let i = 0; i < kommenttiLines.length; i++) {
-                    y += 6; // Line spacing
-                    doc.setFont(undefined, 'italic').text(`${kommenttiLines[i]}`, 10, y).setFont(undefined, 'normal');
+                    const line = kommenttiLines[i];
+                    const words = line.split(' '); // Further split into words for wrapping
+                    let wrappedLine = '';
+                    for (let j = 0; j < words.length; j++) {
+                        const testLine = wrappedLine + '' + words[j];
+                        const metrics = doc.getTextDimensions(testLine);
+                        const maxWidth = doc.internal.pageSize.width - 20; // Maximum width for the text
+                        if (metrics.w > maxWidth) { // If the text exceeds the maximum width
+                            // Print the current wrapped line and reset it
+                            y += 6; // Line spacing
+                            doc.setFont(undefined, 'italic').text(wrappedLine, 10, y).setFont(undefined, 'normal');
+                            wrappedLine = words[j]; // Start a new wrapped line with the current word
+                        } else {
+                            if (wrappedLine) wrappedLine += ' '; // Add space if not the first word
+                            wrappedLine += words[j]; // Add the word to the wrapped line
+                        }
+                    }
+                    // Print the last wrapped line of the original line
+                    if (wrappedLine) {
+                        y += 6; // Line spacing
+                        doc.setFont(undefined, 'italic').text(wrappedLine, 10, y).setFont(undefined, 'normal');
+                    }
                 }
                 y += 6; // Extra space after kommentti
+            
+                // Check if the text has exceeded the page height and add a new page if necessary
+                if (y > doc.internal.pageSize.height) {
+                    doc.addPage();
+                    y = 10; // Reset y position for the new page
+                }
             } else {
                 y += 6; // Maintain spacing consistency
             }
@@ -123,17 +159,17 @@ function generoiRaportti() {
         y += 5;
 
         // Tarkista, onko tilaa nykyisellä sivulla
-        if (y + 15 > doc.internal.pageSize.height) {
+        if (y + 20 > doc.internal.pageSize.height) {
             doc.addPage(); // Lisää uusi sivu
             y = 10; // Palauta y-koordinaatti
         }
 
-        doc.setFont(undefined, 'bold').text(`Osion (${osionNimi}) yhteispisteet: ${osionPisteet}`, 10, y).setFont(undefined, 'normal');
-        y += 6;
-
         // Laske maksimipisteet dynaamisesti osiolle
         const osionKysymystenMäärä = vastaukset.length;
         const osionMaksimipisteet = osionKysymystenMäärä * 5;
+
+        doc.setFont(undefined, 'bold').text(`Osion (${osionNimi}) yhteispisteet: ${osionPisteet} / ${osionMaksimipisteet}`, 10, y).setFont(undefined, 'normal');
+        y += 6;
 
         let osioText = '';
         let osioColor = '';
@@ -156,9 +192,11 @@ function generoiRaportti() {
         doc.setTextColor(osioColor);
         const textLines = osioText.split('\n');
         for (let i = 0; i < textLines.length; i++) {
+            doc.setFontSize(10);
             doc.setFont(undefined, 'bold').text(`${textLines[i]}`, 10, y).setFont(undefined, 'normal');
-            y += 6; // Increment y position after each line
+            y += 4; // Increment y position after each line
         }
+        doc.setFontSize(14);
         doc.setTextColor('black'); // Reset text color
         y += 8;
     });
