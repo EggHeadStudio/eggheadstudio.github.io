@@ -3,6 +3,8 @@ function generoiRaportti() {
     const doc = new jsPDF();
     let y = 10;
 
+    const projektiInput = document.querySelector('#projektin_nimi')
+    const projekti = projektiInput.value; // Projektin nimi
     const today = new Date();
     const dateString = today.toLocaleDateString('fi-FI'); // Muotoile päivämäärä suomalaiseen muotoon
 
@@ -72,6 +74,11 @@ function generoiRaportti() {
     y += 10;
     doc.setFontSize(16);
     doc.setFont(undefined, 'bold').text("Ohjelmiston tarpeellisuusarviointi", 10, y).setFont(undefined, 'normal');
+    y += 10;
+    doc.setFontSize(14);
+    doc.setTextColor('#00647d');
+    doc.setFont(undefined, 'bold').text(`${projekti.toUpperCase()}`, 10, y).setFont(undefined, 'normal');
+    doc.setTextColor('black');
     y += 20;
 
     // Hae kaikki osiot
