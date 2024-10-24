@@ -5,6 +5,13 @@ body {
     transition: 0.5s ease;
 }
 
+@media (max-width: 600px) { /* Sääntöjä näytöille, joiden leveys on enintään 600px */
+    body {
+      padding: 10px;
+      font-size: 14px;
+    }
+  }
+
 #projektin_nimi {
     width: min(95%, 580px);
     margin-bottom: 30px;
