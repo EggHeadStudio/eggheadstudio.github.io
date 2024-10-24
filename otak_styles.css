@@ -5,15 +5,8 @@ body {
     transition: 0.5s ease;
 }
 
-@media (max-width: 600px) { /* Sääntöjä näytöille, joiden leveys on enintään 600px */
-    body {
-      padding: 10px;
-      font-size: 14px;
-    }
-  }
-
 #projektin_nimi {
-    width: min(95%, 580px);
+    width: min(90%, 580px);
     margin-bottom: 30px;
     border-radius: 10px;
     padding: 10px;
@@ -171,4 +164,17 @@ button:hover {
   .tooltip.show {
     top: 20px;
     opacity: 1;
+  }
+
+  @media (max-width: 600px) { /* Sääntöjä näytöille, joiden leveys on enintään 600px */
+    body {
+      padding: 5px;
+      font-size: 10px;
+    }
+    h2 {
+        font-size: 18px;
+    }
+    .otsikkoK {
+        font-size: 12px;
+    }
   }
