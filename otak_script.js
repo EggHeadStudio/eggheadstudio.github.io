@@ -87,7 +87,7 @@ radioButtons.forEach(radioButton => {
         // Aseta ajastin piilottamaan työkaluvihje 3 sekunnin kuluttua
         setTimeout(() => {
             tooltip.classList.remove('show');
-        }, 3000); // 3000 millisekuntia = 3 sekuntia
+        }, 4000); // 3000 millisekuntia = 3 sekuntia
     });
 });
 
