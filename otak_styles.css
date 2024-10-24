@@ -139,10 +139,6 @@ button {
     transition: 0.1s ease;
 }
 
-#tyhjenna {
-    margin-left: 10px;
-}
-
 button:hover {
     background: #004d70;
     box-shadow: inset 4px 4px 12px #002130,
