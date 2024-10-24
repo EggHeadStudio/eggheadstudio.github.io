@@ -74,7 +74,7 @@
         </div>
       </div>
       <div class="kysymys">
-        <label class="otsikkoK" for="kysymys1.6">Kuinka tärkeä ohjelmisto on käyttäjille päivittäisessä työssä?</label><br>
+        <label class="otsikkoK" for="kysymys1.6">Kuinka hyödyllinen ohjelmisto on käyttäjille päivittäisessä työssä?</label><br>
         <textarea id="kysymys1.6-kommentti" placeholder="Lisää kommentti"></textarea><br>
         <div class="pisteytys">
           <input type="radio" name="kysymys1.6" value="5" title="Välttämätön"> 5
@@ -509,6 +509,8 @@
     <button type="button" onclick="generoiRaportti()">VALMIS</button>
     <button type="button" onclick="nollaaRaportti()">TYHJENNÄ</button>
   </form>
+
+  <div id="tooltip" class="tooltip"></div>
 
   <script src="otak_script.js"></script>
   <script src="otak_texts.js"></script>
