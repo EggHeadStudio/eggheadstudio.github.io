@@ -80,6 +80,7 @@ textarea {
     background-color: #fffcfc;
     border-radius: 5px;
     resize: none;
+    -webkit-text-spellcheck: false;
 }
 
 .pisteytys {
@@ -135,3 +136,32 @@ button:hover {
                 2px 2px 4px #ffffff,
                 -2px -2px 4px #a1a1a1ab;
 }
+
+.tooltip {
+    position: fixed;
+    top: 0px;
+    left: 50%;
+    width: 95%;
+    height: 30px;
+    transform: translate(-50%, -50%);
+    background-color: rgba(0, 0, 0, 0.5);
+    color: #222829;
+    font-size: 14px;
+    font-weight: bold;
+    text-align: center;
+    padding: 20px 10px 0px 10px;
+    border-radius: 0px 0px 10px 10px;
+    z-index: 1000;
+    box-shadow:  8px 8px 20px #38494d,
+                 -8px -8px 20px #383737;
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    transition: opacity 0.5s ease-in-out ,top 0.5s ease-in-out;
+    opacity: 0;
+    pointer-events: none; /* Estää työkaluvihjeen napsauttamisen */
+  }
+
+  .tooltip.show {
+    top: 20px;
+    opacity: 1;
+  }
