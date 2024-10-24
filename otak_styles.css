@@ -13,24 +13,28 @@ body {
     background: #eaeff0;
     border: none;
     outline: none;
-    box-shadow:  9px 9px 16px #d4d9da,
-                 -9px -9px 16px #ffffff;
+    box-shadow: 9px 9px 16px #d4d9da,
+        -9px -9px 16px #ffffff;
     transition: 0.5s ease;
 }
-#projektin_nimi:hover{
+
+#projektin_nimi:hover {
     margin-left: 10px;
     background: #ffffff;
-    box-shadow:  12px 12px 24px #b3bbbd,
-                 -12px -12px 24px #ffffff;
+    box-shadow: 12px 12px 24px #b3bbbd,
+        -12px -12px 24px #ffffff;
 }
+
 :has(#projektin_nimi:hover) body {
-    background-color: #e3e8e9; /* Change this to your desired color */
+    background-color: #e3e8e9;
+    /* Change this to your desired color */
 }
-#projektin_nimi:focus{
+
+#projektin_nimi:focus {
     margin-left: 10px;
     background: #ffffff;
-    box-shadow:  12px 12px 24px #b3bbbd,
-                 -12px -12px 24px #ffffff;
+    box-shadow: 12px 12px 24px #b3bbbd,
+        -12px -12px 24px #ffffff;
 }
 
 h2 {
@@ -44,19 +48,21 @@ h2 {
     margin-bottom: 30px;
     border-radius: 10px;
     background: #ecf1f2;
-    box-shadow:  9px 9px 16px #d4d9da,
-                 -9px -9px 16px #ffffff;
+    box-shadow: 9px 9px 16px #d4d9da,
+        -9px -9px 16px #ffffff;
     transition: 0.5s ease;
 }
 
-.osio:hover{
+.osio:hover {
     margin-left: 10px;
     background: #d9e9ec;
-    box-shadow:  12px 12px 24px #b3bbbd,
-                 -12px -12px 24px #ffffff;
+    box-shadow: 12px 12px 24px #b3bbbd,
+        -12px -12px 24px #ffffff;
 }
+
 :has(.osio:hover) body {
-    background-color: #e3e8e9; /* Change this to your desired color */
+    background-color: #e3e8e9;
+    /* Change this to your desired color */
 }
 
 .kysymys {
@@ -94,10 +100,13 @@ textarea {
     height: 15px;
     transition: 0.3s ease;
 }
+
 input[type="radio"] {
-    accent-color: #004d70; /* Change this to your desired color */
+    accent-color: #004d70;
+    /* Change this to your desired color */
 }
-.pisteytys input:hover{
+
+.pisteytys input:hover {
     width: 20px;
     height: 20px;
 }
@@ -121,8 +130,8 @@ button {
     font-weight: bold;
     color: #ececec;
     background: #617780;
-    box-shadow:  4px 4px 6px #a1a1a1,
-                -4px -4px 6px #ffffff;
+    box-shadow: 4px 4px 6px #a1a1a1,
+        -4px -4px 6px #ffffff;
     border: none;
     padding: 10px 20px 10px 20px;
     border-radius: 5px;
@@ -132,9 +141,9 @@ button {
 button:hover {
     background: #004d70;
     box-shadow: inset 4px 4px 12px #002130,
-                inset -4px -4px 6px #0774a7,
-                2px 2px 4px #ffffff,
-                -2px -2px 4px #a1a1a1ab;
+        inset -4px -4px 6px #0774a7,
+        2px 2px 4px #ffffff,
+        -2px -2px 4px #a1a1a1ab;
 }
 
 .tooltip {
@@ -152,29 +161,40 @@ button:hover {
     padding: 20px 10px 0px 10px;
     border-radius: 0px 0px 10px 10px;
     z-index: 1000;
-    box-shadow:  8px 8px 20px #38494d,
-                 -8px -8px 20px #383737;
+    box-shadow: 8px 8px 20px #38494d,
+        -8px -8px 20px #383737;
     backdrop-filter: blur(3px);
     -webkit-backdrop-filter: blur(3px);
-    transition: opacity 0.5s ease-in-out ,top 0.5s ease-in-out;
+    transition: opacity 0.5s ease-in-out, top 0.5s ease-in-out;
     opacity: 0;
-    pointer-events: none; /* Estää työkaluvihjeen napsauttamisen */
-  }
+    pointer-events: none;
+    /* Estää työkaluvihjeen napsauttamisen */
+}
 
-  .tooltip.show {
+.tooltip.show {
     top: 20px;
     opacity: 1;
-  }
+}
 
-  @media (max-width: 600px) { /* Sääntöjä näytöille, joiden leveys on enintään 600px */
+input,
+textarea,
+button {
+    touch-action: none;
+}
+
+@media (max-width: 600px) {
+
+    /* Sääntöjä näytöille, joiden leveys on enintään 600px */
     body {
-      padding: 5px;
-      font-size: 10px;
+        padding: 5px;
+        font-size: 10px;
     }
+
     h2 {
         font-size: 18px;
     }
+
     .otsikkoK {
         font-size: 12px;
     }
-  }
+}
