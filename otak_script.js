@@ -24,11 +24,11 @@ document.addEventListener('DOMContentLoaded', () => {
     osiot.forEach(osio => {
         const vastaukset = osio.querySelectorAll('.kysymys');
         let kokonaispisteet = 0;
-        let osionPisteet = 0; 
+        let osionPisteet = 0;
 
         vastaukset.forEach(vastaus => {
             const pisteet = vastaus.querySelector('input[type="radio"]:checked')?.value || 0;
-            osionPisteet += parseInt(pisteet); 
+            osionPisteet += parseInt(pisteet);
         });
         osiot.forEach(osio => {
             kokonaispisteet += parseInt(osio.querySelector('.osio-yhteispisteet span').textContent);
@@ -65,3 +65,42 @@ function autoResize() {
 function nollaaRaportti() {
     window.location.href = window.location.href;
 }
+
+// tooltip teksti:
+const radioButtons = document.querySelectorAll('input[type="radio"]');
+const tooltip = document.getElementById('tooltip');
+
+const colors = {
+    0: '#00000050',
+    1: '#ff000050',
+    2: '#ffa70050',
+    3: '#fff40050',
+    4: '#a3ff0050',
+    5: '#2cba0050'
+};
+
+radioButtons.forEach(radioButton => {
+    radioButton.addEventListener('click', () => {
+        tooltip.textContent = radioButton.title;
+        tooltip.style.backgroundColor = colors[radioButton.value];
+        tooltip.classList.add('show');
+        // Aseta ajastin piilottamaan työkaluvihje 3 sekunnin kuluttua
+        setTimeout(() => {
+            tooltip.classList.remove('show');
+        }, 3000); // 3000 millisekuntia = 3 sekuntia
+    });
+});
+
+// Piilota työkaluvihje, kun painiketta ei enää paineta
+tooltip.addEventListener('transitionend', () => {
+    if (!tooltip.classList.contains('show')) {
+        tooltip.textContent = '';
+    }
+});
+
+document.addEventListener('click', (event) => {
+    // Tarkista, onko klikattu työkaluvihjeen ulkopuolella
+    if (!tooltip.contains(event.target) && !Array.from(radioButtons).includes(event.target)) {
+        tooltip.classList.remove('show');
+    }
+});
