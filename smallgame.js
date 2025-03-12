@@ -21,13 +21,13 @@ let gameLoop
 let player
 let terrain = []
 let bombs = []
-const enemies = []
-const apples = []
-const thrownApples = []
-const explosions = []
+let enemies = []
+let apples = []
+let thrownApples = []
+let explosions = []
 const camera = { x: 0, y: 0 }
-const keys = {}
-const mousePosition = { x: 0, y: 0 }
+let keys = {}
+let mousePosition = { x: 0, y: 0 }
 let isGrabbing = false
 let grabbedBomb = null
 let gameOver = false
@@ -43,6 +43,27 @@ let lastEnemySpawnTime = 0
 
 // Initialize the game
 function init() {
+  // Reset all game state
+  gameOver = false
+  isGrabbing = false
+  grabbedBomb = null
+  bombs = []
+  enemies = []
+  apples = []
+  thrownApples = []
+  explosions = []
+  keys = {}
+  mousePosition = { x: 0, y: 0 }
+  joystickActive = false
+  joystickAngle = 0
+  joystickDistance = 0
+
+  // Cancel any existing game loop
+  if (gameLoop) {
+    cancelAnimationFrame(gameLoop)
+    gameLoop = null
+  }
+
   canvas = document.getElementById("gameCanvas")
   ctx = canvas.getContext("2d")
 
@@ -78,9 +99,6 @@ function init() {
   // Set up event listeners
   setupEventListeners()
 
-  // Start game loop
-  gameLoop = requestAnimationFrame(update)
-
   // Reset game over screen
   document.getElementById("gameOver").classList.remove("active")
 
@@ -88,6 +106,9 @@ function init() {
 
   // Initialize last enemy spawn time
   lastEnemySpawnTime = Date.now()
+
+  // Start game loop
+  gameLoop = requestAnimationFrame(update)
 }
 
 // Resize canvas to fit container
@@ -130,7 +151,19 @@ function setupEventListeners() {
   })
 
   // Restart button
-  document.getElementById("restartButton").addEventListener("click", init)
+  document.getElementById("restartButton").addEventListener("click", restartGame)
+}
+
+// Restart the game
+function restartGame() {
+  // Make sure to cancel the current game loop
+  if (gameLoop) {
+    cancelAnimationFrame(gameLoop)
+    gameLoop = null
+  }
+
+  // Reset game state and start a new game
+  init()
 }
 
 function setupMobileControls() {
@@ -364,7 +397,6 @@ function generateTerrain() {
 
 // Generate bombs
 function generateBombs(count) {
-  bombs = []
   for (let i = 0; i < count; i++) {
     const bomb = {
       x: Math.random() * (terrain[0].length * TILE_SIZE),
@@ -545,7 +577,7 @@ function createExplosion(x, y, radius) {
     updateHealthDisplay()
     gameOver = true
     document.getElementById("gameOver").classList.add("active")
-    cancelAnimationFrame(gameLoop)
+    // Don't cancel the game loop here, let it continue to render the game over screen
   }
 }
 
@@ -631,35 +663,42 @@ function updateHealthDisplay() {
 
 // Main game update loop
 function update() {
-  if (gameOver) {
-    return
-  }
-
-  if (isMobile) {
-    const joystickContainer = document.querySelector(".joystick-container")
-    const containerRect = joystickContainer.getBoundingClientRect()
-    joystickOrigin = {
-      x: containerRect.left + containerRect.width / 2,
-      y: containerRect.top + containerRect.height / 2,
-    }
-  }
-
   // Clear canvas
   ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-  // Update player direction based on mouse position
-  if (isMobile && joystickActive && joystickDistance > 0.1) {
-    player.direction = joystickAngle
-  } else {
-    player.direction = Math.atan2(mousePosition.y - canvas.height / 2, mousePosition.x - canvas.width / 2)
+  if (!gameOver) {
+    if (isMobile) {
+      const joystickContainer = document.querySelector(".joystick-container")
+      const containerRect = joystickContainer.getBoundingClientRect()
+      joystickOrigin = {
+        x: containerRect.left + containerRect.width / 2,
+        y: containerRect.top + containerRect.height / 2,
+      }
+    }
+
+    // Update player direction based on mouse position
+    if (isMobile && joystickActive && joystickDistance > 0.1) {
+      player.direction = joystickAngle
+    } else {
+      player.direction = Math.atan2(mousePosition.y - canvas.height / 2, mousePosition.x - canvas.width / 2)
+    }
+
+    // Update player position based on keyboard input
+    updatePlayerPosition()
+
+    // Update camera position
+    camera.x = player.x - canvas.width / 2
+    camera.y = player.y - canvas.height / 2
+
+    // Spawn new enemies
+    spawnEnemies()
+
+    // Generate more apples as needed
+    maintainGameElements()
+
+    // Check for collisions
+    checkCollisions()
   }
-
-  // Update player position based on keyboard input
-  updatePlayerPosition()
-
-  // Update camera position
-  camera.x = player.x - canvas.width / 2
-  camera.y = player.y - canvas.height / 2
 
   // Draw terrain
   drawTerrain()
@@ -681,15 +720,6 @@ function update() {
 
   // Draw player
   drawPlayer()
-
-  // Check for collisions
-  checkCollisions()
-
-  // Spawn new enemies
-  spawnEnemies()
-
-  // Generate more apples as needed
-  maintainGameElements()
 
   // Continue game loop
   gameLoop = requestAnimationFrame(update)
@@ -965,7 +995,9 @@ function drawAndUpdateEnemies() {
     const canSeePlayer = distanceToPlayer < 300 // Detection radius
 
     // Update enemy movement
-    updateEnemyMovement(enemy, canSeePlayer)
+    if (!gameOver) {
+      updateEnemyMovement(enemy, canSeePlayer)
+    }
 
     const screenX = enemy.x - camera.x
     const screenY = enemy.y - camera.y
@@ -1161,9 +1193,11 @@ function drawAndUpdateThrownApples() {
   for (let i = 0; i < thrownApples.length; i++) {
     const apple = thrownApples[i]
 
-    // Update apple position
-    apple.x += apple.velocityX
-    apple.y += apple.velocityY
+    // Update apple position if game is not over
+    if (!gameOver) {
+      apple.x += apple.velocityX
+      apple.y += apple.velocityY
+    }
 
     const screenX = apple.x - camera.x
     const screenY = apple.y - camera.y
@@ -1298,6 +1332,8 @@ function drawAndUpdateExplosions() {
 
 // Draw player
 function drawPlayer() {
+  if (gameOver) return // Don't draw player if game is over
+
   const screenX = canvas.width / 2
   const screenY = canvas.height / 2
 
@@ -1441,7 +1477,6 @@ function checkCollisions() {
         if (player.health <= 0) {
           gameOver = true
           document.getElementById("gameOver").classList.add("active")
-          cancelAnimationFrame(gameLoop)
         }
       }
     }
