@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Top-Down Adventure</title>
+  <link rel="stylesheet" href="smallgame.css">
+</head>
+<body>
+  <div class="game-container">
+    <canvas id="gameCanvas"></canvas>
+    <div class="ui-container">
+      <div class="health-container">
+        <div class="health-label">Health:</div>
+        <div class="health-hearts">
+          <div class="heart"></div>
+          <div class="heart"></div>
+          <div class="heart"></div>
+        </div>
+      </div>
+      <div class="apple-counter">
+        <div class="apple-icon"></div>
+        <div id="appleCount">0</div>
+      </div>
+    </div>
+    <div id="gameOver" class="game-over">
+      <div class="game-over-content">
+        <h2>Game Over</h2>
+        <p>You were defeated!</p>
+        <button id="restartButton">Play Again</button>
+      </div>
+    </div>
+    <div class="mobile-controls">
+      <div class="joystick-container">
+        <div class="joystick-knob"></div>
+      </div>
+      <div class="action-buttons">
+        <div class="action-button button-a">A</div>
+        <div class="action-button button-b">B</div>
+      </div>
+    </div>
+    
+    <div class="portrait-warning">
+      <div class="portrait-warning-content">
+        <h2>Rotate Your Device</h2>
+        <p>Please rotate your device to portrait mode for the best gaming experience.</p>
+        <button id="dismissWarning">Continue Anyway</button>
+      </div>
+    </div>
+  </div>
+  <script src="smallgame.js"></script>
+</body>
+</html>
