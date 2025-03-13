@@ -1190,6 +1190,7 @@ function drawAndUpdateRocks() {
 
 // Standardize shadow proportions for all objects
 // Modify the createShadow function to match shape of the object it's shadowing
+// Modify the createShadow function to ensure all shadow types have soft edges
 function createShadow(ctx, x, y, objectSize, shape = "circle", rect = null, rotation = 0) {
   // Save context for transformations
   ctx.save()
@@ -1202,28 +1203,30 @@ function createShadow(ctx, x, y, objectSize, shape = "circle", rect = null, rota
     y = 0
   }
 
-  if (shape === "circle") {
-    // Circular shadow with gradient
-    const shadowGradient = ctx.createRadialGradient(x, y, objectSize * 0.5, x, y, objectSize * 1.2)
-    shadowGradient.addColorStop(0, "rgba(0, 0, 0, 0.5)")
-    shadowGradient.addColorStop(1, "rgba(0, 0, 0, 0)")
+  // Create a consistent shadow gradient for all shapes
+  const shadowGradient = ctx.createRadialGradient(
+    x,
+    y,
+    objectSize * 0.3, // Inner radius smaller for softer gradient
+    x,
+    y,
+    objectSize * 1.4, // Outer radius larger for more spread
+  )
+  shadowGradient.addColorStop(0, "rgba(0, 0, 0, 0.5)")
+  shadowGradient.addColorStop(1, "rgba(0, 0, 0, 0)")
 
-    ctx.fillStyle = shadowGradient
+  ctx.fillStyle = shadowGradient
+
+  if (shape === "circle") {
+    // Circular shadow
     ctx.beginPath()
     ctx.arc(x, y, objectSize * 1.2, 0, Math.PI * 2)
     ctx.fill()
   } else if (shape === "rectangle") {
     // Rounded rectangle shadow with gradient
-    const width = rect.width
-    const height = rect.height
+    const width = rect.width * 1.3 // Make shadow slightly larger
+    const height = rect.height * 1.3
     const radius = rect.radius
-
-    // Create gradient for rectangle shadow
-    const shadowGradient = ctx.createRadialGradient(x, y, objectSize * 0.5, x, y, Math.max(width, height) * 0.7)
-    shadowGradient.addColorStop(0, "rgba(0, 0, 0, 0.5)")
-    shadowGradient.addColorStop(1, "rgba(0, 0, 0, 0)")
-
-    ctx.fillStyle = shadowGradient
 
     // Draw rounded rectangle shadow
     ctx.beginPath()
@@ -1240,18 +1243,11 @@ function createShadow(ctx, x, y, objectSize, shape = "circle", rect = null, rota
     ctx.fill()
   } else if (shape === "polygon") {
     // Polygon shadow for angular rocks
-    const shadowGradient = ctx.createRadialGradient(x, y, objectSize * 0.5, x, y, objectSize * 1.2)
-    shadowGradient.addColorStop(0, "rgba(0, 0, 0, 0.5)")
-    shadowGradient.addColorStop(1, "rgba(0, 0, 0, 0)")
-
-    ctx.fillStyle = shadowGradient
-
-    // Draw polygon shadow
     ctx.beginPath()
     // Use the same vertices as in drawAndUpdateRocks for angular rocks
     for (let j = 0; j < 7; j++) {
       const angle = (j * Math.PI * 2) / 7
-      const radius = objectSize * (0.7 + Math.sin(j * 5) * 0.1) * 1.2 // Slightly larger shadow
+      const radius = objectSize * (0.7 + Math.sin(j * 5) * 0.1) * 1.4 // Larger shadow
       if (j === 0) {
         ctx.moveTo(x + Math.cos(angle) * radius, y + Math.sin(angle) * radius)
       } else {
@@ -1262,15 +1258,8 @@ function createShadow(ctx, x, y, objectSize, shape = "circle", rect = null, rota
     ctx.fill()
   } else if (shape === "oval") {
     // Oval shadow for oval rocks
-    const shadowGradient = ctx.createRadialGradient(x, y, objectSize * 0.5, x, y, objectSize * 1.2)
-    shadowGradient.addColorStop(0, "rgba(0, 0, 0, 0.5)")
-    shadowGradient.addColorStop(1, "rgba(0, 0, 0, 0)")
-
-    ctx.fillStyle = shadowGradient
-
-    // Draw oval shadow
     ctx.beginPath()
-    ctx.ellipse(x, y, objectSize * 0.85 * 1.2, objectSize * 0.65 * 1.2, 0, 0, Math.PI * 2)
+    ctx.ellipse(x, y, objectSize * 0.85 * 1.4, objectSize * 0.65 * 1.4, 0, 0, Math.PI * 2)
     ctx.fill()
   }
 
@@ -1543,6 +1532,7 @@ function drawAndUpdateApples() {
 }
 
 // Modify the drawAndUpdateBombs function to add shadows
+// Modify the drawAndUpdateBombs function to ensure bomb shadows are visible
 function drawAndUpdateBombs() {
   for (let i = bombs.length - 1; i >= 0; i--) {
     const bomb = bombs[i]
@@ -1566,7 +1556,8 @@ function drawAndUpdateBombs() {
     }
 
     // Draw shadow using shape-specific shadow for rounded rectangle
-    createShadow(ctx, screenX, screenY, bomb.size, "rectangle", {
+    // Increase shadow size for better visibility
+    createShadow(ctx, screenX, screenY, bomb.size * 1.2, "rectangle", {
       width: bomb.size,
       height: bomb.size,
       radius: bomb.size / 4,
@@ -2337,4 +2328,21 @@ function drawAndUpdateExplosions() {
 const handleButtonAEnd = (e) => {
   buttonAActive = false
   e.target.classList.remove("button-active")
+}
+
+// Fix the detonateAnyBombWithCountdown function to ensure it works properly
+function detonateAnyBombWithCountdown() {
+  for (let i = 0; i < bombs.length; i++) {
+    const bomb = bombs[i]
+
+    // Only consider bombs that are counting down
+    if (bomb.countdown !== null) {
+      // Detonate the bomb immediately
+      const explosionRadius = 100 + Math.random() * 50
+      createExplosion(bomb.x, bomb.y, explosionRadius)
+      bombs.splice(i, 1)
+      return true
+    }
+  }
+  return false
 }
