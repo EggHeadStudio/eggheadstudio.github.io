@@ -15,6 +15,10 @@ const TERRAIN_TYPES = {
   DIRT: 3,
 }
 
+// Add rock constants after the existing game constants
+const ROCK_SIZE = 50 // Slightly larger than bombs
+const ROCK_COUNT = 100 // Initial number of rocks
+
 // Game state
 let canvas, ctx
 let gameLoop
@@ -30,6 +34,10 @@ let keys = {}
 let mousePosition = { x: 0, y: 0 }
 let isGrabbing = false
 let grabbedBomb = null
+// Add grabbedRock to the game state variables after grabbedBomb
+let grabbedRock = null
+// Add rocks array to the game state variables
+let rocks = []
 let gameOver = false
 let isMobile = false
 let joystickActive = false
@@ -40,18 +48,26 @@ const joystickPosition = { x: 0, y: 0 }
 let buttonAActive = false
 let buttonBActive = false
 let lastEnemySpawnTime = 0
+let startTime = 0
+let elapsedTime = 0
+let timerInterval = null
+let keyboardListenersSet = false
+let mouseListenersSet = false
+let restartButtonListenerSet = false
 
-// Initialize the game
+// Modify the init function to reset rocks and grabbedRock
 function init() {
   // Reset all game state
   gameOver = false
   isGrabbing = false
   grabbedBomb = null
+  grabbedRock = null
   bombs = []
   enemies = []
   apples = []
   thrownApples = []
   explosions = []
+  rocks = []
   keys = {}
   mousePosition = { x: 0, y: 0 }
   joystickActive = false
@@ -69,7 +85,12 @@ function init() {
 
   // Set canvas size to match container
   resizeCanvas()
-  window.addEventListener("resize", resizeCanvas)
+
+  // Only add resize listener once
+  if (!window.hasResizeListener) {
+    window.addEventListener("resize", resizeCanvas)
+    window.hasResizeListener = true
+  }
 
   // Initialize player
   player = {
@@ -88,7 +109,10 @@ function init() {
   generateTerrain()
 
   // Generate initial bombs
-  generateBombs(15)
+  generateBombs(25)
+
+  // Generate initial rocks
+  generateRocks(ROCK_COUNT)
 
   // Generate initial enemies
   generateEnemies(10)
@@ -107,6 +131,14 @@ function init() {
   // Initialize last enemy spawn time
   lastEnemySpawnTime = Date.now()
 
+  // Initialize timer
+  startTime = Date.now()
+  elapsedTime = 0
+  if (timerInterval) {
+    clearInterval(timerInterval)
+  }
+  timerInterval = setInterval(updateTimer, 1000)
+
   // Start game loop
   gameLoop = requestAnimationFrame(update)
 }
@@ -120,38 +152,83 @@ function resizeCanvas() {
 
 // Set up event listeners for keyboard and mouse
 function setupEventListeners() {
+  // Remove existing keyboard listeners to prevent duplicates
+  if (keyboardListenersSet) {
+    window.removeEventListener("keydown", handleKeyDown)
+    window.removeEventListener("keyup", handleKeyUp)
+  }
+
   // Keyboard events
-  window.addEventListener("keydown", (e) => {
-    keys[e.key] = true
+  window.addEventListener("keydown", handleKeyDown)
+  window.addEventListener("keyup", handleKeyUp)
+  keyboardListenersSet = true
 
-    // Space bar for grabbing bombs
-    if (e.key === " " && !isGrabbing && !grabbedBomb) {
-      tryGrabBomb()
-    } else if (e.key === " " && isGrabbing && grabbedBomb) {
-      releaseBomb()
-    }
-  })
-
-  window.addEventListener("keyup", (e) => {
-    keys[e.key] = false
-  })
+  // Remove existing mouse listeners to prevent duplicates
+  if (mouseListenersSet) {
+    canvas.removeEventListener("mousemove", handleMouseMove)
+    canvas.removeEventListener("mousedown", handleMouseDown)
+  }
 
   // Mouse events
-  canvas.addEventListener("mousemove", (e) => {
-    const rect = canvas.getBoundingClientRect()
-    mousePosition.x = e.clientX - rect.left
-    mousePosition.y = e.clientY - rect.top
-  })
-
-  canvas.addEventListener("mousedown", (e) => {
-    if (e.button === 0) {
-      // Left mouse button
-      throwApple()
-    }
-  })
+  canvas.addEventListener("mousemove", handleMouseMove)
+  canvas.addEventListener("mousedown", handleMouseDown)
+  mouseListenersSet = true
 
   // Restart button
-  document.getElementById("restartButton").addEventListener("click", restartGame)
+  const restartButton = document.getElementById("restartButton")
+  if (restartButtonListenerSet) {
+    restartButton.removeEventListener("click", restartGame)
+  }
+  restartButton.addEventListener("click", restartGame)
+  restartButtonListenerSet = true
+}
+
+// Handle keyboard input
+function handleKeyDown(e) {
+  keys[e.key] = true
+
+  // Space bar for grabbing/releasing bombs or rocks, or detonating bombs
+  if (e.key === " ") {
+    if (isGrabbing) {
+      // If holding something, release it
+      if (grabbedBomb) {
+        releaseBomb()
+      } else if (grabbedRock) {
+        releaseRock()
+      }
+    } else {
+      // If not holding anything, try to detonate a bomb with countdown
+      if (!detonateAnyBombWithCountdown()) {
+        // If no bomb to detonate, try to grab a bomb
+        if (!tryGrabBomb()) {
+          // If no bomb to grab, try to grab a rock
+          tryGrabRock()
+        }
+      }
+    }
+    // Prevent space from scrolling the page
+    e.preventDefault()
+  }
+}
+
+// Handle keyboard key release
+function handleKeyUp(e) {
+  keys[e.key] = false
+}
+
+// Handle mouse movement
+function handleMouseMove(e) {
+  const rect = canvas.getBoundingClientRect()
+  mousePosition.x = e.clientX - rect.left
+  mousePosition.y = e.clientY - rect.top
+}
+
+// Handle mouse clicks
+function handleMouseDown(e) {
+  if (e.button === 0) {
+    // Left mouse button
+    throwApple()
+  }
 }
 
 // Restart the game
@@ -164,6 +241,14 @@ function restartGame() {
 
   // Reset game state and start a new game
   init()
+
+  // Reset timer
+  startTime = Date.now()
+  elapsedTime = 0
+  if (timerInterval) {
+    clearInterval(timerInterval)
+  }
+  timerInterval = setInterval(updateTimer, 1000)
 }
 
 function setupMobileControls() {
@@ -174,12 +259,20 @@ function setupMobileControls() {
 
   // Check orientation
   checkOrientation()
-  window.addEventListener("resize", checkOrientation)
 
-  // Dismiss warning button
-  document.getElementById("dismissWarning").addEventListener("click", () => {
-    document.querySelector(".portrait-warning").style.display = "none"
-  })
+  // Only add orientation listener once
+  if (!window.hasOrientationListener) {
+    window.addEventListener("resize", checkOrientation)
+    window.hasOrientationListener = true
+  }
+
+  // Dismiss warning button - only set once
+  if (!window.hasDismissWarningListener) {
+    document.getElementById("dismissWarning").addEventListener("click", () => {
+      document.querySelector(".portrait-warning").style.display = "none"
+    })
+    window.hasDismissWarningListener = true
+  }
 
   const joystickContainer = document.querySelector(".joystick-container")
   const joystickKnob = document.querySelector(".joystick-knob")
@@ -193,99 +286,128 @@ function setupMobileControls() {
     y: joystickRect.top + joystickRect.height / 2,
   }
 
+  // Remove existing touch listeners to prevent duplicates
+  joystickContainer.removeEventListener("touchstart", handleJoystickStart)
+  document.removeEventListener("touchmove", handleJoystickMove)
+  document.removeEventListener("touchend", handleJoystickEnd)
+  buttonA.removeEventListener("touchstart", handleButtonAStart)
+  buttonA.removeEventListener("touchend", handleButtonAEnd)
+  buttonB.removeEventListener("touchstart", handleButtonBStart)
+  buttonB.removeEventListener("touchend", handleButtonBEnd)
+
   // Joystick touch events
-  joystickContainer.addEventListener("touchstart", (e) => {
-    e.preventDefault()
-    joystickActive = true
-    updateJoystickPosition(e.touches[0])
-  })
-
-  document.addEventListener("touchmove", (e) => {
-    if (joystickActive) {
-      e.preventDefault()
-      updateJoystickPosition(e.touches[0])
-    }
-  })
-
-  document.addEventListener("touchend", (e) => {
-    if (joystickActive) {
-      joystickActive = false
-      joystickKnob.style.transform = "translate(0, 0)"
-      joystickAngle = 0
-      joystickDistance = 0
-    }
-  })
+  joystickContainer.addEventListener("touchstart", handleJoystickStart)
+  document.addEventListener("touchmove", handleJoystickMove)
+  document.addEventListener("touchend", handleJoystickEnd)
 
   // Button A (grab/release) touch events
-  buttonA.addEventListener("touchstart", (e) => {
-    e.preventDefault()
-    buttonAActive = true
-    buttonA.classList.add("button-active")
+  buttonA.addEventListener("touchstart", handleButtonAStart)
+  buttonA.addEventListener("touchend", handleButtonAEnd)
 
-    // Trigger grab/release action
-    if (!isGrabbing && !grabbedBomb) {
-      tryGrabBomb()
-    } else if (isGrabbing && grabbedBomb) {
+  // Button B (throw apple or detonate bomb) touch events
+  buttonB.addEventListener("touchstart", handleButtonBStart)
+  buttonB.addEventListener("touchend", handleButtonBEnd)
+}
+
+// Joystick handlers
+function handleJoystickStart(e) {
+  e.preventDefault()
+  joystickActive = true
+  updateJoystickPosition(e.touches[0])
+}
+
+function handleJoystickMove(e) {
+  if (joystickActive) {
+    e.preventDefault()
+    updateJoystickPosition(e.touches[0])
+  }
+}
+
+function handleJoystickEnd(e) {
+  if (joystickActive) {
+    joystickActive = false
+    const joystickKnob = document.querySelector(".joystick-knob")
+    joystickKnob.style.transform = "translate(-50%, -50%)"
+    joystickAngle = 0
+    joystickDistance = 0
+  }
+}
+
+// Button A handlers
+function handleButtonAStart(e) {
+  e.preventDefault()
+  buttonAActive = true
+  e.target.classList.add("button-active")
+
+  // Trigger grab/release action
+  if (isGrabbing) {
+    // If holding something, release it
+    if (grabbedBomb) {
       releaseBomb()
+    } else if (grabbedRock) {
+      releaseRock()
     }
-  })
-
-  buttonA.addEventListener("touchend", (e) => {
-    buttonAActive = false
-    buttonA.classList.remove("button-active")
-  })
-
-  // Button B (throw apple) touch events
-  buttonB.addEventListener("touchstart", (e) => {
-    e.preventDefault()
-    buttonBActive = true
-    buttonB.classList.add("button-active")
-
-    // Throw apple
-    throwApple()
-  })
-
-  buttonB.addEventListener("touchend", (e) => {
-    buttonBActive = false
-    buttonB.classList.remove("button-active")
-  })
-
-  // Update joystick position and calculate angle/distance
-  function updateJoystickPosition(touch) {
-    const containerRect = joystickContainer.getBoundingClientRect()
-    joystickOrigin = {
-      x: containerRect.left + containerRect.width / 2,
-      y: containerRect.top + containerRect.height / 2,
-    }
-
-    const touchX = touch.clientX
-    const touchY = touch.clientY
-
-    // Calculate distance from center
-    const deltaX = touchX - joystickOrigin.x
-    const deltaY = touchY - joystickOrigin.y
-    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY)
-
-    // Limit distance to joystick radius
-    const maxDistance = containerRect.width / 2
-    const limitedDistance = Math.min(distance, maxDistance)
-
-    // Calculate angle
-    joystickAngle = Math.atan2(deltaY, deltaX)
-    joystickDistance = limitedDistance / maxDistance // Normalize to 0-1
-
-    // Calculate limited position
-    const limitedX = Math.cos(joystickAngle) * limitedDistance
-    const limitedY = Math.sin(joystickAngle) * limitedDistance
-
-    // Update knob position - fix the centering by using transform translate
-    joystickKnob.style.transform = `translate(calc(${limitedX}px), calc(${limitedY}px))`
-
-    // Reset the joystick knob position when inactive
-    if (!joystickActive) {
-      joystickKnob.style.transform = "translate(0, 0)"
+  } else {
+    // If not holding anything, try to grab a bomb
+    if (!tryGrabBomb()) {
+      // If no bomb to grab, try to grab a rock
+      tryGrabRock()
     }
   }
+}
+
+// Button B handlers
+function handleButtonBStart(e) {
+  e.preventDefault()
+  buttonBActive = true
+  e.target.classList.add("button-active")
+
+  // First try to detonate any bomb with countdown
+  if (!detonateAnyBombWithCountdown()) {
+    // If no bomb to detonate, throw an apple
+    throwApple()
+  }
+}
+
+function handleButtonBEnd(e) {
+  buttonBActive = false
+  e.target.classList.remove("button-active")
+}
+
+// Update joystick position and calculate angle/distance
+function updateJoystickPosition(touch) {
+  const joystickContainer = document.querySelector(".joystick-container")
+  const joystickKnob = document.querySelector(".joystick-knob")
+  const containerRect = joystickContainer.getBoundingClientRect()
+
+  joystickOrigin = {
+    x: containerRect.left + containerRect.width / 2,
+    y: containerRect.top + containerRect.height / 2,
+  }
+
+  const touchX = touch.clientX
+  const touchY = touch.clientY
+
+  // Calculate distance from center
+  const deltaX = touchX - joystickOrigin.x
+  const deltaY = touchY - joystickOrigin.y
+  const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY)
+
+  // Limit distance to joystick radius
+  const maxDistance = containerRect.width / 2
+  const limitedDistance = Math.min(distance, maxDistance)
+
+  // Calculate angle
+  joystickAngle = Math.atan2(deltaY, deltaX)
+  joystickDistance = limitedDistance / maxDistance // Normalize to 0-1
+
+  // Calculate limited position
+  const limitedX = Math.cos(joystickAngle) * limitedDistance
+  const limitedY = Math.sin(joystickAngle) * limitedDistance
+
+  // Update knob position with proper centering
+  // First translate to center, then apply the offset
+  joystickKnob.style.transform = `translate(calc(-50% + ${limitedX}px), calc(-50% + ${limitedY}px))`
 }
 
 function checkOrientation() {
@@ -424,6 +546,86 @@ function generateBombs(count) {
   }
 }
 
+// Add this new function for generating rocks
+function generateRocks(count) {
+  for (let i = 0; i < count; i++) {
+    const rock = {
+      x: Math.random() * (terrain[0].length * TILE_SIZE),
+      y: Math.random() * (terrain.length * TILE_SIZE),
+      size: ROCK_SIZE,
+      texture: Math.floor(Math.random() * 3), // 0, 1, or 2 for different rock textures
+      rotation: Math.random() * Math.PI * 2, // Random rotation for variety
+    }
+
+    // Ensure rock is not on water and not overlapping with other objects
+    const tileX = Math.floor(rock.x / TILE_SIZE)
+    const tileY = Math.floor(rock.y / TILE_SIZE)
+
+    let validPosition = false
+    if (
+      tileX >= 0 &&
+      tileX < terrain[0].length &&
+      tileY >= 0 &&
+      tileY < terrain.length &&
+      terrain[tileY][tileX] !== TERRAIN_TYPES.WATER
+    ) {
+      // Check for overlap with other rocks
+      validPosition = true
+      for (const otherRock of rocks) {
+        if (getDistance(rock.x, rock.y, otherRock.x, otherRock.y) < rock.size + otherRock.size) {
+          validPosition = false
+          break
+        }
+      }
+
+      // Check for overlap with bombs
+      if (validPosition) {
+        for (const bomb of bombs) {
+          if (getDistance(rock.x, rock.y, bomb.x, bomb.y) < rock.size + bomb.size) {
+            validPosition = false
+            break
+          }
+        }
+      }
+
+      // Check for overlap with apples
+      if (validPosition) {
+        for (const apple of apples) {
+          if (getDistance(rock.x, rock.y, apple.x, apple.y) < rock.size + apple.size * 2) {
+            validPosition = false
+            break
+          }
+        }
+      }
+
+      // Check for overlap with enemies
+      if (validPosition) {
+        for (const enemy of enemies) {
+          if (getDistance(rock.x, rock.y, enemy.x, enemy.y) < rock.size + enemy.size * 2) {
+            validPosition = false
+            break
+          }
+        }
+      }
+
+      // Check if too close to player
+      if (validPosition) {
+        if (getDistance(rock.x, rock.y, player.x, player.y) < rock.size + player.size + 100) {
+          validPosition = false
+        }
+      }
+    } else {
+      validPosition = false
+    }
+
+    if (validPosition) {
+      rocks.push(rock)
+    } else {
+      i-- // Try again
+    }
+  }
+}
+
 // Generate enemies
 function generateEnemies(count) {
   for (let i = 0; i < count; i++) {
@@ -504,9 +706,43 @@ function tryGrabBomb() {
       isGrabbing = true
       grabbedBomb = bomb
       bombs.splice(i, 1) // Remove from bombs array
-      return
+      return true
     }
   }
+  return false
+}
+
+// Add a function to try grabbing a rock
+function tryGrabRock() {
+  for (let i = 0; i < rocks.length; i++) {
+    const rock = rocks[i]
+    const distance = getDistance(player.x, player.y, rock.x, rock.y)
+
+    if (distance < player.size + rock.size) {
+      isGrabbing = true
+      grabbedRock = rock
+      rocks.splice(i, 1) // Remove from rocks array
+      return true
+    }
+  }
+  return false
+}
+
+// Detonate any bomb that has a countdown
+function detonateAnyBombWithCountdown() {
+  for (let i = 0; i < bombs.length; i++) {
+    const bomb = bombs[i]
+
+    // Only consider bombs that are counting down
+    if (bomb.countdown !== null) {
+      // Detonate the bomb immediately
+      const explosionRadius = 100 + Math.random() * 50
+      createExplosion(bomb.x, bomb.y, explosionRadius)
+      bombs.splice(i, 1)
+      return true
+    }
+  }
+  return false
 }
 
 // Release a grabbed bomb
@@ -517,17 +753,41 @@ function releaseBomb() {
     bombs.push(grabbedBomb)
     grabbedBomb = null
     isGrabbing = false
+    return true
   }
+  return false
+}
+
+// Add a function to release a grabbed rock
+function releaseRock() {
+  if (grabbedRock) {
+    // Calculate position in front of player based on facing direction
+    const throwDistance = player.size * 3.5 // Half a player size away
+    const newX = player.x + Math.cos(player.direction) * throwDistance
+    const newY = player.y + Math.sin(player.direction) * throwDistance
+
+    // Update rock position before releasing
+    grabbedRock.x = newX
+    grabbedRock.y = newY
+
+    rocks.push(grabbedRock)
+    grabbedRock = null
+    isGrabbing = false
+    return true
+  }
+  return false
 }
 
 // Create explosion
 function createExplosion(x, y, radius) {
-  // Create explosion object
+  // Create explosion object with larger radius
+  const explosionRadius = radius * 2 + Math.random() * 100 // Much larger and more random radius
+
   const explosion = {
     x: x,
     y: y,
-    radius: radius,
-    maxRadius: radius,
+    radius: explosionRadius,
+    maxRadius: explosionRadius,
     currentRadius: 0,
     particles: [],
     startTime: Date.now(),
@@ -536,12 +796,12 @@ function createExplosion(x, y, radius) {
   }
 
   // Create explosion particles
-  const particleCount = 30
+  const particleCount = 50 // More particles for bigger explosion
   for (let i = 0; i < particleCount; i++) {
     const angle = Math.random() * Math.PI * 2
-    const speed = 1 + Math.random() * 3
-    const size = 5 + Math.random() * 10
-    const life = 500 + Math.random() * 500
+    const speed = 1 + Math.random() * 5 // Faster particles
+    const size = 5 + Math.random() * 15 // Larger particles
+    const life = 500 + Math.random() * 800 // Longer life
 
     explosion.particles.push({
       x: x,
@@ -558,26 +818,25 @@ function createExplosion(x, y, radius) {
   explosions.push(explosion)
 
   // Modify terrain in explosion radius
-  modifyTerrainInRadius(x, y, radius)
+  modifyTerrainInRadius(x, y, explosionRadius)
 
   // Check for enemies in explosion radius
   for (let i = enemies.length - 1; i >= 0; i--) {
     const enemy = enemies[i]
     const distance = getDistance(x, y, enemy.x, enemy.y)
 
-    if (distance < radius) {
+    if (distance < explosionRadius) {
       enemies.splice(i, 1)
     }
   }
 
   // Check if player is in explosion radius
   const distanceToPlayer = getDistance(x, y, player.x, player.y)
-  if (distanceToPlayer < radius) {
+  if (distanceToPlayer < explosionRadius) {
     player.health = 0
     updateHealthDisplay()
     gameOver = true
     document.getElementById("gameOver").classList.add("active")
-    // Don't cancel the game loop here, let it continue to render the game over screen
   }
 }
 
@@ -639,9 +898,12 @@ function throwApple() {
       velocityY: Math.sin(angle) * APPLE_THROW_SPEED,
     })
 
+    // Ensure we only decrement the apple count once
     player.apples--
     updateAppleCounter()
+    return true
   }
+  return false
 }
 
 // Update apple counter in UI
@@ -703,6 +965,9 @@ function update() {
   // Draw terrain
   drawTerrain()
 
+  // Draw and update rocks
+  drawAndUpdateRocks()
+
   // Draw and update apples
   drawAndUpdateApples()
 
@@ -760,582 +1025,158 @@ function updatePlayerPosition() {
     }
   }
 
-  // Apply speed (reduced if grabbing a bomb)
+  // Apply speed (reduced if grabbing a bomb or rock)
   const currentSpeed = isGrabbing ? player.speed / 2 : player.speed
   dx *= currentSpeed
   dy *= currentSpeed
 
-  // Check if new position would be on water
+  // Check if new position would be on water or collide with a rock
   const newX = player.x + dx
   const newY = player.y + dy
   const tileX = Math.floor(newX / TILE_SIZE)
   const tileY = Math.floor(newY / TILE_SIZE)
 
+  let canMove = true
+
+  // Check terrain
   if (tileX >= 0 && tileX < terrain[0].length && tileY >= 0 && tileY < terrain.length) {
-    // Only move if not going into water
-    if (terrain[tileY][tileX] !== TERRAIN_TYPES.WATER) {
-      player.x = newX
-      player.y = newY
-
-      // Update grabbed bomb position if holding one
-      if (grabbedBomb) {
-        const angle = Math.atan2(dy, dx)
-        grabbedBomb.x = player.x + Math.cos(angle) * (player.size + grabbedBomb.size) * 0.8
-        grabbedBomb.y = player.y + Math.sin(angle) * (player.size + grabbedBomb.size) * 0.8
-      }
-    }
-  }
-}
-
-// Draw terrain
-function drawTerrain() {
-  const startX = Math.floor(camera.x / TILE_SIZE)
-  const startY = Math.floor(camera.y / TILE_SIZE)
-  const endX = startX + Math.ceil(canvas.width / TILE_SIZE) + 1
-  const endY = startY + Math.ceil(canvas.height / TILE_SIZE) + 1
-
-  for (let y = startY; y < endY; y++) {
-    for (let x = startX; x < endX; x++) {
-      if (y >= 0 && y < terrain.length && x >= 0 && x < terrain[0].length) {
-        const terrainType = terrain[y][x]
-        const screenX = x * TILE_SIZE - camera.x
-        const screenY = y * TILE_SIZE - camera.y
-
-        // Draw terrain tile
-        ctx.fillStyle = getTerrainColor(terrainType)
-        ctx.fillRect(screenX, screenY, TILE_SIZE, TILE_SIZE)
-
-        // Add some texture/detail to terrain
-        ctx.fillStyle = adjustColorBrightness(getTerrainColor(terrainType), -10)
-
-        if (terrainType === TERRAIN_TYPES.WATER) {
-          // Water ripples
-          const time = Date.now() / 1000
-          const waveOffset = Math.sin(time + x * 0.3 + y * 0.2) * 3
-
-          ctx.beginPath()
-          ctx.moveTo(screenX, screenY + TILE_SIZE / 2 + waveOffset)
-          ctx.lineTo(screenX + TILE_SIZE, screenY + TILE_SIZE / 2 - waveOffset)
-          ctx.strokeStyle = "rgba(255, 255, 255, 0.3)"
-          ctx.lineWidth = 2
-          ctx.stroke()
-        } else if (terrainType === TERRAIN_TYPES.GRASS) {
-          // Grass details
-          for (let i = 0; i < 3; i++) {
-            const grassX = screenX + Math.random() * TILE_SIZE
-            const grassY = screenY + Math.random() * TILE_SIZE
-            const grassSize = 3 + Math.random() * 2
-
-            ctx.beginPath()
-            ctx.arc(grassX, grassY, grassSize, 0, Math.PI * 2)
-            ctx.fill()
-          }
-        } else if (terrainType === TERRAIN_TYPES.FOREST) {
-          // Forest details
-          const centerX = screenX + TILE_SIZE / 2
-          const centerY = screenY + TILE_SIZE / 2
-          const radius = TILE_SIZE / 4
-
-          ctx.beginPath()
-          ctx.arc(centerX, centerY, radius, 0, Math.PI * 2)
-          ctx.fill()
-
-          // Tree trunk
-          ctx.fillStyle = "#795548"
-          ctx.fillRect(centerX - 2, centerY, 4, TILE_SIZE / 4)
-        } else if (terrainType === TERRAIN_TYPES.DIRT) {
-          // Dirt details
-          for (let i = 0; i < 5; i++) {
-            const dirtX = screenX + Math.random() * TILE_SIZE
-            const dirtY = screenY + Math.random() * TILE_SIZE
-            const dirtSize = 2 + Math.random() * 3
-
-            ctx.beginPath()
-            ctx.arc(dirtX, dirtY, dirtSize, 0, Math.PI * 2)
-            ctx.fill()
-          }
-        }
-      }
-    }
-  }
-}
-
-// Draw and update apples
-function drawAndUpdateApples() {
-  for (let i = 0; i < apples.length; i++) {
-    const apple = apples[i]
-    const screenX = apple.x - camera.x
-    const screenY = apple.y - camera.y
-
-    // Skip if apple is off-screen
-    if (
-      screenX < -apple.size ||
-      screenX > canvas.width + apple.size ||
-      screenY < -apple.size ||
-      screenY > canvas.height + apple.size
-    ) {
-      continue
-    }
-
-    // Draw apple
-    ctx.fillStyle = apple.color
-    ctx.beginPath()
-    ctx.arc(screenX, screenY, apple.size, 0, Math.PI * 2)
-    ctx.fill()
-
-    // Draw stem
-    ctx.fillStyle = "#27ae60"
-    ctx.fillRect(screenX - 1, screenY - apple.size, 2, apple.size / 2)
-
-    // Check if player collects apple
-    const distance = getDistance(player.x, player.y, apple.x, apple.y)
-    if (distance < player.size + apple.size) {
-      player.apples++
-      apples.splice(i, 1)
-      i--
-      updateAppleCounter()
-    }
-  }
-}
-
-// Draw and update bombs
-function drawAndUpdateBombs() {
-  for (let i = bombs.length - 1; i >= 0; i--) {
-    const bomb = bombs[i]
-    const screenX = bomb.x - camera.x
-    const screenY = bomb.y - camera.y
-
-    // Skip if bomb is off-screen
-    if (
-      screenX < -bomb.size ||
-      screenX > canvas.width + bomb.size ||
-      screenY < -bomb.size ||
-      screenY > canvas.height + bomb.size
-    ) {
-      // If bomb is counting down but off-screen, still check for explosion
-      if (bomb.countdown !== null && Date.now() >= bomb.countdown) {
-        const explosionRadius = 100 + Math.random() * 50 // Random radius between 100-150
-        createExplosion(bomb.x, bomb.y, explosionRadius)
-        bombs.splice(i, 1)
-      }
-
-      continue
-    }
-
-    // Check if bomb should explode
-    if (bomb.countdown !== null && Date.now() >= bomb.countdown) {
-      const explosionRadius = 100 + Math.random() * 50 // Random radius between 100-150
-      createExplosion(bomb.x, bomb.y, explosionRadius)
-      bombs.splice(i, 1)
-      continue
-    }
-
-    // Draw bomb (rounded rectangle with fuse)
-    ctx.fillStyle = bomb.color
-    roundRect(ctx, screenX - bomb.size / 2, screenY - bomb.size / 2, bomb.size, bomb.size, bomb.size / 4)
-
-    // Draw bomb fuse
-    ctx.strokeStyle = "#000000"
-    ctx.lineWidth = 3
-    ctx.beginPath()
-    ctx.moveTo(screenX, screenY - bomb.size / 2)
-
-    // Make fuse wiggle
-    const time = Date.now() / 200
-    const fuseHeight = bomb.size / 2
-    const wiggle = Math.sin(time) * 5
-
-    ctx.bezierCurveTo(
-      screenX + wiggle,
-      screenY - bomb.size / 2 - fuseHeight / 3,
-      screenX - wiggle,
-      screenY - bomb.size / 2 - (fuseHeight * 2) / 3,
-      screenX,
-      screenY - bomb.size / 2 - fuseHeight,
-    )
-    ctx.stroke()
-
-    // Draw spark on fuse if counting down
-    if (bomb.countdown !== null) {
-      const countdownProgress = 1 - (bomb.countdown - Date.now()) / 3000
-      const sparkY = screenY - bomb.size / 2 - fuseHeight * countdownProgress
-
-      // Draw spark
-      ctx.fillStyle = "#ffcc00"
-      ctx.beginPath()
-      ctx.arc(screenX, sparkY, 4, 0, Math.PI * 2)
-      ctx.fill()
-
-      // Draw countdown text
-      const secondsLeft = Math.ceil((bomb.countdown - Date.now()) / 1000)
-      ctx.fillStyle = "white"
-      ctx.font = "16px Arial"
-      ctx.textAlign = "center"
-      ctx.textBaseline = "middle"
-      ctx.fillText(secondsLeft.toString(), screenX, screenY)
-
-      // Draw pulsing circle around bomb
-      const pulseSize = Math.sin(Date.now() / 100) * 5 + 10
-      ctx.strokeStyle = "rgba(255, 0, 0, 0.7)"
-      ctx.lineWidth = 2
-      ctx.beginPath()
-      ctx.arc(screenX, screenY, bomb.size / 2 + pulseSize, 0, Math.PI * 2)
-      ctx.stroke()
-    }
-  }
-}
-
-// Draw and update enemies
-function drawAndUpdateEnemies() {
-  for (let i = 0; i < enemies.length; i++) {
-    const enemy = enemies[i]
-
-    // Check if enemy can see player
-    const distanceToPlayer = getDistance(player.x, player.y, enemy.x, enemy.y)
-    const canSeePlayer = distanceToPlayer < 300 // Detection radius
-
-    // Update enemy movement
-    if (!gameOver) {
-      updateEnemyMovement(enemy, canSeePlayer)
-    }
-
-    const screenX = enemy.x - camera.x
-    const screenY = enemy.y - camera.y
-
-    // Skip if enemy is off-screen
-    if (
-      screenX < -enemy.size ||
-      screenX > canvas.width + enemy.size ||
-      screenY < -enemy.size ||
-      screenY > canvas.height + enemy.size
-    ) {
-      continue
-    }
-
-    // Draw enemy (circle with details)
-    ctx.fillStyle = enemy.isChasing ? "#ff3b30" : enemy.color
-    ctx.beginPath()
-    ctx.arc(screenX, screenY, enemy.size, 0, Math.PI * 2)
-    ctx.fill()
-
-    // Draw enemy eyes
-    const eyeOffset = enemy.size / 3
-    const eyeSize = enemy.size / 5
-
-    // Left eye
-    ctx.fillStyle = "white"
-    ctx.beginPath()
-    ctx.arc(
-      screenX - eyeOffset * Math.cos(enemy.direction),
-      screenY - eyeOffset * Math.sin(enemy.direction),
-      eyeSize,
-      0,
-      Math.PI * 2,
-    )
-    ctx.fill()
-
-    // Right eye
-    ctx.beginPath()
-    ctx.arc(
-      screenX + eyeOffset * Math.sin(enemy.direction),
-      screenY - eyeOffset * Math.cos(enemy.direction),
-      eyeSize,
-      0,
-      Math.PI * 2,
-    )
-    ctx.fill()
-
-    // Eye pupils
-    ctx.fillStyle = "black"
-    ctx.beginPath()
-    ctx.arc(
-      screenX - eyeOffset * Math.cos(enemy.direction) + (eyeSize / 3) * Math.cos(enemy.direction),
-      screenY - eyeOffset * Math.sin(enemy.direction) + (eyeSize / 3) * Math.sin(enemy.direction),
-      eyeSize / 2,
-      0,
-      Math.PI * 2,
-    )
-    ctx.fill()
-
-    ctx.beginPath()
-    ctx.arc(
-      screenX + eyeOffset * Math.sin(enemy.direction) + (eyeSize / 3) * Math.cos(enemy.direction),
-      screenY - eyeOffset * Math.cos(enemy.direction) + (eyeSize / 3) * Math.sin(enemy.direction),
-      eyeSize / 2,
-      0,
-      Math.PI * 2,
-    )
-    ctx.fill()
-
-    // Draw alert indicator if chasing
-    if (enemy.isChasing) {
-      const alertSize = Math.sin(Date.now() / 100) * 3 + 10
-      ctx.fillStyle = "rgba(255, 0, 0, 0.5)"
-      ctx.beginPath()
-      ctx.arc(screenX, screenY - enemy.size - 10, alertSize, 0, Math.PI * 2)
-      ctx.fill()
-    }
-  }
-}
-
-// Update enemy movement
-function updateEnemyMovement(enemy, canSeePlayer) {
-  if (canSeePlayer) {
-    // Chase player
-    enemy.isChasing = true
-    const angleToPlayer = Math.atan2(player.y - enemy.y, player.x - enemy.x)
-    enemy.direction = angleToPlayer
-
-    // Move toward player with increased speed
-    const dx = Math.cos(angleToPlayer) * ENEMY_CHASE_SPEED
-    const dy = Math.sin(angleToPlayer) * ENEMY_CHASE_SPEED
-
-    // Check if new position would be on water
-    const newX = enemy.x + dx
-    const newY = enemy.y + dy
-    const tileX = Math.floor(newX / TILE_SIZE)
-    const tileY = Math.floor(newY / TILE_SIZE)
-
-    if (
-      tileX >= 0 &&
-      tileX < terrain[0].length &&
-      tileY >= 0 &&
-      tileY < terrain.length &&
-      terrain[tileY][tileX] !== TERRAIN_TYPES.WATER
-    ) {
-      enemy.x = newX
-      enemy.y = newY
-    } else {
-      // Try to move around obstacle
-      const alternateAngle1 = angleToPlayer + Math.PI / 4
-      const alternateAngle2 = angleToPlayer - Math.PI / 4
-
-      const alt1X = enemy.x + Math.cos(alternateAngle1) * ENEMY_CHASE_SPEED
-      const alt1Y = enemy.y + Math.sin(alternateAngle1) * ENEMY_CHASE_SPEED
-      const alt1TileX = Math.floor(alt1X / TILE_SIZE)
-      const alt1TileY = Math.floor(alt1Y / TILE_SIZE)
-
-      if (
-        alt1TileX >= 0 &&
-        alt1TileX < terrain[0].length &&
-        alt1TileY >= 0 &&
-        alt1TileY < terrain.length &&
-        terrain[alt1TileY][alt1TileX] !== TERRAIN_TYPES.WATER
-      ) {
-        enemy.x = alt1X
-        enemy.y = alt1Y
-      } else {
-        const alt2X = enemy.x + Math.cos(alternateAngle2) * ENEMY_CHASE_SPEED
-        const alt2Y = enemy.y + Math.sin(alternateAngle2) * ENEMY_CHASE_SPEED
-        const alt2TileX = Math.floor(alt2X / TILE_SIZE)
-        const alt2TileY = Math.floor(alt2Y / TILE_SIZE)
-
-        if (
-          alt2TileX >= 0 &&
-          alt2TileX < terrain[0].length &&
-          alt2TileY >= 0 &&
-          alt2TileY < terrain.length &&
-          terrain[alt2TileY][alt2TileX] !== TERRAIN_TYPES.WATER
-        ) {
-          enemy.x = alt2X
-          enemy.y = alt2Y
-        }
-      }
+    if (terrain[tileY][tileX] === TERRAIN_TYPES.WATER) {
+      canMove = false
     }
   } else {
-    // Wander randomly
-    enemy.isChasing = false
-
-    // Occasionally change direction
-    if (Date.now() > enemy.directionChangeTime) {
-      enemy.direction = Math.random() * Math.PI * 2
-      enemy.directionChangeTime = Date.now() + Math.random() * 3000 + 2000
-    }
-
-    // Move enemy
-    const dx = Math.cos(enemy.direction) * enemy.speed
-    const dy = Math.sin(enemy.direction) * enemy.speed
-
-    // Check if new position would be on water
-    const newX = enemy.x + dx
-    const newY = enemy.y + dy
-    const tileX = Math.floor(newX / TILE_SIZE)
-    const tileY = Math.floor(newY / TILE_SIZE)
-
-    if (
-      tileX >= 0 &&
-      tileX < terrain[0].length &&
-      tileY >= 0 &&
-      tileY < terrain.length &&
-      terrain[tileY][tileX] !== TERRAIN_TYPES.WATER
-    ) {
-      enemy.x = newX
-      enemy.y = newY
-    } else {
-      // Change direction if hitting water
-      enemy.direction = (enemy.direction + Math.PI) % (Math.PI * 2)
-    }
+    canMove = false
   }
 
-  // Check for collisions with bombs
-  for (const bomb of bombs) {
-    const distance = getDistance(enemy.x, enemy.y, bomb.x, bomb.y)
-    if (distance < enemy.size + bomb.size) {
-      // Bounce off bomb
-      enemy.direction = (enemy.direction + Math.PI) % (Math.PI * 2)
-      break
-    }
-  }
-}
-
-// Draw and update thrown apples
-function drawAndUpdateThrownApples() {
-  for (let i = 0; i < thrownApples.length; i++) {
-    const apple = thrownApples[i]
-
-    // Update apple position if game is not over
-    if (!gameOver) {
-      apple.x += apple.velocityX
-      apple.y += apple.velocityY
-    }
-
-    const screenX = apple.x - camera.x
-    const screenY = apple.y - camera.y
-
-    // Skip if apple is off-screen
-    if (
-      screenX < -apple.size ||
-      screenX > canvas.width + apple.size ||
-      screenY < -apple.size ||
-      screenY > canvas.height + apple.size
-    ) {
-      thrownApples.splice(i, 1)
-      i--
-      continue
-    }
-
-    // Draw apple
-    ctx.fillStyle = apple.color
-    ctx.beginPath()
-    ctx.arc(screenX, screenY, apple.size, 0, Math.PI * 2)
-    ctx.fill()
-
-    // Check for collisions with enemies
-    for (let j = 0; j < enemies.length; j++) {
-      const enemy = enemies[j]
-      const distance = getDistance(apple.x, apple.y, enemy.x, enemy.y)
-
-      if (distance < apple.size + enemy.size) {
-        // Remove enemy and apple
-        enemies.splice(j, 1)
-        thrownApples.splice(i, 1)
-        i--
-        break
-      }
-    }
-
-    // Check for collisions with bombs
-    for (let j = 0; j < bombs.length; j++) {
-      const bomb = bombs[j]
-      const distance = getDistance(apple.x, apple.y, bomb.x, bomb.y)
-
-      if (distance < apple.size + bomb.size) {
-        // Remove apple
-        thrownApples.splice(i, 1)
-        i--
+  // Check collision with rocks
+  if (canMove) {
+    for (const rock of rocks) {
+      if (getDistance(newX, newY, rock.x, rock.y) < player.size + rock.size * 0.8) {
+        canMove = false
         break
       }
     }
   }
+
+  // Move if possible
+  if (canMove) {
+    player.x = newX
+    player.y = newY
+
+    // Update grabbed object position if holding one
+    if (grabbedBomb) {
+      const angle = Math.atan2(dy, dx)
+      grabbedBomb.x = player.x + Math.cos(angle) * (player.size + grabbedBomb.size) * 0.8
+      grabbedBomb.y = player.y + Math.sin(angle) * (player.size + grabbedBomb.size) * 0.8
+    } else if (grabbedRock) {
+      const angle = Math.atan2(dy, dx)
+      grabbedRock.x = player.x + Math.cos(angle) * (player.size + grabbedRock.size) * 0.8
+      grabbedRock.y = player.y + Math.sin(angle) * (player.size + grabbedRock.size) * 0.8
+    }
+  }
 }
 
-// Draw and update explosions
-function drawAndUpdateExplosions() {
-  for (let i = explosions.length - 1; i >= 0; i--) {
-    const explosion = explosions[i]
-    const elapsedTime = Date.now() - explosion.startTime
-    const progress = Math.min(elapsedTime / explosion.duration, 1)
+// Add a function to draw rocks
+function drawAndUpdateRocks() {
+  for (let i = 0; i < rocks.length; i++) {
+    const rock = rocks[i]
+    const screenX = rock.x - camera.x
+    const screenY = rock.y - camera.y
 
-    // Update explosion radius
-    explosion.currentRadius = explosion.maxRadius * progress
-
-    // Draw explosion
-    const screenX = explosion.x - camera.x
-    const screenY = explosion.y - camera.y
-
-    // Skip if explosion is off-screen
+    // Skip if rock is off-screen
     if (
-      screenX < -explosion.maxRadius ||
-      screenX > canvas.width + explosion.maxRadius ||
-      screenY < -explosion.maxRadius ||
-      screenY > canvas.height + explosion.maxRadius
+      screenX < -rock.size ||
+      screenX > canvas.width + rock.size ||
+      screenY < -rock.size ||
+      screenY > canvas.height + rock.size
     ) {
-      if (progress >= 1) {
-        explosions.splice(i, 1)
-      }
       continue
     }
 
-    // Draw explosion glow
-    const gradient = ctx.createRadialGradient(screenX, screenY, 0, screenX, screenY, explosion.currentRadius)
+    // Draw shadow using standardized function
+    createShadow(ctx, screenX, screenY, rock.size)
 
-    gradient.addColorStop(0, "rgba(255, 255, 255, " + 0.8 * (1 - progress) + ")")
-    gradient.addColorStop(0.4, "rgba(255, 149, 0, " + 0.6 * (1 - progress) + ")")
-    gradient.addColorStop(0.7, "rgba(255, 59, 48, " + 0.4 * (1 - progress) + ")")
-    gradient.addColorStop(1, "rgba(0, 0, 0, 0)")
+    // Draw rock
+    ctx.save()
+    ctx.translate(screenX, screenY)
+    ctx.rotate(rock.rotation)
 
-    ctx.fillStyle = gradient
+    // Base rock shape
+    ctx.fillStyle = "#7f8c8d" // Base rock color
     ctx.beginPath()
-    ctx.arc(screenX, screenY, explosion.currentRadius, 0, Math.PI * 2)
-    ctx.fill()
 
-    // Update and draw particles
-    for (let j = 0; j < explosion.particles.length; j++) {
-      const particle = explosion.particles[j]
-
-      // Update particle position
-      particle.x += particle.vx
-      particle.y += particle.vy
-
-      // Update particle life
-      particle.life -= 16 // Approximately 60 fps
-
-      if (particle.life <= 0) {
-        explosion.particles.splice(j, 1)
-        j--
-        continue
-      }
-
-      // Draw particle
-      const particleScreenX = particle.x - camera.x
-      const particleScreenY = particle.y - camera.y
-
-      const alpha = particle.life / particle.maxLife
-      const size = particle.size * alpha
-
-      ctx.fillStyle =
-        particle.color +
-        Math.floor(alpha * 255)
-          .toString(16)
-          .padStart(2, "0")
+    // Different rock shapes based on texture
+    if (rock.texture === 0) {
+      // Rounded rock
+      ctx.arc(0, 0, rock.size * 0.8, 0, Math.PI * 2)
+    } else if (rock.texture === 1) {
+      // Angular rock
       ctx.beginPath()
-      ctx.arc(particleScreenX, particleScreenY, size, 0, Math.PI * 2)
-      ctx.fill()
+      for (let j = 0; j < 7; j++) {
+        const angle = (j * Math.PI * 2) / 7
+        const radius = rock.size * (0.7 + Math.sin(j * 5) * 0.1)
+        if (j === 0) {
+          ctx.moveTo(Math.cos(angle) * radius, Math.sin(angle) * radius)
+        } else {
+          ctx.lineTo(Math.cos(angle) * radius, Math.sin(angle) * radius)
+        }
+      }
+      ctx.closePath()
+    } else {
+      // Oval rock
+      ctx.ellipse(0, 0, rock.size * 0.85, rock.size * 0.65, 0, 0, Math.PI * 2)
+    }
+    ctx.fill()
+
+    // Add texture details
+    ctx.fillStyle = "#6c7a7a" // Darker color for details
+    for (let j = 0; j < 5; j++) {
+      const detailX = (Math.random() - 0.5) * rock.size
+      const detailY = (Math.random() - 0.5) * rock.size
+      const detailSize = 2 + Math.random() * 5
+
+      // Only draw details inside the rock
+      if (detailX * detailX + detailY * detailY < rock.size * 0.7 * (rock.size * 0.7)) {
+        ctx.beginPath()
+        ctx.arc(detailX, detailY, detailSize, 0, Math.PI * 2)
+        ctx.fill()
+      }
     }
 
-    // Remove explosion if animation is complete
-    if (progress >= 1 && explosion.particles.length === 0) {
-      explosions.splice(i, 1)
-    }
+    // Add highlights
+    ctx.fillStyle = "#95a5a6" // Lighter color for highlights
+    ctx.beginPath()
+    ctx.arc(-rock.size * 0.3, -rock.size * 0.3, rock.size * 0.2, 0, Math.PI * 2)
+    ctx.fill()
+
+    ctx.restore()
   }
 }
 
-// Draw player
+// Standardize shadow proportions for all objects
+function createShadow(ctx, x, y, objectSize) {
+  // Use consistent shadow size relative to object size (same as player)
+  const shadowGradient = ctx.createRadialGradient(x, y, objectSize * 0.5, x, y, objectSize * 1.2)
+  shadowGradient.addColorStop(0, "rgba(0, 0, 0, 0.5)")
+  shadowGradient.addColorStop(1, "rgba(0, 0, 0, 0)")
+
+  ctx.fillStyle = shadowGradient
+  ctx.beginPath()
+  ctx.arc(x, y, objectSize * 1.2, 0, Math.PI * 2)
+  ctx.fill()
+}
+
+// Modify the drawPlayer function to add a shadow
 function drawPlayer() {
-  if (gameOver) return // Don't draw player if game is over
+  if (gameOver) {
+    clearInterval(timerInterval) // Stop the timer when the game is over
+    return // Don't draw player if game is over
+  }
 
   const screenX = canvas.width / 2
   const screenY = canvas.height / 2
+
+  // Draw shadow using standardized function
+  createShadow(ctx, screenX, screenY, player.size)
 
   // Draw player body (circle)
   ctx.fillStyle = player.color
@@ -1408,6 +1249,9 @@ function drawPlayer() {
     const bombScreenX = grabbedBomb.x - camera.x
     const bombScreenY = grabbedBomb.y - camera.y
 
+    // Draw bomb shadow using standardized function
+    createShadow(ctx, bombScreenX, bombScreenY, grabbedBomb.size)
+
     ctx.fillStyle = grabbedBomb.color
     roundRect(
       ctx,
@@ -1448,6 +1292,78 @@ function drawPlayer() {
     ctx.lineTo(bombScreenX, bombScreenY)
     ctx.stroke()
     ctx.setLineDash([])
+  } else if (grabbedRock) {
+    // Draw grabbed rock
+    const rockScreenX = grabbedRock.x - camera.x
+    const rockScreenY = grabbedRock.y - camera.y
+
+    // Draw rock shadow using standardized function
+    createShadow(ctx, rockScreenX, rockScreenY, grabbedRock.size)
+
+    // Draw rock
+    ctx.save()
+    ctx.translate(rockScreenX, rockScreenY)
+    ctx.rotate(grabbedRock.rotation)
+
+    // Base rock shape
+    ctx.fillStyle = "#7f8c8d" // Base rock color
+    ctx.beginPath()
+
+    // Different rock shapes based on texture
+    if (grabbedRock.texture === 0) {
+      // Rounded rock
+      ctx.arc(0, 0, grabbedRock.size * 0.8, 0, Math.PI * 2)
+    } else if (grabbedRock.texture === 1) {
+      // Angular rock
+      ctx.beginPath()
+      for (let j = 0; j < 7; j++) {
+        const angle = (j * Math.PI * 2) / 7
+        const radius = grabbedRock.size * (0.7 + Math.sin(j * 5) * 0.1)
+        if (j === 0) {
+          ctx.moveTo(Math.cos(angle) * radius, Math.sin(angle) * radius)
+        } else {
+          ctx.lineTo(Math.cos(angle) * radius, Math.sin(angle) * radius)
+        }
+      }
+      ctx.closePath()
+    } else {
+      // Oval rock
+      ctx.ellipse(0, 0, grabbedRock.size * 0.85, grabbedRock.size * 0.65, 0, 0, Math.PI * 2)
+    }
+    ctx.fill()
+
+    // Add texture details
+    ctx.fillStyle = "#6c7a7a" // Darker color for details
+    for (let j = 0; j < 5; j++) {
+      const detailX = (Math.random() - 0.5) * grabbedRock.size
+      const detailY = (Math.random() - 0.5) * grabbedRock.size
+      const detailSize = 2 + Math.random() * 5
+
+      // Only draw details inside the rock
+      if (detailX * detailX + detailY * detailY < grabbedRock.size * 0.7 * (grabbedRock.size * 0.7)) {
+        ctx.beginPath()
+        ctx.arc(detailX, detailY, detailSize, 0, Math.PI * 2)
+        ctx.fill()
+      }
+    }
+
+    // Add highlights
+    ctx.fillStyle = "#95a5a6" // Lighter color for highlights
+    ctx.beginPath()
+    ctx.arc(-grabbedRock.size * 0.3, -grabbedRock.size * 0.3, grabbedRock.size * 0.2, 0, Math.PI * 2)
+    ctx.fill()
+
+    ctx.restore()
+
+    // Draw connection line
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.5)"
+    ctx.lineWidth = 2
+    ctx.setLineDash([5, 5])
+    ctx.beginPath()
+    ctx.moveTo(screenX, screenY)
+    ctx.lineTo(rockScreenX, rockScreenY)
+    ctx.stroke()
+    ctx.setLineDash([])
   }
 
   // Flash player if recently hit
@@ -1458,6 +1374,553 @@ function drawPlayer() {
     ctx.fill()
   }
 }
+
+// Modify the drawAndUpdateApples function to add shadows
+function drawAndUpdateApples() {
+  for (let i = 0; i < apples.length; i++) {
+    const apple = apples[i]
+    const screenX = apple.x - camera.x
+    const screenY = apple.y - camera.y
+
+    // Skip if apple is off-screen
+    if (
+      screenX < -apple.size ||
+      screenX > canvas.width + apple.size ||
+      screenY < -apple.size ||
+      screenY > canvas.height + apple.size
+    ) {
+      continue
+    }
+
+    // Draw shadow using standardized function
+    createShadow(ctx, screenX, screenY, apple.size)
+
+    // Draw apple
+    ctx.fillStyle = apple.color
+    ctx.beginPath()
+    ctx.arc(screenX, screenY, apple.size, 0, Math.PI * 2)
+    ctx.fill()
+
+    // Draw stem
+    ctx.fillStyle = "#27ae60"
+    ctx.fillRect(screenX - 1, screenY - apple.size, 2, apple.size / 2)
+
+    // Check if player collects apple
+    const distance = getDistance(player.x, player.y, apple.x, apple.y)
+    if (distance < player.size + apple.size) {
+      player.apples++
+      apples.splice(i, 1)
+      i--
+      updateAppleCounter()
+    }
+  }
+}
+
+// Modify the drawAndUpdateBombs function to add shadows
+function drawAndUpdateBombs() {
+  for (let i = bombs.length - 1; i >= 0; i--) {
+    const bomb = bombs[i]
+    const screenX = bomb.x - camera.x
+    const screenY = bomb.y - camera.y
+
+    // Skip if bomb is off-screen
+    if (
+      screenX < -bomb.size ||
+      screenX > canvas.width + bomb.size ||
+      screenY < -bomb.size ||
+      screenY > canvas.height + bomb.size
+    ) {
+      // If bomb is counting down but off-screen, still check for explosion
+      if (bomb.countdown !== null && Date.now() >= bomb.countdown) {
+        const explosionRadius = 100 + Math.random() * 50 // Random radius between 100-150
+        createExplosion(bomb.x, bomb.y, explosionRadius)
+        bombs.splice(i, 1)
+      }
+      continue
+    }
+
+    // Draw shadow using standardized function
+    createShadow(ctx, screenX, screenY, bomb.size)
+
+    // Check if bomb should explode
+    if (bomb.countdown !== null && Date.now() >= bomb.countdown) {
+      const explosionRadius = 100 + Math.random() * 50 // Random radius between 100-150
+      createExplosion(bomb.x, bomb.y, explosionRadius)
+      bombs.splice(i, 1)
+      continue
+    }
+
+    // Draw bomb (rounded rectangle with fuse)
+    ctx.fillStyle = bomb.color
+    roundRect(ctx, screenX - bomb.size / 2, screenY - bomb.size / 2, bomb.size, bomb.size, bomb.size / 4)
+
+    // Draw bomb fuse
+    ctx.strokeStyle = "#000000"
+    ctx.lineWidth = 3
+    ctx.beginPath()
+    ctx.moveTo(screenX, screenY - bomb.size / 2)
+
+    // Make fuse wiggle
+    const time = Date.now() / 200
+    const fuseHeight = bomb.size / 2
+    const wiggle = Math.sin(time) * 5
+
+    ctx.bezierCurveTo(
+      screenX + wiggle,
+      screenY - bomb.size / 2 - fuseHeight / 3,
+      screenX - wiggle,
+      screenY - bomb.size / 2 - (fuseHeight * 2) / 3,
+      screenX,
+      screenY - bomb.size / 2 - fuseHeight,
+    )
+    ctx.stroke()
+
+    // Draw spark on fuse if counting down
+    if (bomb.countdown !== null) {
+      const countdownProgress = 1 - (bomb.countdown - Date.now()) / 3000
+      const sparkY = screenY - bomb.size / 2 - fuseHeight * countdownProgress
+
+      // Draw spark
+      ctx.fillStyle = "#ffcc00"
+      ctx.beginPath()
+      ctx.arc(screenX, sparkY, 4, 0, Math.PI * 2)
+      ctx.fill()
+
+      // Draw countdown text
+      const secondsLeft = Math.ceil((bomb.countdown - Date.now()) / 1000)
+      ctx.fillStyle = "white"
+      ctx.font = "16px Arial"
+      ctx.textAlign = "center"
+      ctx.textBaseline = "middle"
+      ctx.fillText(secondsLeft.toString(), screenX, screenY)
+
+      // Draw pulsing circle around bomb
+      const pulseSize = Math.sin(Date.now() / 100) * 5 + 10
+      ctx.strokeStyle = "rgba(255, 0, 0, 0.7)"
+      ctx.lineWidth = 2
+      ctx.beginPath()
+      ctx.arc(screenX, screenY, bomb.size / 2 + pulseSize, 0, Math.PI * 2)
+      ctx.stroke()
+    }
+  }
+}
+
+// Modify the drawAndUpdateEnemies function to add shadows
+function drawAndUpdateEnemies() {
+  for (let i = 0; i < enemies.length; i++) {
+    const enemy = enemies[i]
+
+    // Check if enemy can see player
+    const distanceToPlayer = getDistance(player.x, player.y, enemy.x, enemy.y)
+    const canSeePlayer = distanceToPlayer < 300 // Detection radius
+
+    // Update enemy movement
+    if (!gameOver) {
+      updateEnemyMovement(enemy, canSeePlayer)
+    }
+
+    const screenX = enemy.x - camera.x
+    const screenY = enemy.y - camera.y
+
+    // Skip if enemy is off-screen
+    if (
+      screenX < -enemy.size ||
+      screenX > canvas.width + enemy.size ||
+      screenY < -enemy.size ||
+      screenY > canvas.height + enemy.size
+    ) {
+      continue
+    }
+
+    // Draw shadow using standardized function
+    createShadow(ctx, screenX, screenY, enemy.size)
+
+    // Draw enemy (circle with details)
+    ctx.fillStyle = enemy.isChasing ? "#ff3b30" : enemy.color
+    ctx.beginPath()
+    ctx.arc(screenX, screenY, enemy.size, 0, Math.PI * 2)
+    ctx.fill()
+
+    // Draw enemy eyes
+    const eyeOffset = enemy.size / 3
+    const eyeSize = enemy.size / 5
+
+    // Left eye
+    ctx.fillStyle = "white"
+    ctx.beginPath()
+    ctx.arc(
+      screenX - eyeOffset * Math.cos(enemy.direction),
+      screenY - eyeOffset * Math.sin(enemy.direction),
+      eyeSize,
+      0,
+      Math.PI * 2,
+    )
+    ctx.fill()
+
+    // Right eye
+    ctx.beginPath()
+    ctx.arc(
+      screenX + eyeOffset * Math.sin(enemy.direction),
+      screenY - eyeOffset * Math.cos(enemy.direction),
+      eyeSize,
+      0,
+      Math.PI * 2,
+    )
+    ctx.fill()
+
+    // Eye pupils
+    ctx.fillStyle = "black"
+    ctx.beginPath()
+    ctx.arc(
+      screenX - eyeOffset * Math.cos(enemy.direction) + (eyeSize / 3) * Math.cos(enemy.direction),
+      screenY - eyeOffset * Math.sin(enemy.direction) + (eyeSize / 3) * Math.sin(enemy.direction),
+      eyeSize / 2,
+      0,
+      Math.PI * 2,
+    )
+    ctx.fill()
+
+    ctx.beginPath()
+    ctx.arc(
+      screenX + eyeOffset * Math.sin(enemy.direction) + (eyeSize / 3) * Math.cos(enemy.direction),
+      screenY - eyeOffset * Math.cos(enemy.direction) + (eyeSize / 3) * Math.sin(enemy.direction),
+      eyeSize / 2,
+      0,
+      Math.PI * 2,
+    )
+    ctx.fill()
+
+    // Draw alert indicator if chasing
+    if (enemy.isChasing) {
+      const alertSize = Math.sin(Date.now() / 100) * 3 + 10
+      ctx.fillStyle = "rgba(255, 0, 0, 0.5)"
+      ctx.beginPath()
+      ctx.arc(screenX, screenY - enemy.size - 10, alertSize, 0, Math.PI * 2)
+      ctx.fill()
+    }
+  }
+}
+
+// Modify the drawAndUpdateThrownApples function to add shadows
+function drawAndUpdateThrownApples() {
+  for (let i = 0; i < thrownApples.length; i++) {
+    const apple = thrownApples[i]
+
+    // Update apple position if game is not over
+    if (!gameOver) {
+      apple.x += apple.velocityX
+      apple.y += apple.velocityY
+    }
+
+    const screenX = apple.x - camera.x
+    const screenY = apple.y - camera.y
+
+    // Skip if apple is off-screen
+    if (
+      screenX < -apple.size ||
+      screenX > canvas.width + apple.size ||
+      screenY < -apple.size ||
+      screenY > canvas.height + apple.size
+    ) {
+      thrownApples.splice(i, 1)
+      i--
+      continue
+    }
+
+    // Draw shadow using standardized function
+    createShadow(ctx, screenX, screenY, apple.size)
+
+    // Draw apple
+    ctx.fillStyle = apple.color
+    ctx.beginPath()
+    ctx.arc(screenX, screenY, apple.size, 0, Math.PI * 2)
+    ctx.fill()
+
+    // Check for collisions with enemies
+    for (let j = 0; j < enemies.length; j++) {
+      const enemy = enemies[j]
+      const distance = getDistance(apple.x, apple.y, enemy.x, enemy.y)
+
+      if (distance < apple.size + enemy.size) {
+        // Remove enemy and apple
+        enemies.splice(j, 1)
+        thrownApples.splice(i, 1)
+        i--
+        break
+      }
+    }
+
+    // Check for collisions with bombs
+    for (let j = 0; j < bombs.length; j++) {
+      const bomb = bombs[j]
+      const distance = getDistance(apple.x, apple.y, bomb.x, bomb.y)
+
+      if (distance < apple.size + bomb.size) {
+        // Remove apple
+        thrownApples.splice(i, 1)
+        i--
+        break
+      }
+    }
+  }
+}
+
+// Modify the updateEnemyMovement function to handle rocks
+function updateEnemyMovement(enemy, canSeePlayer) {
+  if (canSeePlayer) {
+    // Chase player
+    enemy.isChasing = true
+    const angleToPlayer = Math.atan2(player.y - enemy.y, player.x - enemy.x)
+    enemy.direction = angleToPlayer
+
+    // Move toward player with increased speed
+    const dx = Math.cos(angleToPlayer) * ENEMY_CHASE_SPEED
+    const dy = Math.sin(angleToPlayer) * ENEMY_CHASE_SPEED
+
+    // Check if new position would be on water or collide with a rock
+    const newX = enemy.x + dx
+    const newY = enemy.y + dy
+    const tileX = Math.floor(newX / TILE_SIZE)
+    const tileY = Math.floor(newY / TILE_SIZE)
+
+    let canMove = true
+    let collidedWithRock = false
+    let rockCollisionAngle = 0
+
+    // Check terrain
+    if (
+      tileX >= 0 &&
+      tileX < terrain[0].length &&
+      tileY >= 0 &&
+      tileY < terrain.length &&
+      terrain[tileY][tileX] !== TERRAIN_TYPES.WATER
+    ) {
+      // Check collision with rocks
+      for (const rock of rocks) {
+        const distance = getDistance(newX, newY, rock.x, rock.y)
+        if (distance < enemy.size + rock.size * 0.8) {
+          canMove = false
+          collidedWithRock = true
+          rockCollisionAngle = Math.atan2(enemy.y - rock.y, enemy.x - rock.x)
+          break
+        }
+      }
+    } else {
+      canMove = false
+    }
+
+    if (canMove) {
+      enemy.x = newX
+      enemy.y = newY
+    } else if (collidedWithRock) {
+      // Bump away from rock
+      const bumpDistance = 2
+      enemy.x += Math.cos(rockCollisionAngle) * bumpDistance
+      enemy.y += Math.sin(rockCollisionAngle) * bumpDistance
+
+      // Try to move around obstacle
+      const alternateAngle1 = angleToPlayer + Math.PI / 4
+      const alternateAngle2 = angleToPlayer - Math.PI / 4
+
+      const alt1X = enemy.x + Math.cos(alternateAngle1) * ENEMY_CHASE_SPEED
+      const alt1Y = enemy.y + Math.sin(alternateAngle1) * ENEMY_CHASE_SPEED
+      const alt1TileX = Math.floor(alt1X / TILE_SIZE)
+      const alt1TileY = Math.floor(alt1Y / TILE_SIZE)
+
+      let canMoveAlt1 = true
+
+      if (
+        alt1TileX >= 0 &&
+        alt1TileX < terrain[0].length &&
+        alt1TileY >= 0 &&
+        alt1TileY < terrain.length &&
+        terrain[alt1TileY][alt1TileX] !== TERRAIN_TYPES.WATER
+      ) {
+        // Check collision with rocks
+        for (const rock of rocks) {
+          if (getDistance(alt1X, alt1Y, rock.x, rock.y) < enemy.size + rock.size * 0.8) {
+            canMoveAlt1 = false
+            break
+          }
+        }
+      } else {
+        canMoveAlt1 = false
+      }
+
+      if (canMoveAlt1) {
+        enemy.x = alt1X
+        enemy.y = alt1Y
+      } else {
+        const alt2X = enemy.x + Math.cos(alternateAngle2) * ENEMY_CHASE_SPEED
+        const alt2Y = enemy.y + Math.sin(alternateAngle2) * ENEMY_CHASE_SPEED
+        const alt2TileX = Math.floor(alt2X / TILE_SIZE)
+        const alt2TileY = Math.floor(alt2Y / TILE_SIZE)
+
+        let canMoveAlt2 = true
+
+        if (
+          alt2TileX >= 0 &&
+          alt2TileX < terrain[0].length &&
+          alt2TileY >= 0 &&
+          alt2TileY < terrain.length &&
+          terrain[alt2TileY][alt2TileX] !== TERRAIN_TYPES.WATER
+        ) {
+          // Check collision with rocks
+          for (const rock of rocks) {
+            if (getDistance(alt2X, alt2Y, rock.x, rock.y) < enemy.size + rock.size * 0.8) {
+              canMoveAlt2 = false
+              break
+            }
+          }
+        } else {
+          canMoveAlt2 = false
+        }
+
+        if (canMoveAlt2) {
+          enemy.x = alt2X
+          enemy.y = alt2Y
+        }
+      }
+    } else {
+      // Try to move around obstacle
+      const alternateAngle1 = angleToPlayer + Math.PI / 4
+      const alternateAngle2 = angleToPlayer - Math.PI / 4
+
+      const alt1X = enemy.x + Math.cos(alternateAngle1) * ENEMY_CHASE_SPEED
+      const alt1Y = enemy.y + Math.sin(alternateAngle1) * ENEMY_CHASE_SPEED
+      const alt1TileX = Math.floor(alt1X / TILE_SIZE)
+      const alt1TileY = Math.floor(alt1Y / TILE_SIZE)
+
+      let canMoveAlt1 = true
+
+      if (
+        alt1TileX >= 0 &&
+        alt1TileX < terrain[0].length &&
+        alt1TileY >= 0 &&
+        alt1TileY < terrain.length &&
+        terrain[alt1TileY][alt1TileX] !== TERRAIN_TYPES.WATER
+      ) {
+        // Check collision with rocks
+        for (const rock of rocks) {
+          if (getDistance(alt1X, alt1Y, rock.x, rock.y) < enemy.size + rock.size * 0.8) {
+            canMoveAlt1 = false
+            break
+          }
+        }
+      } else {
+        canMoveAlt1 = false
+      }
+
+      if (canMoveAlt1) {
+        enemy.x = alt1X
+        enemy.y = alt1Y
+      } else {
+        const alt2X = enemy.x + Math.cos(alternateAngle2) * ENEMY_CHASE_SPEED
+        const alt2Y = enemy.y + Math.sin(alternateAngle2) * ENEMY_CHASE_SPEED
+        const alt2TileX = Math.floor(alt2X / TILE_SIZE)
+        const alt2TileY = Math.floor(alt2Y / TILE_SIZE)
+
+        let canMoveAlt2 = true
+
+        if (
+          alt2TileX >= 0 &&
+          alt2TileX < terrain[0].length &&
+          alt2TileY >= 0 &&
+          alt2TileY < terrain.length &&
+          terrain[alt2TileY][alt2TileX] !== TERRAIN_TYPES.WATER
+        ) {
+          // Check collision with rocks
+          for (const rock of rocks) {
+            if (getDistance(alt2X, alt2Y, rock.x, rock.y) < enemy.size + rock.size * 0.8) {
+              canMoveAlt2 = false
+              break
+            }
+          }
+        } else {
+          canMoveAlt2 = false
+        }
+
+        if (canMoveAlt2) {
+          enemy.x = alt2X
+          enemy.y = alt2Y
+        }
+      }
+    }
+  } else {
+    // Wander randomly
+    enemy.isChasing = false
+
+    // Occasionally change direction
+    if (Date.now() > enemy.directionChangeTime) {
+      enemy.direction = Math.random() * Math.PI * 2
+      enemy.directionChangeTime = Date.now() + Math.random() * 3000 + 2000
+    }
+
+    // Move enemy
+    const dx = Math.cos(enemy.direction) * enemy.speed
+    const dy = Math.sin(enemy.direction) * enemy.speed
+
+    // Check if new position would be on water or collide with a rock
+    const newX = enemy.x + dx
+    const newY = enemy.y + dy
+    const tileX = Math.floor(newX / TILE_SIZE)
+    const tileY = Math.floor(newY / TILE_SIZE)
+
+    let canMove = true
+    let collidedWithRock = false
+    let rockCollisionAngle = 0
+
+    // Check terrain
+    if (
+      tileX >= 0 &&
+      tileX < terrain[0].length &&
+      tileY >= 0 &&
+      tileY < terrain.length &&
+      terrain[tileY][tileX] !== TERRAIN_TYPES.WATER
+    ) {
+      // Check collision with rocks
+      for (const rock of rocks) {
+        const distance = getDistance(newX, newY, rock.x, rock.y)
+        if (distance < enemy.size + rock.size * 0.8) {
+          canMove = false
+          collidedWithRock = true
+          rockCollisionAngle = Math.atan2(enemy.y - rock.y, enemy.x - rock.x)
+          break
+        }
+      }
+    } else {
+      canMove = false
+    }
+
+    if (canMove) {
+      enemy.x = newX
+      enemy.y = newY
+    } else if (collidedWithRock) {
+      // Bump away from rock
+      const bumpDistance = 2
+      enemy.x += Math.cos(rockCollisionAngle) * bumpDistance
+      enemy.y += Math.sin(rockCollisionAngle) * bumpDistance
+
+      // Change direction if hitting obstacle
+      enemy.direction = (enemy.direction + Math.PI + ((Math.random() * Math.PI) / 2 - Math.PI / 4)) % (Math.PI * 2)
+    } else {
+      // Change direction if hitting obstacle
+      enemy.direction = (enemy.direction + Math.PI) % (Math.PI * 2)
+    }
+  }
+
+  // Check for collisions with bombs
+  for (const bomb of bombs) {
+    const distance = getDistance(enemy.x, enemy.y, bomb.x, bomb.y)
+    if (distance < enemy.size + bomb.size) {
+      // Bounce off bomb
+      enemy.direction = (enemy.direction + Math.PI) % (Math.PI * 2)
+      break
+    }
+  }
+}
+
+// Modify the drawPlayer function to handle grabbed rocks
 
 // Check for collisions
 function checkCollisions() {
@@ -1491,8 +1954,8 @@ function maintainGameElements() {
   }
 
   // Generate more bombs if needed
-  if (bombs.length < 10) {
-    generateBombs(1)
+  if (bombs.length < 20) {
+    generateBombs(2)
   }
 }
 
@@ -1557,5 +2020,191 @@ function roundRect(ctx, x, y, width, height, radius) {
   ctx.fill()
 }
 
+// Update timer
+function updateTimer() {
+  if (!gameOver) {
+    elapsedTime = Math.floor((Date.now() - startTime) / 1000)
+    const minutes = String(Math.floor(elapsedTime / 60)).padStart(2, "0")
+    const seconds = String(elapsedTime % 60).padStart(2, "0")
+    document.getElementById("timer").textContent = `${minutes}:${seconds}`
+  }
+}
+
 // Initialize the game when the page loads
 window.addEventListener("load", init)
+
+// Update the drawTerrain function to restore textures and animations
+function drawTerrain() {
+  const startX = Math.floor(camera.x / TILE_SIZE)
+  const startY = Math.floor(camera.y / TILE_SIZE)
+  const endX = startX + Math.ceil(canvas.width / TILE_SIZE) + 1
+  const endY = startY + Math.ceil(canvas.height / TILE_SIZE) + 1
+  const time = Date.now() / 1000 // For animations
+
+  for (let y = startY; y < endY; y++) {
+    for (let x = startX; x < endX; x++) {
+      if (y >= 0 && y < terrain.length && x >= 0 && x < terrain[0].length) {
+        const terrainType = terrain[y][x]
+        const screenX = x * TILE_SIZE - camera.x
+        const screenY = y * TILE_SIZE - camera.y
+
+        // Draw terrain tile
+        ctx.fillStyle = getTerrainColor(terrainType)
+        ctx.fillRect(screenX, screenY, TILE_SIZE, TILE_SIZE)
+
+        // Add texture/detail to terrain
+        ctx.fillStyle = adjustColorBrightness(getTerrainColor(terrainType), -10)
+
+        if (terrainType === TERRAIN_TYPES.WATER) {
+          // Water ripples animation
+          const waveOffset = Math.sin(time + x * 0.3 + y * 0.2) * 3
+
+          ctx.beginPath()
+          ctx.moveTo(screenX, screenY + TILE_SIZE / 2 + waveOffset)
+          ctx.lineTo(screenX + TILE_SIZE, screenY + TILE_SIZE / 2 - waveOffset)
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.3)"
+          ctx.lineWidth = 2
+          ctx.stroke()
+
+          // Second wave for more texture
+          const waveOffset2 = Math.sin(time * 1.5 + x * 0.4 + y * 0.3) * 2
+          ctx.beginPath()
+          ctx.moveTo(screenX, screenY + TILE_SIZE / 3 + waveOffset2)
+          ctx.lineTo(screenX + TILE_SIZE, screenY + TILE_SIZE / 3 - waveOffset2)
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.2)"
+          ctx.lineWidth = 1
+          ctx.stroke()
+        } else if (terrainType === TERRAIN_TYPES.GRASS) {
+          // Grass details - small dots and lines
+          for (let i = 0; i < 3; i++) {
+            const grassX = screenX + Math.random() * TILE_SIZE
+            const grassY = screenY + Math.random() * TILE_SIZE
+            const grassSize = 3 + Math.random() * 2
+
+            ctx.beginPath()
+            ctx.arc(grassX, grassY, grassSize, 0, Math.PI * 2)
+            ctx.fill()
+          }
+
+          // Add some grass blades
+          ctx.strokeStyle = adjustColorBrightness(getTerrainColor(terrainType), -15)
+          ctx.lineWidth = 1
+          for (let i = 0; i < 2; i++) {
+            const baseX = screenX + 5 + Math.random() * (TILE_SIZE - 10)
+            const baseY = screenY + TILE_SIZE - 5
+            const height = 5 + Math.random() * 8
+            const bend = Math.sin(time * (0.5 + Math.random() * 0.5)) * 2
+
+            ctx.beginPath()
+            ctx.moveTo(baseX, baseY)
+            ctx.quadraticCurveTo(baseX + bend, baseY - height / 2, baseX, baseY - height)
+            ctx.stroke()
+          }
+        } else if (terrainType === TERRAIN_TYPES.FOREST) {
+          // Forest details - tree-like shapes
+          const centerX = screenX + TILE_SIZE / 2
+          const centerY = screenY + TILE_SIZE / 2
+          const radius = TILE_SIZE / 4
+
+          // Tree top (circle)
+          ctx.beginPath()
+          ctx.arc(centerX, centerY - radius / 2, radius, 0, Math.PI * 2)
+          ctx.fill()
+
+          // Tree trunk
+          ctx.fillStyle = "#795548"
+          ctx.fillRect(centerX - 2, centerY, 4, TILE_SIZE / 4)
+
+          // Add some movement to trees
+          const sway = Math.sin(time + x * 0.1 + y * 0.1) * 1
+          ctx.fillStyle = adjustColorBrightness(getTerrainColor(terrainType), 5)
+          ctx.beginPath()
+          ctx.arc(centerX + sway, centerY - radius / 2 - 2, radius * 0.7, 0, Math.PI * 2)
+          ctx.fill()
+        } else if (terrainType === TERRAIN_TYPES.DIRT) {
+          // Dirt details - small rocks and texture
+          for (let i = 0; i < 5; i++) {
+            const dirtX = screenX + Math.random() * TILE_SIZE
+            const dirtY = screenY + Math.random() * TILE_SIZE
+            const dirtSize = 2 + Math.random() * 3
+
+            ctx.beginPath()
+            ctx.arc(dirtX, dirtY, dirtSize, 0, Math.PI * 2)
+            ctx.fill()
+          }
+
+          // Add some lines for texture
+          ctx.strokeStyle = adjustColorBrightness(getTerrainColor(terrainType), -5)
+          ctx.lineWidth = 0.5
+          for (let i = 0; i < 2; i++) {
+            const startX = screenX + Math.random() * TILE_SIZE
+            const startY = screenY + Math.random() * TILE_SIZE
+            const length = 3 + Math.random() * 5
+            const angle = Math.random() * Math.PI * 2
+
+            ctx.beginPath()
+            ctx.moveTo(startX, startY)
+            ctx.lineTo(startX + Math.cos(angle) * length, startY + Math.sin(angle) * length)
+            ctx.stroke()
+          }
+        }
+      }
+    }
+  }
+}
+
+function drawAndUpdateExplosions() {
+  for (let i = explosions.length - 1; i >= 0; i--) {
+    const explosion = explosions[i]
+    const timeSinceStart = Date.now() - explosion.startTime
+
+    // Update explosion radius
+    if (timeSinceStart < explosion.duration) {
+      explosion.currentRadius = (timeSinceStart / explosion.duration) * explosion.maxRadius
+    } else {
+      explosions.splice(i, 1)
+      continue
+    }
+
+    // Draw explosion particles
+    for (let j = 0; j < explosion.particles.length; j++) {
+      const particle = explosion.particles[j]
+
+      // Update particle position
+      particle.x += particle.vx
+      particle.y += particle.vy
+      particle.life -= 16 // Reduce life based on frame rate
+
+      // Skip if particle is dead
+      if (particle.life <= 0) {
+        explosion.particles.splice(j, 1)
+        j--
+        continue
+      }
+
+      const screenX = particle.x - camera.x
+      const screenY = particle.y - camera.y
+
+      // Skip if particle is off-screen
+      if (
+        screenX < -particle.size ||
+        screenX > canvas.width + particle.size ||
+        screenY < -particle.size ||
+        screenY > canvas.height + particle.size
+      ) {
+        continue
+      }
+
+      // Draw particle
+      ctx.fillStyle = particle.color
+      ctx.beginPath()
+      ctx.arc(screenX, screenY, particle.size, 0, Math.PI * 2)
+      ctx.fill()
+    }
+  }
+}
+
+const handleButtonAEnd = (e) => {
+  buttonAActive = false
+  e.target.classList.remove("button-active")
+}
