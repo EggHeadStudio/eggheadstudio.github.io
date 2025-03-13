@@ -323,8 +323,31 @@ function handleJoystickMove(e) {
   }
 }
 
+// Fix the handleJoystickEnd function to only reset joystick when all touches are gone
 function handleJoystickEnd(e) {
-  if (joystickActive) {
+  // Only reset joystick if all touches are gone or if the specific touch for the joystick is gone
+  let joystickTouchFound = false
+
+  // Check if any of the remaining touches are for the joystick
+  for (let i = 0; i < e.touches.length; i++) {
+    const touch = e.touches[i]
+    const joystickContainer = document.querySelector(".joystick-container")
+    const rect = joystickContainer.getBoundingClientRect()
+
+    // Check if this touch is within the joystick container
+    if (
+      touch.clientX >= rect.left &&
+      touch.clientX <= rect.right &&
+      touch.clientY >= rect.top &&
+      touch.clientY <= rect.bottom
+    ) {
+      joystickTouchFound = true
+      break
+    }
+  }
+
+  // Only deactivate joystick if no joystick touches remain
+  if (!joystickTouchFound) {
     joystickActive = false
     const joystickKnob = document.querySelector(".joystick-knob")
     joystickKnob.style.transform = "translate(-50%, -50%)"
@@ -335,7 +358,9 @@ function handleJoystickEnd(e) {
 
 // Button A handlers
 function handleButtonAStart(e) {
-  e.preventDefault()
+  // Only stop propagation, don't prevent default to allow joystick to work simultaneously
+  e.stopPropagation()
+
   buttonAActive = true
   e.target.classList.add("button-active")
 
@@ -358,7 +383,9 @@ function handleButtonAStart(e) {
 
 // Button B handlers
 function handleButtonBStart(e) {
-  e.preventDefault()
+  // Only stop propagation, don't prevent default to allow joystick to work simultaneously
+  e.stopPropagation()
+
   buttonBActive = true
   e.target.classList.add("button-active")
 
@@ -1092,8 +1119,17 @@ function drawAndUpdateRocks() {
       continue
     }
 
-    // Draw shadow using standardized function
-    createShadow(ctx, screenX, screenY, rock.size)
+    // Draw shadow using shape-specific shadow
+    if (rock.texture === 0) {
+      // Rounded rock shadow
+      createShadow(ctx, screenX, screenY, rock.size, "circle")
+    } else if (rock.texture === 1) {
+      // Angular rock shadow
+      createShadow(ctx, screenX, screenY, rock.size, "polygon", null, rock.rotation)
+    } else {
+      // Oval rock shadow
+      createShadow(ctx, screenX, screenY, rock.size, "oval", null, rock.rotation)
+    }
 
     // Draw rock
     ctx.save()
@@ -1153,16 +1189,93 @@ function drawAndUpdateRocks() {
 }
 
 // Standardize shadow proportions for all objects
-function createShadow(ctx, x, y, objectSize) {
-  // Use consistent shadow size relative to object size (same as player)
-  const shadowGradient = ctx.createRadialGradient(x, y, objectSize * 0.5, x, y, objectSize * 1.2)
-  shadowGradient.addColorStop(0, "rgba(0, 0, 0, 0.5)")
-  shadowGradient.addColorStop(1, "rgba(0, 0, 0, 0)")
+// Modify the createShadow function to match shape of the object it's shadowing
+function createShadow(ctx, x, y, objectSize, shape = "circle", rect = null, rotation = 0) {
+  // Save context for transformations
+  ctx.save()
 
-  ctx.fillStyle = shadowGradient
-  ctx.beginPath()
-  ctx.arc(x, y, objectSize * 1.2, 0, Math.PI * 2)
-  ctx.fill()
+  // Apply rotation if needed
+  if (rotation !== 0) {
+    ctx.translate(x, y)
+    ctx.rotate(rotation)
+    x = 0
+    y = 0
+  }
+
+  if (shape === "circle") {
+    // Circular shadow with gradient
+    const shadowGradient = ctx.createRadialGradient(x, y, objectSize * 0.5, x, y, objectSize * 1.2)
+    shadowGradient.addColorStop(0, "rgba(0, 0, 0, 0.5)")
+    shadowGradient.addColorStop(1, "rgba(0, 0, 0, 0)")
+
+    ctx.fillStyle = shadowGradient
+    ctx.beginPath()
+    ctx.arc(x, y, objectSize * 1.2, 0, Math.PI * 2)
+    ctx.fill()
+  } else if (shape === "rectangle") {
+    // Rounded rectangle shadow with gradient
+    const width = rect.width
+    const height = rect.height
+    const radius = rect.radius
+
+    // Create gradient for rectangle shadow
+    const shadowGradient = ctx.createRadialGradient(x, y, objectSize * 0.5, x, y, Math.max(width, height) * 0.7)
+    shadowGradient.addColorStop(0, "rgba(0, 0, 0, 0.5)")
+    shadowGradient.addColorStop(1, "rgba(0, 0, 0, 0)")
+
+    ctx.fillStyle = shadowGradient
+
+    // Draw rounded rectangle shadow
+    ctx.beginPath()
+    ctx.moveTo(x - width / 2 + radius, y - height / 2)
+    ctx.lineTo(x + width / 2 - radius, y - height / 2)
+    ctx.quadraticCurveTo(x + width / 2, y - height / 2, x + width / 2, y - height / 2 + radius)
+    ctx.lineTo(x + width / 2, y + height / 2 - radius)
+    ctx.quadraticCurveTo(x + width / 2, y + height / 2, x + width / 2 - radius, y + height / 2)
+    ctx.lineTo(x - width / 2 + radius, y + height / 2)
+    ctx.quadraticCurveTo(x - width / 2, y + height / 2, x - width / 2, y + height / 2 - radius)
+    ctx.lineTo(x - width / 2, y - height / 2 + radius)
+    ctx.quadraticCurveTo(x - width / 2, y - height / 2, x - width / 2 + radius, y - height / 2)
+    ctx.closePath()
+    ctx.fill()
+  } else if (shape === "polygon") {
+    // Polygon shadow for angular rocks
+    const shadowGradient = ctx.createRadialGradient(x, y, objectSize * 0.5, x, y, objectSize * 1.2)
+    shadowGradient.addColorStop(0, "rgba(0, 0, 0, 0.5)")
+    shadowGradient.addColorStop(1, "rgba(0, 0, 0, 0)")
+
+    ctx.fillStyle = shadowGradient
+
+    // Draw polygon shadow
+    ctx.beginPath()
+    // Use the same vertices as in drawAndUpdateRocks for angular rocks
+    for (let j = 0; j < 7; j++) {
+      const angle = (j * Math.PI * 2) / 7
+      const radius = objectSize * (0.7 + Math.sin(j * 5) * 0.1) * 1.2 // Slightly larger shadow
+      if (j === 0) {
+        ctx.moveTo(x + Math.cos(angle) * radius, y + Math.sin(angle) * radius)
+      } else {
+        ctx.lineTo(x + Math.cos(angle) * radius, y + Math.sin(angle) * radius)
+      }
+    }
+    ctx.closePath()
+    ctx.fill()
+  } else if (shape === "oval") {
+    // Oval shadow for oval rocks
+    const shadowGradient = ctx.createRadialGradient(x, y, objectSize * 0.5, x, y, objectSize * 1.2)
+    shadowGradient.addColorStop(0, "rgba(0, 0, 0, 0.5)")
+    shadowGradient.addColorStop(1, "rgba(0, 0, 0, 0)")
+
+    ctx.fillStyle = shadowGradient
+
+    // Draw oval shadow
+    ctx.beginPath()
+    ctx.ellipse(x, y, objectSize * 0.85 * 1.2, objectSize * 0.65 * 1.2, 0, 0, Math.PI * 2)
+    ctx.fill()
+  }
+
+  // Restore context
+  ctx.restore()
 }
 
 // Modify the drawPlayer function to add a shadow
@@ -1176,7 +1289,7 @@ function drawPlayer() {
   const screenY = canvas.height / 2
 
   // Draw shadow using standardized function
-  createShadow(ctx, screenX, screenY, player.size)
+  createShadow(ctx, screenX, screenY, player.size, "circle")
 
   // Draw player body (circle)
   ctx.fillStyle = player.color
@@ -1249,8 +1362,12 @@ function drawPlayer() {
     const bombScreenX = grabbedBomb.x - camera.x
     const bombScreenY = grabbedBomb.y - camera.y
 
-    // Draw bomb shadow using standardized function
-    createShadow(ctx, bombScreenX, bombScreenY, grabbedBomb.size)
+    // Draw bomb shadow using shape-specific shadow for rounded rectangle
+    createShadow(ctx, bombScreenX, bombScreenY, grabbedBomb.size, "rectangle", {
+      width: grabbedBomb.size,
+      height: grabbedBomb.size,
+      radius: grabbedBomb.size / 4,
+    })
 
     ctx.fillStyle = grabbedBomb.color
     roundRect(
@@ -1297,8 +1414,17 @@ function drawPlayer() {
     const rockScreenX = grabbedRock.x - camera.x
     const rockScreenY = grabbedRock.y - camera.y
 
-    // Draw rock shadow using standardized function
-    createShadow(ctx, rockScreenX, rockScreenY, grabbedRock.size)
+    // Draw rock shadow using shape-specific shadow
+    if (grabbedRock.texture === 0) {
+      // Rounded rock shadow
+      createShadow(ctx, rockScreenX, rockScreenY, grabbedRock.size, "circle")
+    } else if (grabbedRock.texture === 1) {
+      // Angular rock shadow
+      createShadow(ctx, rockScreenX, rockScreenY, grabbedRock.size, "polygon", null, grabbedRock.rotation)
+    } else {
+      // Oval rock shadow
+      createShadow(ctx, rockScreenX, rockScreenY, grabbedRock.size, "oval", null, grabbedRock.rotation)
+    }
 
     // Draw rock
     ctx.save()
@@ -1392,8 +1518,8 @@ function drawAndUpdateApples() {
       continue
     }
 
-    // Draw shadow using standardized function
-    createShadow(ctx, screenX, screenY, apple.size)
+    // Draw apple shadow using standardized function
+    createShadow(ctx, screenX, screenY, apple.size, "circle")
 
     // Draw apple
     ctx.fillStyle = apple.color
@@ -1439,8 +1565,12 @@ function drawAndUpdateBombs() {
       continue
     }
 
-    // Draw shadow using standardized function
-    createShadow(ctx, screenX, screenY, bomb.size)
+    // Draw shadow using shape-specific shadow for rounded rectangle
+    createShadow(ctx, screenX, screenY, bomb.size, "rectangle", {
+      width: bomb.size,
+      height: bomb.size,
+      radius: bomb.size / 4,
+    })
 
     // Check if bomb should explode
     if (bomb.countdown !== null && Date.now() >= bomb.countdown) {
@@ -1627,8 +1757,8 @@ function drawAndUpdateThrownApples() {
       continue
     }
 
-    // Draw shadow using standardized function
-    createShadow(ctx, screenX, screenY, apple.size)
+    // Draw apple shadow using standardized function
+    createShadow(ctx, screenX, screenY, apple.size, "circle")
 
     // Draw apple
     ctx.fillStyle = apple.color
