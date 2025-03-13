@@ -364,19 +364,22 @@ function handleButtonAStart(e) {
   buttonAActive = true
   e.target.classList.add("button-active")
 
-  // Trigger grab/release action
-  if (isGrabbing) {
-    // If holding something, release it
-    if (grabbedBomb) {
-      releaseBomb()
-    } else if (grabbedRock) {
-      releaseRock()
-    }
-  } else {
-    // If not holding anything, try to grab a bomb
-    if (!tryGrabBomb()) {
-      // If no bomb to grab, try to grab a rock
-      tryGrabRock()
+  // First try to detonate any bomb with countdown
+  if (!detonateAnyBombWithCountdown()) {
+    // If no bomb to detonate, then try grab/release actions
+    if (isGrabbing) {
+      // If holding something, release it
+      if (grabbedBomb) {
+        releaseBomb()
+      } else if (grabbedRock) {
+        releaseRock()
+      }
+    } else {
+      // If not holding anything, try to grab a bomb
+      if (!tryGrabBomb()) {
+        // If no bomb to grab, try to grab a rock
+        tryGrabRock()
+      }
     }
   }
 }
@@ -389,11 +392,8 @@ function handleButtonBStart(e) {
   buttonBActive = true
   e.target.classList.add("button-active")
 
-  // First try to detonate any bomb with countdown
-  if (!detonateAnyBombWithCountdown()) {
-    // If no bomb to detonate, throw an apple
-    throwApple()
-  }
+  // Button B is now only for throwing apples
+  throwApple()
 }
 
 function handleButtonBEnd(e) {
