@@ -4,6 +4,14 @@ import { TILE_SIZE } from "../core/constants.js"
 import { getDistance } from "../utils/math-utils.js"
 import { createShadow } from "../utils/rendering-utils.js"
 
+// Animation constants
+const HAND_SIZE = 11
+const FOOT_SIZE = 15
+const ANIMATION_SPEED = 0.05
+const IDLE_ANIMATION_SPEED = 0.03
+const IDLE_ANIMATION_RANGE = 2
+const LIMB_MOVEMENT_RANGE = 12
+
 // Update player position based on keyboard input
 export function updatePlayerPosition() {
   const { player, keys, isGrabbing, grabbedBomb, grabbedRock, terrain, rocks } = gameState
@@ -34,6 +42,15 @@ export function updatePlayerPosition() {
   const currentSpeed = isGrabbing ? player.speed / 2 : player.speed
   dx *= currentSpeed
   dy *= currentSpeed
+
+  // Update animation state
+  if (dx !== 0 || dy !== 0) {
+    player.isMoving = true
+    player.animationTime += player.isMoving ? ANIMATION_SPEED * currentSpeed : IDLE_ANIMATION_SPEED
+  } else {
+    player.isMoving = false
+    player.animationTime += IDLE_ANIMATION_SPEED
+  }
 
   // Check if new position would be on water or collide with a rock
   const newX = player.x + dx
@@ -96,16 +113,26 @@ export function drawPlayer() {
   // Draw shadow using standardized function
   createShadow(ctx, screenX, screenY, player.size, "circle")
 
-  // Draw player body (circle)
+  // Draw in order from bottom to top (lowest z-index to highest)
+
+  // 1. Draw feet first (lowest z-index: -2)
+  if (player.isMoving) {
+    drawFeet(ctx, screenX, screenY, player)
+  }
+
+  // 2. Draw backpack (z-index: -1)
+  drawBackpack(ctx, screenX, screenY, player)
+
+  // 3. Draw player body (z-index: 0)
   ctx.fillStyle = player.color
   ctx.beginPath()
   ctx.arc(screenX, screenY, player.size, 0, Math.PI * 2)
   ctx.fill()
 
-  // Draw direction indicator
+  // 4. Draw direction indicator (z-index: 1)
   const indicatorLength = player.size * 0.8
-  ctx.strokeStyle = "white"
-  ctx.lineWidth = 3
+  ctx.strokeStyle = "gray"
+  ctx.lineWidth = 9
   ctx.beginPath()
   ctx.moveTo(screenX, screenY)
   ctx.lineTo(
@@ -114,7 +141,26 @@ export function drawPlayer() {
   )
   ctx.stroke()
 
-  // Draw player details
+  // 5. Draw player details - eyes (z-index: 2)
+  drawPlayerFace(ctx, screenX, screenY, player)
+
+  // 6. Draw hands (highest z-index: 3)
+  drawHands(ctx, screenX, screenY, player)
+
+  // Draw grabbed objects
+  drawGrabbedObjects(ctx, screenX, screenY, player, camera, grabbedBomb, grabbedRock)
+
+  // Flash player if recently hit
+  if (Date.now() - player.lastHit < 500) {
+    ctx.fillStyle = "rgba(255, 0, 0, 0.3)"
+    ctx.beginPath()
+    ctx.arc(screenX, screenY, player.size * 1.2, 0, Math.PI * 2)
+    ctx.fill()
+  }
+}
+
+// Draw the player's face (eyes and pupils)
+function drawPlayerFace(ctx, x, y, player) {
   const eyeOffset = player.size / 3
   const eyeSize = player.size / 5
 
@@ -122,8 +168,8 @@ export function drawPlayer() {
   ctx.fillStyle = "white"
   ctx.beginPath()
   ctx.arc(
-    screenX + eyeOffset * Math.cos(player.direction - Math.PI / 4),
-    screenY + eyeOffset * Math.sin(player.direction - Math.PI / 4),
+    x + eyeOffset * Math.cos(player.direction - Math.PI / 4),
+    y + eyeOffset * Math.sin(player.direction - Math.PI / 4),
     eyeSize,
     0,
     Math.PI * 2,
@@ -132,8 +178,8 @@ export function drawPlayer() {
 
   ctx.beginPath()
   ctx.arc(
-    screenX + eyeOffset * Math.cos(player.direction + Math.PI / 4),
-    screenY + eyeOffset * Math.sin(player.direction + Math.PI / 4),
+    x + eyeOffset * Math.cos(player.direction + Math.PI / 4),
+    y + eyeOffset * Math.sin(player.direction + Math.PI / 4),
     eyeSize,
     0,
     Math.PI * 2,
@@ -144,8 +190,8 @@ export function drawPlayer() {
   ctx.fillStyle = "black"
   ctx.beginPath()
   ctx.arc(
-    screenX + eyeOffset * Math.cos(player.direction - Math.PI / 4) + (eyeSize / 3) * Math.cos(player.direction),
-    screenY + eyeOffset * Math.sin(player.direction - Math.PI / 4) + (eyeSize / 3) * Math.sin(player.direction),
+    x + eyeOffset * Math.cos(player.direction - Math.PI / 4) + (eyeSize / 3) * Math.cos(player.direction),
+    y + eyeOffset * Math.sin(player.direction - Math.PI / 4) + (eyeSize / 3) * Math.sin(player.direction),
     eyeSize / 2,
     0,
     Math.PI * 2,
@@ -154,15 +200,124 @@ export function drawPlayer() {
 
   ctx.beginPath()
   ctx.arc(
-    screenX + eyeOffset * Math.cos(player.direction + Math.PI / 4) + (eyeSize / 3) * Math.cos(player.direction),
-    screenY + eyeOffset * Math.sin(player.direction + Math.PI / 4) + (eyeSize / 3) * Math.sin(player.direction),
+    x + eyeOffset * Math.cos(player.direction + Math.PI / 4) + (eyeSize / 3) * Math.cos(player.direction),
+    y + eyeOffset * Math.sin(player.direction + Math.PI / 4) + (eyeSize / 3) * Math.sin(player.direction),
     eyeSize / 2,
     0,
     Math.PI * 2,
   )
   ctx.fill()
+}
 
-  // Draw grabbed bomb if holding one
+// Draw the player's backpack
+function drawBackpack(ctx, x, y, player) {
+  // Calculate backpack position (opposite to the direction the player is facing)
+  const backpackAngle = player.direction + Math.PI
+  const backpackDistance = player.size * 1.0
+
+  // Add slight breathing animation to backpack
+  const breathingOffset = Math.sin(player.animationTime * IDLE_ANIMATION_SPEED * 5) * 1.5
+  const backpackX = x + Math.cos(backpackAngle) * (backpackDistance + breathingOffset)
+  const backpackY = y + Math.sin(backpackAngle) * (backpackDistance + breathingOffset)
+
+  // Draw backpack
+  ctx.fillStyle = "#8B4513" // Brown color for backpack
+  ctx.beginPath()
+
+  // Draw a rounded rectangle for the backpack
+  const backpackWidth = player.size * 0.9
+  const backpackHeight = player.size * 1.6
+
+  ctx.save()
+  ctx.translate(backpackX, backpackY)
+  ctx.rotate(backpackAngle)
+
+  // Draw main backpack body
+  roundRect(ctx, -backpackWidth / 2, -backpackHeight / 2, backpackWidth, backpackHeight, 4)
+
+  // Draw backpack pocket
+  ctx.fillStyle = "#A0522D" // Slightly lighter brown
+  roundRect(ctx, -backpackWidth / 2 + 2, -backpackHeight / 2 + 2, backpackWidth - 15, backpackHeight - 4, 2)
+
+  ctx.restore()
+}
+
+// Draw the player's hands
+function drawHands(ctx, x, y, player) {
+  // Calculate animation offset based on movement or idle state
+  let handOffset
+
+  if (player.isMoving) {
+    // Walking/running animation
+    handOffset = Math.sin(player.animationTime) * LIMB_MOVEMENT_RANGE
+  } else {
+    // Idle animation - subtle breathing movement
+    handOffset = Math.sin(player.animationTime) * IDLE_ANIMATION_RANGE
+  }
+
+  // Calculate positions for hands (perpendicular to movement direction)
+  const handAngle1 = player.direction + Math.PI / 2 // Right hand
+  const handAngle2 = player.direction - Math.PI / 2 // Left hand
+
+  // Base distance from center
+  const handDistance = player.size * 1.2
+
+  // Calculate hand positions with animation
+  const rightHandX = x + Math.cos(handAngle1) * handDistance + Math.cos(player.direction) * handOffset
+  const rightHandY = y + Math.sin(handAngle1) * handDistance + Math.sin(player.direction) * handOffset
+
+  const leftHandX = x + Math.cos(handAngle2) * handDistance + Math.cos(player.direction) * -handOffset
+  const leftHandY = y + Math.sin(handAngle2) * handDistance + Math.sin(player.direction) * -handOffset
+
+  // Draw hands (light gray)
+  ctx.fillStyle = "#AAAAAA"
+
+  // Right hand
+  ctx.beginPath()
+  ctx.arc(rightHandX, rightHandY, HAND_SIZE, 0, Math.PI * 2)
+  ctx.fill()
+
+  // Left hand
+  ctx.beginPath()
+  ctx.arc(leftHandX, leftHandY, HAND_SIZE, 0, Math.PI * 2)
+  ctx.fill()
+}
+
+// Draw the player's feet
+function drawFeet(ctx, x, y, player) {
+  // Calculate animation offset for feet
+  const footOffset = Math.sin(player.animationTime) * LIMB_MOVEMENT_RANGE
+
+  // Calculate positions for feet (slightly behind the player)
+  const footAngle1 = player.direction + Math.PI + Math.PI / 2 // Right foot
+  const footAngle2 = player.direction + Math.PI - Math.PI / 2 // Left foot
+
+  // Base distance from center
+  const footDistance = player.size * 0.7
+
+  // Calculate foot positions with animation
+  const rightFootX = x + Math.cos(footAngle1) * footDistance + Math.cos(player.direction) * footOffset
+  const rightFootY = y + Math.sin(footAngle1) * footDistance + Math.sin(player.direction) * footOffset
+
+  const leftFootX = x + Math.cos(footAngle2) * footDistance + Math.cos(player.direction) * -footOffset
+  const leftFootY = y + Math.sin(footAngle2) * footDistance + Math.sin(player.direction) * -footOffset
+
+  // Draw feet (dark gray)
+  ctx.fillStyle = "#444444"
+
+  // Right foot
+  ctx.beginPath()
+  ctx.arc(rightFootX, rightFootY, FOOT_SIZE, 0, Math.PI * 2)
+  ctx.fill()
+
+  // Left foot
+  ctx.beginPath()
+  ctx.arc(leftFootX, leftFootY, FOOT_SIZE, 0, Math.PI * 2)
+  ctx.fill()
+}
+
+// Draw grabbed objects (bombs or rocks)
+function drawGrabbedObjects(ctx, screenX, screenY, player, camera, grabbedBomb, grabbedRock) {
   if (grabbedBomb) {
     const bombScreenX = grabbedBomb.x - camera.x
     const bombScreenY = grabbedBomb.y - camera.y
@@ -296,16 +451,7 @@ export function drawPlayer() {
     ctx.stroke()
     ctx.setLineDash([])
   }
-
-  // Flash player if recently hit
-  if (Date.now() - player.lastHit < 500) {
-    ctx.fillStyle = "rgba(255, 0, 0, 0.3)"
-    ctx.beginPath()
-    ctx.arc(screenX, screenY, player.size * 1.2, 0, Math.PI * 2)
-    ctx.fill()
-  }
 }
 
 // Import roundRect after using it to avoid circular dependency
 import { roundRect } from "../utils/rendering-utils.js"
-
