@@ -66,13 +66,30 @@ export function setupMobileControls() {
 export function handleJoystickStart(e) {
   e.preventDefault()
   gameState.joystickActive = true
+
+  // Store the touch identifier for this joystick interaction
+  gameState.joystickTouchId = e.touches[0].identifier
+
   updateJoystickPosition(e.touches[0])
 }
 
 export function handleJoystickMove(e) {
   if (gameState.joystickActive) {
     e.preventDefault()
-    updateJoystickPosition(e.touches[0])
+
+    // Find the touch that matches our stored joystick touch ID
+    let joystickTouch = null
+    for (let i = 0; i < e.touches.length; i++) {
+      if (e.touches[i].identifier === gameState.joystickTouchId) {
+        joystickTouch = e.touches[i]
+        break
+      }
+    }
+
+    // If we found the matching touch, update the joystick
+    if (joystickTouch) {
+      updateJoystickPosition(joystickTouch)
+    }
   }
 }
 
@@ -80,10 +97,27 @@ export function handleJoystickMove(e) {
 export function handleJoystickEnd(e) {
   // Only reset joystick if all touches are gone or if the specific touch for the joystick is gone
   let joystickTouchFound = false
+  let joystickTouchId = null
+
+  // Find the joystick touch ID if it exists
+  if (gameState.joystickActive && gameState.joystickTouchId !== undefined) {
+    joystickTouchId = gameState.joystickTouchId
+  }
 
   // Check if any of the remaining touches are for the joystick
   for (let i = 0; i < e.touches.length; i++) {
     const touch = e.touches[i]
+
+    // Skip touches that are identified as button touches
+    const buttonA = document.querySelector(".button-a")
+    const buttonB = document.querySelector(".button-b")
+    if (
+      (buttonA.touchIdentifier && buttonA.touchIdentifier === touch.identifier) ||
+      (buttonB.touchIdentifier && buttonB.touchIdentifier === touch.identifier)
+    ) {
+      continue
+    }
+
     const joystickContainer = document.querySelector(".joystick-container")
     const rect = joystickContainer.getBoundingClientRect()
 
@@ -95,6 +129,14 @@ export function handleJoystickEnd(e) {
       touch.clientY <= rect.bottom
     ) {
       joystickTouchFound = true
+
+      // If we had a specific joystick touch ID, make sure this is the same one
+      if (joystickTouchId !== null && touch.identifier !== joystickTouchId) {
+        continue
+      }
+
+      // Update the joystick with this touch
+      updateJoystickPosition(touch)
       break
     }
   }
@@ -102,6 +144,7 @@ export function handleJoystickEnd(e) {
   // Only deactivate joystick if no joystick touches remain
   if (!joystickTouchFound) {
     gameState.joystickActive = false
+    gameState.joystickTouchId = undefined
     const joystickKnob = document.querySelector(".joystick-knob")
     joystickKnob.style.transform = "translate(-50%, -50%)"
     gameState.joystickAngle = 0
@@ -113,6 +156,10 @@ export function handleJoystickEnd(e) {
 export function handleButtonAStart(e) {
   // Only stop propagation, don't prevent default to allow joystick to work simultaneously
   e.stopPropagation()
+
+  // IMPORTANT: Don't reset joystick state when pressing buttons
+  // Mark this touch as a button touch to prevent it from affecting the joystick
+  e.target.touchIdentifier = e.touches[0].identifier
 
   gameState.buttonAActive = true
   e.target.classList.add("button-active")
@@ -140,12 +187,18 @@ export function handleButtonAStart(e) {
 export function handleButtonAEnd(e) {
   gameState.buttonAActive = false
   e.target.classList.remove("button-active")
+  // Clear the touch identifier
+  e.target.touchIdentifier = null
 }
 
 // Button B handlers
 export function handleButtonBStart(e) {
   // Only stop propagation, don't prevent default to allow joystick to work simultaneously
   e.stopPropagation()
+
+  // IMPORTANT: Don't reset joystick state when pressing buttons
+  // Mark this touch as a button touch to prevent it from affecting the joystick
+  e.target.touchIdentifier = e.touches[0].identifier
 
   gameState.buttonBActive = true
   e.target.classList.add("button-active")
@@ -157,6 +210,8 @@ export function handleButtonBStart(e) {
 export function handleButtonBEnd(e) {
   gameState.buttonBActive = false
   e.target.classList.remove("button-active")
+  // Clear the touch identifier
+  e.target.touchIdentifier = null
 }
 
 // Update joystick position and calculate angle/distance
@@ -216,4 +271,3 @@ export function detectMobile() {
     navigator.userAgent.match(/Windows Phone/i)
   )
 }
-
