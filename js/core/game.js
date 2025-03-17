@@ -10,6 +10,7 @@ import { generateApples } from "../entities/apples.js"
 import { updateTimer } from "../ui/ui-manager.js"
 import { update } from "./game-loop.js"
 import { gameState } from "./game-state.js"
+import { createCharacter } from "../entities/character-factory.js"
 
 // Initialize the game
 export function init() {
@@ -48,8 +49,8 @@ export function init() {
     window.hasResizeListener = true
   }
 
-  // Initialize player
-  gameState.player = {
+  // Initialize player using character factory
+  gameState.player = createCharacter("default", {
     x: gameState.canvas.width / 2,
     y: gameState.canvas.height / 2,
     size: PLAYER_SIZE,
@@ -59,7 +60,10 @@ export function init() {
     lastHit: 0,
     direction: 0, // Angle in radians
     color: "#3498db",
-  }
+    isMoving: false,
+    animationTime: 0,
+    strength: 1.0, // Default strength for picking up objects
+  })
 
   // Generate initial terrain
   generateTerrain()
@@ -105,4 +109,3 @@ export function resizeCanvas() {
   gameState.canvas.width = container.clientWidth
   gameState.canvas.height = container.clientHeight
 }
-
