@@ -93,99 +93,114 @@ export function releaseBomb() {
   return false
 }
 
-// Draw and update bombs
+// Modify the drawAndUpdateBombs function to use normal shadow scale
 export function drawAndUpdateBombs() {
-  const { bombs, camera, ctx } = gameState
+  try {
+    const { bombs, camera, ctx } = gameState
 
-  for (let i = bombs.length - 1; i >= 0; i--) {
-    const bomb = bombs[i]
-    const screenX = bomb.x - camera.x
-    const screenY = bomb.y - camera.y
+    for (let i = bombs.length - 1; i >= 0; i--) {
+      const bomb = bombs[i]
+      if (!bomb) continue // Skip if bomb is undefined
 
-    // Skip if bomb is off-screen
-    if (
-      screenX < -bomb.size ||
-      screenX > ctx.canvas.width + bomb.size ||
-      screenY < -bomb.size ||
-      screenY > ctx.canvas.height + bomb.size
-    ) {
-      // If bomb is counting down but off-screen, still check for explosion
+      const screenX = bomb.x - camera.x
+      const screenY = bomb.y - camera.y
+
+      // Skip if bomb is off-screen
+      if (
+        screenX < -bomb.size ||
+        screenX > ctx.canvas.width + bomb.size ||
+        screenY < -bomb.size ||
+        screenY > ctx.canvas.height + bomb.size
+      ) {
+        // If bomb is counting down but off-screen, still check for explosion
+        if (bomb.countdown !== null && Date.now() >= bomb.countdown) {
+          const explosionRadius = 100 + Math.random() * 50 // Random radius between 100-150
+          createExplosion(bomb.x, bomb.y, explosionRadius)
+          bombs.splice(i, 1)
+        }
+        continue
+      }
+
+      // Draw shadow using shape-specific shadow for rounded rectangle
+      // Increase shadow size for better visibility
+      // Use normal shadow scale (1.0) for bombs on the ground
+      createShadow(
+        ctx,
+        screenX,
+        screenY,
+        bomb.size * 1.2,
+        "rectangle",
+        {
+          width: bomb.size,
+          height: bomb.size,
+          radius: bomb.size / 4,
+        },
+        0,
+        1.0,
+      )
+
+      // Check if bomb should explode
       if (bomb.countdown !== null && Date.now() >= bomb.countdown) {
         const explosionRadius = 100 + Math.random() * 50 // Random radius between 100-150
         createExplosion(bomb.x, bomb.y, explosionRadius)
         bombs.splice(i, 1)
+        continue
       }
-      continue
-    }
 
-    // Draw shadow using shape-specific shadow for rounded rectangle
-    // Increase shadow size for better visibility
-    createShadow(ctx, screenX, screenY, bomb.size * 1.2, "rectangle", {
-      width: bomb.size,
-      height: bomb.size,
-      radius: bomb.size / 4,
-    })
+      // Draw bomb (rounded rectangle with fuse)
+      ctx.fillStyle = bomb.color
+      roundRect(ctx, screenX - bomb.size / 2, screenY - bomb.size / 2, bomb.size, bomb.size, bomb.size / 4)
 
-    // Check if bomb should explode
-    if (bomb.countdown !== null && Date.now() >= bomb.countdown) {
-      const explosionRadius = 100 + Math.random() * 50 // Random radius between 100-150
-      createExplosion(bomb.x, bomb.y, explosionRadius)
-      bombs.splice(i, 1)
-      continue
-    }
-
-    // Draw bomb (rounded rectangle with fuse)
-    ctx.fillStyle = bomb.color
-    roundRect(ctx, screenX - bomb.size / 2, screenY - bomb.size / 2, bomb.size, bomb.size, bomb.size / 4)
-
-    // Draw bomb fuse
-    ctx.strokeStyle = "#000000"
-    ctx.lineWidth = 3
-    ctx.beginPath()
-    ctx.moveTo(screenX, screenY - bomb.size / 2)
-
-    // Make fuse wiggle
-    const time = Date.now() / 200
-    const fuseHeight = bomb.size / 2
-    const wiggle = Math.sin(time) * 5
-
-    ctx.bezierCurveTo(
-      screenX + wiggle,
-      screenY - bomb.size / 2 - fuseHeight / 3,
-      screenX - wiggle,
-      screenY - bomb.size / 2 - (fuseHeight * 2) / 3,
-      screenX,
-      screenY - bomb.size / 2 - fuseHeight,
-    )
-    ctx.stroke()
-
-    // Draw spark on fuse if counting down
-    if (bomb.countdown !== null) {
-      const countdownProgress = 1 - (bomb.countdown - Date.now()) / 3000
-      const sparkY = screenY - bomb.size / 2 - fuseHeight * countdownProgress
-
-      // Draw spark
-      ctx.fillStyle = "#ffcc00"
+      // Draw bomb fuse
+      ctx.strokeStyle = "#000000"
+      ctx.lineWidth = 3
       ctx.beginPath()
-      ctx.arc(screenX, sparkY, 4, 0, Math.PI * 2)
-      ctx.fill()
+      ctx.moveTo(screenX, screenY - bomb.size / 2)
 
-      // Draw countdown text
-      const secondsLeft = Math.ceil((bomb.countdown - Date.now()) / 1000)
-      ctx.fillStyle = "white"
-      ctx.font = "16px Arial"
-      ctx.textAlign = "center"
-      ctx.textBaseline = "middle"
-      ctx.fillText(secondsLeft.toString(), screenX, screenY)
+      // Make fuse wiggle
+      const time = Date.now() / 200
+      const fuseHeight = bomb.size / 2
+      const wiggle = Math.sin(time) * 5
 
-      // Draw pulsing circle around bomb
-      const pulseSize = Math.sin(Date.now() / 100) * 5 + 10
-      ctx.strokeStyle = "rgba(255, 0, 0, 0.7)"
-      ctx.lineWidth = 2
-      ctx.beginPath()
-      ctx.arc(screenX, screenY, bomb.size / 2 + pulseSize, 0, Math.PI * 2)
+      ctx.bezierCurveTo(
+        screenX + wiggle,
+        screenY - bomb.size / 2 - fuseHeight / 3,
+        screenX - wiggle,
+        screenY - bomb.size / 2 - (fuseHeight * 2) / 3,
+        screenX,
+        screenY - bomb.size / 2 - fuseHeight,
+      )
       ctx.stroke()
+
+      // Draw spark on fuse if counting down
+      if (bomb.countdown !== null) {
+        const countdownProgress = 1 - (bomb.countdown - Date.now()) / 3000
+        const sparkY = screenY - bomb.size / 2 - fuseHeight * countdownProgress
+
+        // Draw spark
+        ctx.fillStyle = "#ffcc00"
+        ctx.beginPath()
+        ctx.arc(screenX, sparkY, 4, 0, Math.PI * 2)
+        ctx.fill()
+
+        // Draw countdown text
+        const secondsLeft = Math.ceil((bomb.countdown - Date.now()) / 1000)
+        ctx.fillStyle = "white"
+        ctx.font = "16px Arial"
+        ctx.textAlign = "center"
+        ctx.textBaseline = "middle"
+        ctx.fillText(secondsLeft.toString(), screenX, screenY)
+
+        // Draw pulsing circle around bomb
+        const pulseSize = Math.sin(Date.now() / 100) * 5 + 10
+        ctx.strokeStyle = "rgba(255, 0, 0, 0.7)"
+        ctx.lineWidth = 2
+        ctx.beginPath()
+        ctx.arc(screenX, screenY, bomb.size / 2 + pulseSize, 0, Math.PI * 2)
+        ctx.stroke()
+      }
     }
+  } catch (error) {
+    console.error("Error in drawAndUpdateBombs:", error)
   }
 }
-
