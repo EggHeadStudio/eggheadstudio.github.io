@@ -244,43 +244,80 @@ function drawBackpack(ctx, x, y, player) {
 
 // Draw the player's hands
 function drawHands(ctx, x, y, player) {
-  // Calculate animation offset based on movement or idle state
-  let handOffset
+  try {
+    // Calculate animation offset based on movement or idle state
+    let handOffset
+    let handDistance
 
-  if (player.isMoving) {
-    // Walking/running animation
-    handOffset = Math.sin(player.animationTime) * LIMB_MOVEMENT_RANGE
-  } else {
-    // Idle animation - subtle breathing movement
-    handOffset = Math.sin(player.animationTime) * IDLE_ANIMATION_RANGE
+    // Check if player is carrying something
+    if (gameState.isGrabbing) {
+      // When carrying, position hands forward in the direction player is facing
+      handOffset = 0 // No animation when carrying
+      handDistance = player.size * 1.5 // Extended forward position
+
+      // Calculate positions for hands (both in front, slightly apart)
+      const handAngle1 = player.direction + Math.PI / 8 // Right hand, slightly to the right
+      const handAngle2 = player.direction - Math.PI / 8 // Left hand, slightly to the left
+
+      // Calculate hand positions with fixed forward position
+      const rightHandX = x + Math.cos(handAngle1) * handDistance
+      const rightHandY = y + Math.sin(handAngle1) * handDistance
+
+      const leftHandX = x + Math.cos(handAngle2) * handDistance
+      const leftHandY = y + Math.sin(handAngle2) * handDistance
+
+      // Draw hands (light gray)
+      ctx.fillStyle = "#AAAAAA"
+
+      // Right hand
+      ctx.beginPath()
+      ctx.arc(rightHandX, rightHandY, HAND_SIZE, 0, Math.PI * 2)
+      ctx.fill()
+
+      // Left hand
+      ctx.beginPath()
+      ctx.arc(leftHandX, leftHandY, HAND_SIZE, 0, Math.PI * 2)
+      ctx.fill()
+    } else {
+      // Normal hand animation when not carrying
+      if (player.isMoving) {
+        // Walking/running animation
+        handOffset = Math.sin(player.animationTime) * LIMB_MOVEMENT_RANGE
+      } else {
+        // Idle animation - subtle breathing movement
+        handOffset = Math.sin(player.animationTime) * IDLE_ANIMATION_RANGE
+      }
+
+      // Base distance from center
+      handDistance = player.size * 1.2
+
+      // Calculate positions for hands (perpendicular to movement direction)
+      const handAngle1 = player.direction + Math.PI / 2 // Right hand
+      const handAngle2 = player.direction - Math.PI / 2 // Left hand
+
+      // Calculate hand positions with animation
+      const rightHandX = x + Math.cos(handAngle1) * handDistance + Math.cos(player.direction) * handOffset
+      const rightHandY = y + Math.sin(handAngle1) * handDistance + Math.sin(player.direction) * handOffset
+
+      const leftHandX = x + Math.cos(handAngle2) * handDistance + Math.cos(player.direction) * -handOffset
+      const leftHandY = y + Math.sin(handAngle2) * handDistance + Math.sin(player.direction) * -handOffset
+
+      // Draw hands (light gray)
+      ctx.fillStyle = "#AAAAAA"
+
+      // Right hand
+      ctx.beginPath()
+      ctx.arc(rightHandX, rightHandY, HAND_SIZE, 0, Math.PI * 2)
+      ctx.fill()
+
+      // Left hand
+      ctx.beginPath()
+      ctx.arc(leftHandX, leftHandY, HAND_SIZE, 0, Math.PI * 2)
+      ctx.fill()
+    }
+  } catch (error) {
+    console.error("Error in drawHands:", error)
   }
-
-  // Calculate positions for hands (perpendicular to movement direction)
-  const handAngle1 = player.direction + Math.PI / 2 // Right hand
-  const handAngle2 = player.direction - Math.PI / 2 // Left hand
-
-  // Base distance from center
-  const handDistance = player.size * 1.2
-
-  // Calculate hand positions with animation
-  const rightHandX = x + Math.cos(handAngle1) * handDistance + Math.cos(player.direction) * handOffset
-  const rightHandY = y + Math.sin(handAngle1) * handDistance + Math.sin(player.direction) * handOffset
-
-  const leftHandX = x + Math.cos(handAngle2) * handDistance + Math.cos(player.direction) * -handOffset
-  const leftHandY = y + Math.sin(handAngle2) * handDistance + Math.sin(player.direction) * -handOffset
-
-  // Draw hands (light gray)
-  ctx.fillStyle = "#AAAAAA"
-
-  // Right hand
-  ctx.beginPath()
-  ctx.arc(rightHandX, rightHandY, HAND_SIZE, 0, Math.PI * 2)
-  ctx.fill()
-
-  // Left hand
-  ctx.beginPath()
-  ctx.arc(leftHandX, leftHandY, HAND_SIZE, 0, Math.PI * 2)
-  ctx.fill()
 }
 
 // Draw the player's feet
@@ -318,138 +355,152 @@ function drawFeet(ctx, x, y, player) {
 
 // Draw grabbed objects (bombs or rocks)
 function drawGrabbedObjects(ctx, screenX, screenY, player, camera, grabbedBomb, grabbedRock) {
-  if (grabbedBomb) {
-    const bombScreenX = grabbedBomb.x - camera.x
-    const bombScreenY = grabbedBomb.y - camera.y
+  try {
+    if (grabbedBomb) {
+      const bombScreenX = grabbedBomb.x - camera.x
+      const bombScreenY = grabbedBomb.y - camera.y
 
-    // Draw bomb shadow using shape-specific shadow for rounded rectangle
-    createShadow(ctx, bombScreenX, bombScreenY, grabbedBomb.size, "rectangle", {
-      width: grabbedBomb.size,
-      height: grabbedBomb.size,
-      radius: grabbedBomb.size / 4,
-    })
+      // Draw bomb shadow using shape-specific shadow for rounded rectangle
+      // Use smaller shadow scale when object is being carried
+      createShadow(
+        ctx,
+        bombScreenX,
+        bombScreenY,
+        grabbedBomb.size,
+        "rectangle",
+        {
+          width: grabbedBomb.size,
+          height: grabbedBomb.size,
+          radius: grabbedBomb.size / 4,
+        },
+        0,
+        0.95,
+      )
 
-    ctx.fillStyle = grabbedBomb.color
-    roundRect(
-      ctx,
-      bombScreenX - grabbedBomb.size / 2,
-      bombScreenY - grabbedBomb.size / 2,
-      grabbedBomb.size,
-      grabbedBomb.size,
-      grabbedBomb.size / 4,
-    )
+      ctx.fillStyle = grabbedBomb.color
+      roundRect(
+        ctx,
+        bombScreenX - grabbedBomb.size / 2,
+        bombScreenY - grabbedBomb.size / 2,
+        grabbedBomb.size,
+        grabbedBomb.size,
+        grabbedBomb.size / 4,
+      )
 
-    // Draw bomb fuse
-    ctx.strokeStyle = "#000000"
-    ctx.lineWidth = 3
-    ctx.beginPath()
-    ctx.moveTo(bombScreenX, bombScreenY - grabbedBomb.size / 2)
-
-    // Make fuse wiggle
-    const time = Date.now() / 200
-    const fuseHeight = grabbedBomb.size / 2
-    const wiggle = Math.sin(time) * 5
-
-    ctx.bezierCurveTo(
-      bombScreenX + wiggle,
-      bombScreenY - grabbedBomb.size / 2 - fuseHeight / 3,
-      bombScreenX - wiggle,
-      bombScreenY - grabbedBomb.size / 2 - (fuseHeight * 2) / 3,
-      bombScreenX,
-      bombScreenY - grabbedBomb.size / 2 - fuseHeight,
-    )
-    ctx.stroke()
-
-    // Draw connection line
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.5)"
-    ctx.lineWidth = 2
-    ctx.setLineDash([5, 5])
-    ctx.beginPath()
-    ctx.moveTo(screenX, screenY)
-    ctx.lineTo(bombScreenX, bombScreenY)
-    ctx.stroke()
-    ctx.setLineDash([])
-  } else if (grabbedRock) {
-    // Draw grabbed rock
-    const rockScreenX = grabbedRock.x - camera.x
-    const rockScreenY = grabbedRock.y - camera.y
-
-    // Draw rock shadow using shape-specific shadow
-    if (grabbedRock.texture === 0) {
-      // Rounded rock shadow
-      createShadow(ctx, rockScreenX, rockScreenY, grabbedRock.size, "circle")
-    } else if (grabbedRock.texture === 1) {
-      // Angular rock shadow
-      createShadow(ctx, rockScreenX, rockScreenY, grabbedRock.size, "polygon", null, grabbedRock.rotation)
-    } else {
-      // Oval rock shadow
-      createShadow(ctx, rockScreenX, rockScreenY, grabbedRock.size, "oval", null, grabbedRock.rotation)
-    }
-
-    // Draw rock
-    ctx.save()
-    ctx.translate(rockScreenX, rockScreenY)
-    ctx.rotate(grabbedRock.rotation)
-
-    // Base rock shape
-    ctx.fillStyle = "#7f8c8d" // Base rock color
-    ctx.beginPath()
-
-    // Different rock shapes based on texture
-    if (grabbedRock.texture === 0) {
-      // Rounded rock
-      ctx.arc(0, 0, grabbedRock.size * 0.8, 0, Math.PI * 2)
-    } else if (grabbedRock.texture === 1) {
-      // Angular rock
+      // Draw bomb fuse
+      ctx.strokeStyle = "#000000"
+      ctx.lineWidth = 3
       ctx.beginPath()
-      for (let j = 0; j < 7; j++) {
-        const angle = (j * Math.PI * 2) / 7
-        const radius = grabbedRock.size * (0.7 + Math.sin(j * 5) * 0.1)
-        if (j === 0) {
-          ctx.moveTo(Math.cos(angle) * radius, Math.sin(angle) * radius)
-        } else {
-          ctx.lineTo(Math.cos(angle) * radius, Math.sin(angle) * radius)
+      ctx.moveTo(bombScreenX, bombScreenY - grabbedBomb.size / 2)
+
+      // Make fuse wiggle
+      const time = Date.now() / 200
+      const fuseHeight = grabbedBomb.size / 2
+      const wiggle = Math.sin(time) * 5
+
+      ctx.bezierCurveTo(
+        bombScreenX + wiggle,
+        bombScreenY - grabbedBomb.size / 2 - fuseHeight / 3,
+        bombScreenX - wiggle,
+        bombScreenY - grabbedBomb.size / 2 - (fuseHeight * 2) / 3,
+        bombScreenX,
+        bombScreenY - grabbedBomb.size / 2 - fuseHeight,
+      )
+      ctx.stroke()
+
+      // Draw connection line
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.5)"
+      ctx.lineWidth = 2
+      ctx.setLineDash([5, 5])
+      ctx.beginPath()
+      ctx.moveTo(screenX, screenY)
+      ctx.lineTo(bombScreenX, bombScreenY)
+      ctx.stroke()
+      ctx.setLineDash([])
+    } else if (grabbedRock) {
+      // Draw grabbed rock
+      const rockScreenX = grabbedRock.x - camera.x
+      const rockScreenY = grabbedRock.y - camera.y
+
+      // Draw rock shadow using shape-specific shadow with reduced size
+      if (grabbedRock.texture === 0) {
+        // Rounded rock shadow
+        createShadow(ctx, rockScreenX, rockScreenY, grabbedRock.size, "circle", null, 0, 0.95)
+      } else if (grabbedRock.texture === 1) {
+        // Angular rock shadow
+        createShadow(ctx, rockScreenX, rockScreenY, grabbedRock.size, "polygon", null, grabbedRock.rotation, 0.95)
+      } else {
+        // Oval rock shadow
+        createShadow(ctx, rockScreenX, rockScreenY, grabbedRock.size, "oval", null, grabbedRock.rotation, 0.95)
+      }
+
+      // Draw rock
+      ctx.save()
+      ctx.translate(rockScreenX, rockScreenY)
+      ctx.rotate(grabbedRock.rotation)
+
+      // Base rock shape
+      ctx.fillStyle = "#7f8c8d" // Base rock color
+      ctx.beginPath()
+
+      // Different rock shapes based on texture
+      if (grabbedRock.texture === 0) {
+        // Rounded rock
+        ctx.arc(0, 0, grabbedRock.size * 0.8, 0, Math.PI * 2)
+      } else if (grabbedRock.texture === 1) {
+        // Angular rock
+        ctx.beginPath()
+        for (let j = 0; j < 7; j++) {
+          const angle = (j * Math.PI * 2) / 7
+          const radius = grabbedRock.size * (0.7 + Math.sin(j * 5) * 0.1)
+          if (j === 0) {
+            ctx.moveTo(Math.cos(angle) * radius, Math.sin(angle) * radius)
+          } else {
+            ctx.lineTo(Math.cos(angle) * radius, Math.sin(angle) * radius)
+          }
+        }
+        ctx.closePath()
+      } else {
+        // Oval rock
+        ctx.ellipse(0, 0, grabbedRock.size * 0.85, grabbedRock.size * 0.65, 0, 0, Math.PI * 2)
+      }
+      ctx.fill()
+
+      // Add texture details
+      ctx.fillStyle = "#6c7a7a" // Darker color for details
+      for (let j = 0; j < 5; j++) {
+        const detailX = (Math.random() - 0.5) * grabbedRock.size
+        const detailY = (Math.random() - 0.5) * grabbedRock.size
+        const detailSize = 2 + Math.random() * 5
+
+        // Only draw details inside the rock
+        if (detailX * detailX + detailY * detailY < grabbedRock.size * 0.7 * (grabbedRock.size * 0.7)) {
+          ctx.beginPath()
+          ctx.arc(detailX, detailY, detailSize, 0, Math.PI * 2)
+          ctx.fill()
         }
       }
-      ctx.closePath()
-    } else {
-      // Oval rock
-      ctx.ellipse(0, 0, grabbedRock.size * 0.85, grabbedRock.size * 0.65, 0, 0, Math.PI * 2)
+
+      // Add highlights
+      ctx.fillStyle = "#95a5a6" // Lighter color for highlights
+      ctx.beginPath()
+      ctx.arc(-grabbedRock.size * 0.3, -grabbedRock.size * 0.3, grabbedRock.size * 0.2, 0, Math.PI * 2)
+      ctx.fill()
+
+      ctx.restore()
+
+      // Draw connection line
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.5)"
+      ctx.lineWidth = 2
+      ctx.setLineDash([5, 5])
+      ctx.beginPath()
+      ctx.moveTo(screenX, screenY)
+      ctx.lineTo(rockScreenX, rockScreenY)
+      ctx.stroke()
+      ctx.setLineDash([])
     }
-    ctx.fill()
-
-    // Add texture details
-    ctx.fillStyle = "#6c7a7a" // Darker color for details
-    for (let j = 0; j < 5; j++) {
-      const detailX = (Math.random() - 0.5) * grabbedRock.size
-      const detailY = (Math.random() - 0.5) * grabbedRock.size
-      const detailSize = 2 + Math.random() * 5
-
-      // Only draw details inside the rock
-      if (detailX * detailX + detailY * detailY < grabbedRock.size * 0.7 * (grabbedRock.size * 0.7)) {
-        ctx.beginPath()
-        ctx.arc(detailX, detailY, detailSize, 0, Math.PI * 2)
-        ctx.fill()
-      }
-    }
-
-    // Add highlights
-    ctx.fillStyle = "#95a5a6" // Lighter color for highlights
-    ctx.beginPath()
-    ctx.arc(-grabbedRock.size * 0.3, -grabbedRock.size * 0.3, grabbedRock.size * 0.2, 0, Math.PI * 2)
-    ctx.fill()
-
-    ctx.restore()
-
-    // Draw connection line
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.5)"
-    ctx.lineWidth = 2
-    ctx.setLineDash([5, 5])
-    ctx.beginPath()
-    ctx.moveTo(screenX, screenY)
-    ctx.lineTo(rockScreenX, rockScreenY)
-    ctx.stroke()
-    ctx.setLineDash([])
+  } catch (error) {
+    console.error("Error in drawGrabbedObjects:", error)
   }
 }
 
