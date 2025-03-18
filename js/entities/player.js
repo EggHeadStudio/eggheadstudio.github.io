@@ -17,27 +17,37 @@ const THROW_ANIMATION_DURATION = 200 // milliseconds
 
 // Update player position based on keyboard input
 export function updatePlayerPosition() {
-  const { player, keys, isGrabbing, grabbedBomb, grabbedRock, grabbedEnemy, terrain, rocks } = gameState
+  const {
+    player,
+    keys,
+    isGrabbing,
+    grabbedBomb,
+    grabbedRock,
+    grabbedEnemy,
+    terrain,
+    rocks,
+    isMobile,
+    joystickActive,
+    joystickAngle,
+    joystickDistance,
+  } = gameState
 
   let dx = 0
   let dy = 0
 
-  if (gameState.isMobile && gameState.joystickActive) {
-    // Use joystick input
-    dx = Math.cos(gameState.joystickAngle) * gameState.joystickDistance
-    dy = Math.sin(gameState.joystickAngle) * gameState.joystickDistance
+  if (isMobile && joystickActive) {
+    // Mobile controls - use joystick input
+    dx = Math.cos(joystickAngle) * joystickDistance
+    dy = Math.sin(joystickAngle) * joystickDistance
   } else {
-    // Use keyboard input
-    if (keys["ArrowUp"] || keys["w"]) dy -= 1
-    if (keys["ArrowDown"] || keys["s"]) dy += 1
-    if (keys["ArrowLeft"] || keys["a"]) dx -= 1
-    if (keys["ArrowRight"] || keys["d"]) dx += 1
+    // Desktop controls - only move forward in the direction of the mouse
+    // Check if forward movement keys are pressed
+    const isMovingForward = keys["ArrowUp"] || keys["w"]
 
-    // Normalize diagonal movement
-    if (dx !== 0 && dy !== 0) {
-      const length = Math.sqrt(dx * dx + dy * dy)
-      dx /= length
-      dy /= length
+    if (isMovingForward) {
+      // Move in the direction the player is facing (mouse direction)
+      dx = Math.cos(player.direction)
+      dy = Math.sin(player.direction)
     }
   }
 
@@ -90,15 +100,18 @@ export function updatePlayerPosition() {
 
     // Update grabbed object position if holding one
     if (grabbedBomb) {
-      const angle = Math.atan2(dy, dx)
+      // Position the bomb in front of the player in the direction of movement
+      const angle = player.direction
       grabbedBomb.x = player.x + Math.cos(angle) * (player.size + grabbedBomb.size) * 0.8
       grabbedBomb.y = player.y + Math.sin(angle) * (player.size + grabbedBomb.size) * 0.8
     } else if (grabbedRock) {
-      const angle = Math.atan2(dy, dx)
+      // Position the rock in front of the player in the direction of movement
+      const angle = player.direction
       grabbedRock.x = player.x + Math.cos(angle) * (player.size + grabbedRock.size) * 0.8
       grabbedRock.y = player.y + Math.sin(angle) * (player.size + grabbedRock.size) * 0.8
     } else if (grabbedEnemy) {
-      const angle = Math.atan2(dy, dx)
+      // Position the enemy in front of the player in the direction of movement
+      const angle = player.direction
       grabbedEnemy.x = player.x + Math.cos(angle) * (player.size + grabbedEnemy.size) * 0.8
       grabbedEnemy.y = player.y + Math.sin(angle) * (player.size + grabbedEnemy.size) * 0.8
     }
