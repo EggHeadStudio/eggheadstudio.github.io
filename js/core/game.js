@@ -19,6 +19,7 @@ export function init() {
   gameState.isGrabbing = false
   gameState.grabbedBomb = null
   gameState.grabbedRock = null
+  gameState.grabbedEnemy = null // Ensure this is reset on game restart
   gameState.bombs = []
   gameState.enemies = []
   gameState.apples = []
