@@ -17,7 +17,7 @@ const THROW_ANIMATION_DURATION = 200 // milliseconds
 
 // Update player position based on keyboard input
 export function updatePlayerPosition() {
-  const { player, keys, isGrabbing, grabbedBomb, grabbedRock, terrain, rocks } = gameState
+  const { player, keys, isGrabbing, grabbedBomb, grabbedRock, grabbedEnemy, terrain, rocks } = gameState
 
   let dx = 0
   let dy = 0
@@ -41,7 +41,7 @@ export function updatePlayerPosition() {
     }
   }
 
-  // Apply speed (reduced if grabbing a bomb or rock)
+  // Apply speed (reduced if grabbing a bomb, rock, or enemy)
   const currentSpeed = isGrabbing ? player.speed / 2 : player.speed
   dx *= currentSpeed
   dy *= currentSpeed
@@ -97,13 +97,18 @@ export function updatePlayerPosition() {
       const angle = Math.atan2(dy, dx)
       grabbedRock.x = player.x + Math.cos(angle) * (player.size + grabbedRock.size) * 0.8
       grabbedRock.y = player.y + Math.sin(angle) * (player.size + grabbedRock.size) * 0.8
+    } else if (grabbedEnemy) {
+      const angle = Math.atan2(dy, dx)
+      grabbedEnemy.x = player.x + Math.cos(angle) * (player.size + grabbedEnemy.size) * 0.8
+      grabbedEnemy.y = player.y + Math.sin(angle) * (player.size + grabbedEnemy.size) * 0.8
     }
   }
 }
 
 // Draw player
 export function drawPlayer() {
-  const { player, canvas, ctx, gameOver, camera, timerInterval, isGrabbing, grabbedBomb, grabbedRock } = gameState
+  const { player, canvas, ctx, gameOver, camera, timerInterval, isGrabbing, grabbedBomb, grabbedRock, grabbedEnemy } =
+    gameState
 
   if (gameOver) {
     clearInterval(timerInterval) // Stop the timer when the game is over
@@ -151,7 +156,7 @@ export function drawPlayer() {
   drawHands(ctx, screenX, screenY, player)
 
   // Draw grabbed objects
-  drawGrabbedObjects(ctx, screenX, screenY, player, camera, grabbedBomb, grabbedRock)
+  drawGrabbedObjects(ctx, screenX, screenY, player, camera, grabbedBomb, grabbedRock, grabbedEnemy)
 
   // Flash player if recently hit
   if (Date.now() - player.lastHit < 500) {
@@ -414,7 +419,7 @@ function drawFeet(ctx, x, y, player) {
 }
 
 // Draw grabbed objects (bombs or rocks)
-function drawGrabbedObjects(ctx, screenX, screenY, player, camera, grabbedBomb, grabbedRock) {
+function drawGrabbedObjects(ctx, screenX, screenY, player, camera, grabbedBomb, grabbedRock, grabbedEnemy) {
   try {
     if (grabbedBomb) {
       const bombScreenX = grabbedBomb.x - camera.x
@@ -558,6 +563,95 @@ function drawGrabbedObjects(ctx, screenX, screenY, player, camera, grabbedBomb, 
       ctx.lineTo(rockScreenX, rockScreenY)
       ctx.stroke()
       ctx.setLineDash([])
+    } else if (grabbedEnemy) {
+      // Draw grabbed enemy
+      const enemyScreenX = grabbedEnemy.x - camera.x
+      const enemyScreenY = grabbedEnemy.y - camera.y
+
+      // Draw enemy shadow with reduced size
+      createShadow(ctx, enemyScreenX, enemyScreenY, grabbedEnemy.size, "circle", null, 0, 0.95)
+
+      // Draw enemy (circle with details)
+      ctx.fillStyle = grabbedEnemy.isChasing ? "#ff3b30" : grabbedEnemy.color
+      ctx.beginPath()
+      ctx.arc(enemyScreenX, enemyScreenY, grabbedEnemy.size, 0, Math.PI * 2)
+      ctx.fill()
+
+      // Draw enemy eyes
+      const eyeOffset = grabbedEnemy.size / 3
+      const eyeSize = grabbedEnemy.size / 5
+
+      // Left eye
+      ctx.fillStyle = "white"
+      ctx.beginPath()
+      ctx.arc(
+        enemyScreenX - eyeOffset * Math.cos(grabbedEnemy.direction),
+        enemyScreenY - eyeOffset * Math.sin(grabbedEnemy.direction),
+        eyeSize,
+        0,
+        Math.PI * 2,
+      )
+      ctx.fill()
+
+      // Right eye
+      ctx.beginPath()
+      ctx.arc(
+        enemyScreenX + eyeOffset * Math.sin(grabbedEnemy.direction),
+        enemyScreenY - eyeOffset * Math.cos(grabbedEnemy.direction),
+        eyeSize,
+        0,
+        Math.PI * 2,
+      )
+      ctx.fill()
+
+      // Eye pupils
+      ctx.fillStyle = "black"
+      ctx.beginPath()
+      ctx.arc(
+        enemyScreenX - eyeOffset * Math.cos(grabbedEnemy.direction) + (eyeSize / 3) * Math.cos(grabbedEnemy.direction),
+        enemyScreenY - eyeOffset * Math.sin(grabbedEnemy.direction) + (eyeSize / 3) * Math.sin(grabbedEnemy.direction),
+        eyeSize / 2,
+        0,
+        Math.PI * 2,
+      )
+      ctx.fill()
+
+      ctx.beginPath()
+      ctx.arc(
+        enemyScreenX + eyeOffset * Math.sin(grabbedEnemy.direction) + (eyeSize / 3) * Math.cos(grabbedEnemy.direction),
+        enemyScreenY - eyeOffset * Math.cos(grabbedEnemy.direction) + (eyeSize / 3) * Math.sin(grabbedEnemy.direction),
+        eyeSize / 2,
+        0,
+        Math.PI * 2,
+      )
+      ctx.fill()
+
+      // Draw connection line
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.5)"
+      ctx.lineWidth = 2
+      ctx.setLineDash([5, 5])
+      ctx.beginPath()
+      ctx.moveTo(screenX, screenY)
+      ctx.lineTo(enemyScreenX, enemyScreenY)
+      ctx.stroke()
+      ctx.setLineDash([])
+
+      // Draw a "dizzy" effect to show the enemy is being carried
+      const time = Date.now() / 200
+      const dizzySize = 3 + Math.sin(time) * 1
+
+      ctx.fillStyle = "yellow"
+      for (let i = 0; i < 3; i++) {
+        const angle = time + (i * Math.PI * 2) / 3
+        const orbitRadius = grabbedEnemy.size * 0.8
+        const starX = enemyScreenX + Math.cos(angle) * orbitRadius
+        const starY = enemyScreenY + Math.sin(angle) * orbitRadius - grabbedEnemy.size / 2
+
+        // Draw a small star
+        ctx.beginPath()
+        ctx.arc(starX, starY, dizzySize, 0, Math.PI * 2)
+        ctx.fill()
+      }
     }
   } catch (error) {
     console.error("Error in drawGrabbedObjects:", error)
