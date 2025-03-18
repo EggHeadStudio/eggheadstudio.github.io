@@ -66,6 +66,10 @@ export function throwApple() {
     // Ensure we only decrement the apple count once
     player.apples--
     updateAppleCounter()
+
+    // Set the throwing animation state
+    player.throwingApple = Date.now()
+
     return true
   }
   return false
@@ -179,4 +183,3 @@ export function drawAndUpdateThrownApples() {
     }
   }
 }
-
