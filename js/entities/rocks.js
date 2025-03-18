@@ -126,91 +126,96 @@ export function releaseRock() {
   return false
 }
 
-// Draw and update rocks
+// Modify the drawAndUpdateRocks function to use normal shadow scale
 export function drawAndUpdateRocks() {
-  const { rocks, camera, ctx } = gameState
+  try {
+    const { rocks, camera, ctx } = gameState
 
-  for (let i = 0; i < rocks.length; i++) {
-    const rock = rocks[i]
-    const screenX = rock.x - camera.x
-    const screenY = rock.y - camera.y
+    for (let i = 0; i < rocks.length; i++) {
+      const rock = rocks[i]
+      if (!rock) continue // Skip if rock is undefined
 
-    // Skip if rock is off-screen
-    if (
-      screenX < -rock.size ||
-      screenX > ctx.canvas.width + rock.size ||
-      screenY < -rock.size ||
-      screenY > ctx.canvas.height + rock.size
-    ) {
-      continue
-    }
+      const screenX = rock.x - camera.x
+      const screenY = rock.y - camera.y
 
-    // Draw shadow using shape-specific shadow
-    if (rock.texture === 0) {
-      // Rounded rock shadow
-      createShadow(ctx, screenX, screenY, rock.size, "circle")
-    } else if (rock.texture === 1) {
-      // Angular rock shadow
-      createShadow(ctx, screenX, screenY, rock.size, "polygon", null, rock.rotation)
-    } else {
-      // Oval rock shadow
-      createShadow(ctx, screenX, screenY, rock.size, "oval", null, rock.rotation)
-    }
+      // Skip if rock is off-screen
+      if (
+        screenX < -rock.size ||
+        screenX > ctx.canvas.width + rock.size ||
+        screenY < -rock.size ||
+        screenY > ctx.canvas.height + rock.size
+      ) {
+        continue
+      }
 
-    // Draw rock
-    ctx.save()
-    ctx.translate(screenX, screenY)
-    ctx.rotate(rock.rotation)
+      // Draw shadow using shape-specific shadow with normal scale (1.0)
+      if (rock.texture === 0) {
+        // Rounded rock shadow
+        createShadow(ctx, screenX, screenY, rock.size, "circle", null, 0, 1.0)
+      } else if (rock.texture === 1) {
+        // Angular rock shadow
+        createShadow(ctx, screenX, screenY, rock.size, "polygon", null, rock.rotation, 1.0)
+      } else {
+        // Oval rock shadow
+        createShadow(ctx, screenX, screenY, rock.size, "oval", null, rock.rotation, 1.0)
+      }
 
-    // Base rock shape
-    ctx.fillStyle = "#7f8c8d" // Base rock color
-    ctx.beginPath()
+      // Draw rock
+      ctx.save()
+      ctx.translate(screenX, screenY)
+      ctx.rotate(rock.rotation)
 
-    // Different rock shapes based on texture
-    if (rock.texture === 0) {
-      // Rounded rock
-      ctx.arc(0, 0, rock.size * 0.8, 0, Math.PI * 2)
-    } else if (rock.texture === 1) {
-      // Angular rock
+      // Base rock shape
+      ctx.fillStyle = "#7f8c8d" // Base rock color
       ctx.beginPath()
-      for (let j = 0; j < 7; j++) {
-        const angle = (j * Math.PI * 2) / 7
-        const radius = rock.size * (0.7 + Math.sin(j * 5) * 0.1)
-        if (j === 0) {
-          ctx.moveTo(Math.cos(angle) * radius, Math.sin(angle) * radius)
-        } else {
-          ctx.lineTo(Math.cos(angle) * radius, Math.sin(angle) * radius)
+
+      // Different rock shapes based on texture
+      if (rock.texture === 0) {
+        // Rounded rock
+        ctx.arc(0, 0, rock.size * 0.8, 0, Math.PI * 2)
+      } else if (rock.texture === 1) {
+        // Angular rock
+        ctx.beginPath()
+        for (let j = 0; j < 7; j++) {
+          const angle = (j * Math.PI * 2) / 7
+          const radius = rock.size * (0.7 + Math.sin(j * 5) * 0.1)
+          if (j === 0) {
+            ctx.moveTo(Math.cos(angle) * radius, Math.sin(angle) * radius)
+          } else {
+            ctx.lineTo(Math.cos(angle) * radius, Math.sin(angle) * radius)
+          }
+        }
+        ctx.closePath()
+      } else {
+        // Oval rock
+        ctx.ellipse(0, 0, rock.size * 0.85, rock.size * 0.65, 0, 0, Math.PI * 2)
+      }
+      ctx.fill()
+
+      // Add texture details
+      ctx.fillStyle = "#6c7a7a" // Darker color for details
+      for (let j = 0; j < 5; j++) {
+        const detailX = (Math.random() - 0.5) * rock.size
+        const detailY = (Math.random() - 0.5) * rock.size
+        const detailSize = 2 + Math.random() * 5
+
+        // Only draw details inside the rock
+        if (detailX * detailX + detailY * detailY < rock.size * 0.7 * (rock.size * 0.7)) {
+          ctx.beginPath()
+          ctx.arc(detailX, detailY, detailSize, 0, Math.PI * 2)
+          ctx.fill()
         }
       }
-      ctx.closePath()
-    } else {
-      // Oval rock
-      ctx.ellipse(0, 0, rock.size * 0.85, rock.size * 0.65, 0, 0, Math.PI * 2)
+
+      // Add highlights
+      ctx.fillStyle = "#95a5a6" // Lighter color for highlights
+      ctx.beginPath()
+      ctx.arc(-rock.size * 0.3, -rock.size * 0.3, rock.size * 0.2, 0, Math.PI * 2)
+      ctx.fill()
+
+      ctx.restore()
     }
-    ctx.fill()
-
-    // Add texture details
-    ctx.fillStyle = "#6c7a7a" // Darker color for details
-    for (let j = 0; j < 5; j++) {
-      const detailX = (Math.random() - 0.5) * rock.size
-      const detailY = (Math.random() - 0.5) * rock.size
-      const detailSize = 2 + Math.random() * 5
-
-      // Only draw details inside the rock
-      if (detailX * detailX + detailY * detailY < rock.size * 0.7 * (rock.size * 0.7)) {
-        ctx.beginPath()
-        ctx.arc(detailX, detailY, detailSize, 0, Math.PI * 2)
-        ctx.fill()
-      }
-    }
-
-    // Add highlights
-    ctx.fillStyle = "#95a5a6" // Lighter color for highlights
-    ctx.beginPath()
-    ctx.arc(-rock.size * 0.3, -rock.size * 0.3, rock.size * 0.2, 0, Math.PI * 2)
-    ctx.fill()
-
-    ctx.restore()
+  } catch (error) {
+    console.error("Error in drawAndUpdateRocks:", error)
   }
 }
-
