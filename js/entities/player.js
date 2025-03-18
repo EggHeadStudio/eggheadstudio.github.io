@@ -12,6 +12,9 @@ const IDLE_ANIMATION_SPEED = 0.03
 const IDLE_ANIMATION_RANGE = 2
 const LIMB_MOVEMENT_RANGE = 12
 
+// Add a new animation constant for throwing
+const THROW_ANIMATION_DURATION = 200 // milliseconds
+
 // Update player position based on keyboard input
 export function updatePlayerPosition() {
   const { player, keys, isGrabbing, grabbedBomb, grabbedRock, terrain, rocks } = gameState
@@ -249,8 +252,65 @@ function drawHands(ctx, x, y, player) {
     let handOffset
     let handDistance
 
+    // Check if player is throwing an apple
+    if (player.throwingApple && Date.now() - player.throwingApple < THROW_ANIMATION_DURATION) {
+      // Calculate throw animation progress (0 to 1)
+      const throwProgress = (Date.now() - player.throwingApple) / THROW_ANIMATION_DURATION
+
+      // Normal hand animation for left hand
+      if (player.isMoving) {
+        handOffset = Math.sin(player.animationTime) * LIMB_MOVEMENT_RANGE
+      } else {
+        handOffset = Math.sin(player.animationTime) * IDLE_ANIMATION_RANGE
+      }
+
+      // Base distance from center
+      handDistance = player.size * 1.2
+
+      // Left hand - normal position (perpendicular to movement direction)
+      const leftHandAngle = player.direction - Math.PI / 2
+      const leftHandX = x + Math.cos(leftHandAngle) * handDistance + Math.cos(player.direction) * -handOffset
+      const leftHandY = y + Math.sin(leftHandAngle) * handDistance + Math.sin(player.direction) * -handOffset
+
+      // Draw left hand
+      ctx.fillStyle = player.handColor || "#AAAAAA"
+      ctx.beginPath()
+      ctx.arc(leftHandX, leftHandY, HAND_SIZE, 0, Math.PI * 2)
+      ctx.fill()
+
+      // Right hand - throwing animation
+      // First half of animation: hand moves back
+      // Second half of animation: hand swings forward
+      let rightHandAngle, rightHandDistance
+
+      if (throwProgress < 0.5) {
+        // Moving back (wind up)
+        const windupProgress = throwProgress * 2 // 0 to 1 during first half
+        rightHandAngle = player.direction + Math.PI / 2 + (Math.PI / 4) * windupProgress
+        rightHandDistance = handDistance * (1 - windupProgress * 0.3)
+      } else {
+        // Moving forward (throw)
+        const throwForwardProgress = (throwProgress - 0.5) * 2 // 0 to 1 during second half
+        rightHandAngle = player.direction + Math.PI / 4 - (Math.PI / 2) * throwForwardProgress
+        rightHandDistance = handDistance * (0.7 + throwForwardProgress * 0.6)
+      }
+
+      const rightHandX = x + Math.cos(rightHandAngle) * rightHandDistance
+      const rightHandY = y + Math.sin(rightHandAngle) * rightHandDistance
+
+      // Draw right hand
+      ctx.fillStyle = player.handColor || "#AAAAAA"
+      ctx.beginPath()
+      ctx.arc(rightHandX, rightHandY, HAND_SIZE, 0, Math.PI * 2)
+      ctx.fill()
+
+      // Reset throwing state if animation is complete
+      if (throwProgress >= 1) {
+        player.throwingApple = null
+      }
+    }
     // Check if player is carrying something
-    if (gameState.isGrabbing) {
+    else if (gameState.isGrabbing) {
       // When carrying, position hands forward in the direction player is facing
       handOffset = 0 // No animation when carrying
       handDistance = player.size * 1.5 // Extended forward position
@@ -267,7 +327,7 @@ function drawHands(ctx, x, y, player) {
       const leftHandY = y + Math.sin(handAngle2) * handDistance
 
       // Draw hands (light gray)
-      ctx.fillStyle = "#AAAAAA"
+      ctx.fillStyle = player.handColor || "#AAAAAA"
 
       // Right hand
       ctx.beginPath()
@@ -303,7 +363,7 @@ function drawHands(ctx, x, y, player) {
       const leftHandY = y + Math.sin(handAngle2) * handDistance + Math.sin(player.direction) * -handOffset
 
       // Draw hands (light gray)
-      ctx.fillStyle = "#AAAAAA"
+      ctx.fillStyle = player.handColor || "#AAAAAA"
 
       // Right hand
       ctx.beginPath()
