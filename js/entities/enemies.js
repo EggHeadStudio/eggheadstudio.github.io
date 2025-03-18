@@ -18,6 +18,10 @@ export function generateEnemies(count) {
       color: "#e74c3c",
       directionChangeTime: 0,
       isChasing: false,
+      isBeingThrown: false,
+      throwStartTime: 0,
+      throwVelocityX: 0,
+      throwVelocityY: 0,
     }
 
     // Ensure enemy is not on water and not too close to player
@@ -40,6 +44,60 @@ export function generateEnemies(count) {
   }
 }
 
+// Try to grab an enemy
+export function tryGrabEnemy() {
+  const { player, enemies } = gameState
+
+  // Define a larger grab distance (1.5x the normal collision distance)
+  const grabDistance = (player.size + ENEMY_SIZE) * 1.5
+
+  for (let i = 0; i < enemies.length; i++) {
+    const enemy = enemies[i]
+    const distance = getDistance(player.x, player.y, enemy.x, enemy.y)
+
+    // Use the larger grab distance instead of the collision distance
+    if (distance < grabDistance) {
+      gameState.isGrabbing = true
+      gameState.grabbedEnemy = enemy
+      enemies.splice(i, 1) // Remove from enemies array
+      enemies.push(enemy) // Add back to the end of the array (to maintain rendering order)
+      return true
+    }
+  }
+  return false
+}
+
+// Release a grabbed enemy
+export function releaseEnemy() {
+  const { player, grabbedEnemy, enemies, terrain } = gameState
+
+  if (grabbedEnemy) {
+    // Calculate position in front of player based on facing direction
+    const throwDistance = player.size * 4.5 // Further than rocks
+    const throwAngle = player.direction
+
+    // Set the enemy to be thrown
+    grabbedEnemy.isBeingThrown = true
+    grabbedEnemy.throwStartTime = Date.now()
+    grabbedEnemy.throwVelocityX = Math.cos(throwAngle) * 10 // Faster than rocks
+    grabbedEnemy.throwVelocityY = Math.sin(throwAngle) * 10
+
+    // Update enemy position before releasing
+    const newX = player.x + Math.cos(throwAngle) * throwDistance
+    const newY = player.y + Math.sin(throwAngle) * throwDistance
+
+    grabbedEnemy.x = newX
+    grabbedEnemy.y = newY
+
+    // Reset grabbed state
+    gameState.grabbedEnemy = null
+    gameState.isGrabbing = false
+
+    return true
+  }
+  return false
+}
+
 // Spawn new enemies more frequently
 export function spawnEnemies() {
   const currentTime = Date.now()
@@ -54,6 +112,70 @@ export function spawnEnemies() {
 // Update enemy movement
 export function updateEnemyMovement(enemy, canSeePlayer) {
   const { player, terrain, rocks, bombs } = gameState
+
+  // If this is the grabbed enemy, don't update its movement
+  if (gameState.grabbedEnemy === enemy) return
+
+  // Handle thrown enemy physics
+  if (enemy.isBeingThrown) {
+    // Update position based on throw velocity
+    enemy.x += enemy.throwVelocityX
+    enemy.y += enemy.throwVelocityY
+
+    // Slow down the throw over time (friction)
+    enemy.throwVelocityX *= 0.95
+    enemy.throwVelocityY *= 0.95
+
+    // Check if the enemy has landed
+    if (Math.abs(enemy.throwVelocityX) < 0.5 && Math.abs(enemy.throwVelocityY) < 0.5) {
+      enemy.isBeingThrown = false
+
+      // Check if enemy landed in water
+      const tileX = Math.floor(enemy.x / TILE_SIZE)
+      const tileY = Math.floor(enemy.y / TILE_SIZE)
+
+      if (
+        tileX >= 0 &&
+        tileX < terrain[0].length &&
+        tileY >= 0 &&
+        tileY < terrain.length &&
+        terrain[tileY][tileX] === 0 // TERRAIN_TYPES.WATER
+      ) {
+        // Enemy landed in water, remove it
+        const enemyIndex = gameState.enemies.indexOf(enemy)
+        if (enemyIndex !== -1) {
+          gameState.enemies.splice(enemyIndex, 1)
+        }
+        return
+      }
+    }
+
+    // Check for collisions with terrain boundaries
+    const tileX = Math.floor(enemy.x / TILE_SIZE)
+    const tileY = Math.floor(enemy.y / TILE_SIZE)
+
+    if (
+      tileX < 0 ||
+      tileX >= terrain[0].length ||
+      tileY < 0 ||
+      tileY >= terrain.length ||
+      terrain[tileY][tileX] === 0 // TERRAIN_TYPES.WATER
+    ) {
+      // Bounce off terrain boundaries
+      if (tileX < 0 || tileX >= terrain[0].length) {
+        enemy.throwVelocityX *= -0.7
+      }
+      if (tileY < 0 || tileY >= terrain.length) {
+        enemy.throwVelocityY *= -0.7
+      }
+
+      // Move enemy back to valid position
+      enemy.x = Math.max(0, Math.min(terrain[0].length * TILE_SIZE - 1, enemy.x))
+      enemy.y = Math.max(0, Math.min(terrain.length * TILE_SIZE - 1, enemy.y))
+    }
+
+    return
+  }
 
   if (canSeePlayer) {
     // Chase player
@@ -315,6 +437,9 @@ export function drawAndUpdateEnemies() {
   for (let i = 0; i < enemies.length; i++) {
     const enemy = enemies[i]
 
+    // Skip drawing if this is the grabbed enemy (it's drawn separately)
+    if (gameState.grabbedEnemy === enemy) continue
+
     // Check if enemy can see player
     const distanceToPlayer = getDistance(player.x, player.y, enemy.x, enemy.y)
     const canSeePlayer = distanceToPlayer < 300 // Detection radius
@@ -403,6 +528,24 @@ export function drawAndUpdateEnemies() {
       ctx.arc(screenX, screenY - enemy.size - 10, alertSize, 0, Math.PI * 2)
       ctx.fill()
     }
+
+    // Draw dizzy effect if enemy is being thrown
+    if (enemy.isBeingThrown) {
+      const time = Date.now() / 200
+      const dizzySize = 3 + Math.sin(time) * 1
+
+      ctx.fillStyle = "yellow"
+      for (let i = 0; i < 3; i++) {
+        const angle = time + (i * Math.PI * 2) / 3
+        const orbitRadius = enemy.size * 0.8
+        const starX = screenX + Math.cos(angle) * orbitRadius
+        const starY = screenY + Math.sin(angle) * orbitRadius - enemy.size / 2
+
+        // Draw a small star
+        ctx.beginPath()
+        ctx.arc(starX, starY, dizzySize, 0, Math.PI * 2)
+        ctx.fill()
+      }
+    }
   }
 }
-
