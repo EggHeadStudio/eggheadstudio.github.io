@@ -49,6 +49,8 @@ export function handleKeyDown(e) {
         releaseBomb()
       } else if (gameState.grabbedRock) {
         releaseRock()
+      } else if (gameState.grabbedEnemy) {
+        releaseEnemy()
       }
     } else {
       // If not holding anything, try to detonate a bomb with countdown
@@ -56,7 +58,10 @@ export function handleKeyDown(e) {
         // If no bomb to detonate, try to grab a bomb
         if (!tryGrabBomb()) {
           // If no bomb to grab, try to grab a rock
-          tryGrabRock()
+          if (!tryGrabRock()) {
+            // If no rock to grab, try to grab an enemy
+            tryGrabEnemy()
+          }
         }
       }
     }
@@ -105,8 +110,13 @@ export function restartGame() {
     clearInterval(gameState.timerInterval)
   }
   gameState.timerInterval = setInterval(updateTimer, 1000)
+
+  // Ensure we reset grabbedEnemy
+  gameState.grabbedEnemy = null
 }
 
 // Import updateTimer after declaring restartGame to avoid circular dependency
 import { updateTimer } from "../ui/ui-manager.js"
 
+// Import the new enemy functions
+import { tryGrabEnemy, releaseEnemy } from "../entities/enemies.js"
