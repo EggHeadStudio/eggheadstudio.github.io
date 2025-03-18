@@ -3,6 +3,8 @@ import { gameState } from "../core/game-state.js"
 import { throwApple } from "../entities/apples.js"
 import { tryGrabBomb, releaseBomb, detonateAnyBombWithCountdown } from "../entities/bombs.js"
 import { tryGrabRock, releaseRock } from "../entities/rocks.js"
+// Import the new enemy functions
+import { tryGrabEnemy, releaseEnemy } from "../entities/enemies.js"
 
 export function setupMobileControls() {
   if (!detectMobile()) return
@@ -129,7 +131,7 @@ export function handleJoystickEnd(e) {
   }
 }
 
-// Button A handlers
+// In the handleButtonAStart function, ensure we reset grabbedEnemy when game is over
 export function handleButtonAStart(e) {
   e.preventDefault()
   e.stopPropagation()
@@ -150,12 +152,17 @@ export function handleButtonAStart(e) {
         releaseBomb()
       } else if (gameState.grabbedRock) {
         releaseRock()
+      } else if (gameState.grabbedEnemy) {
+        releaseEnemy()
       }
     } else {
       // If not holding anything, try to grab a bomb
       if (!tryGrabBomb()) {
         // If no bomb to grab, try to grab a rock
-        tryGrabRock()
+        if (!tryGrabRock()) {
+          // If no rock to grab, try to grab an enemy
+          tryGrabEnemy()
+        }
       }
     }
   }
