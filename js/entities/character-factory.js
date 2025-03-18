@@ -59,6 +59,7 @@ export function createCharacter(type = "default", customProps = {}) {
     // Always include animation properties
     isMoving: false,
     animationTime: 0,
+    throwingApple: null, // Add throwing apple animation state
     // Character type for reference
     characterType: type,
   }
