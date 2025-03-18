@@ -42,5 +42,5 @@ export const gameState = {
   isGrabbing: false,
   grabbedBomb: null,
   grabbedRock: null,
+  grabbedEnemy: null, // Add grabbed enemy state
 }
-
