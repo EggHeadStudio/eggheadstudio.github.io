@@ -42,7 +42,6 @@ export function update() {
     updatePlayerPosition()
 
     // Update camera position with zoom factor
-    // Divide by zoom to adjust camera position based on zoom level
     camera.x = gameState.player.x - canvas.width / 2 / camera.zoom
     camera.y = gameState.player.y - canvas.height / 2 / camera.zoom
 
@@ -59,14 +58,6 @@ export function update() {
   // Apply zoom transformation
   ctx.save()
   ctx.scale(camera.zoom, camera.zoom)
-
-  // Adjust camera position for zoom
-  const zoomedCameraX = camera.x
-  const zoomedCameraY = camera.y
-
-  // Temporarily update camera position for rendering
-  camera.x = zoomedCameraX
-  camera.y = zoomedCameraY
 
   // Draw terrain
   drawTerrain()
