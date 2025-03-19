@@ -3,6 +3,7 @@ import { gameState } from "../core/game-state.js"
 import { TILE_SIZE } from "../core/constants.js"
 import { getDistance } from "../utils/math-utils.js"
 import { createShadow } from "../utils/rendering-utils.js"
+import { applyKnockbackToEnemy } from "../entities/enemies.js"
 
 // Animation constants
 const HAND_SIZE = 11
@@ -14,6 +15,8 @@ const LIMB_MOVEMENT_RANGE = 12
 
 // Add a new animation constant for throwing
 const THROW_ANIMATION_DURATION = 200 // milliseconds
+// Add melee attack range
+const MELEE_ATTACK_RANGE = 60 // Distance from player center for melee attack
 
 // Update player position based on keyboard input
 export function updatePlayerPosition() {
@@ -116,6 +119,73 @@ export function updatePlayerPosition() {
       grabbedEnemy.y = player.y + Math.sin(angle) * (player.size + grabbedEnemy.size) * 0.8
     }
   }
+
+  // Check for melee attack collision with enemies
+  checkMeleeAttack()
+}
+
+// Check if player's melee attack hits any enemies
+function checkMeleeAttack() {
+  const { player, enemies } = gameState
+
+  // Only check during the active part of the throw animation
+  if (!player.throwingApple) return
+
+  // Calculate how far into the throw animation we are (0 to 1)
+  const throwProgress = (Date.now() - player.throwingApple) / THROW_ANIMATION_DURATION
+
+  // Only check during the forward swing part of the animation (second half)
+  if (throwProgress < 0.5 || throwProgress > 0.9) return
+
+  // Calculate the position of the right hand during the attack
+  // This matches the hand position calculation in drawHands()
+  let rightHandAngle, rightHandDistance
+  const handDistance = player.size * 1.2
+
+  // Moving forward (throw)
+  const throwForwardProgress = (throwProgress - 0.5) * 2 // 0 to 1 during second half
+  rightHandAngle = player.direction + Math.PI / 4 - (Math.PI / 2) * throwForwardProgress
+  rightHandDistance = handDistance * (0.7 + throwForwardProgress * 0.6)
+
+  const rightHandX = player.x + Math.cos(rightHandAngle) * rightHandDistance
+  const rightHandY = player.y + Math.sin(rightHandAngle) * rightHandDistance
+
+  // Check for collision with enemies
+  for (let i = 0; i < enemies.length; i++) {
+    const enemy = enemies[i]
+
+    // Skip if this is the grabbed enemy
+    if (gameState.grabbedEnemy === enemy) continue
+
+    // Check distance between hand and enemy
+    const distance = getDistance(rightHandX, rightHandY, enemy.x, enemy.y)
+
+    if (distance < HAND_SIZE + enemy.size) {
+      // Apply strong knockback to the enemy (similar to throwing)
+      applyKnockbackToEnemy(
+        enemy,
+        player.x,
+        player.y,
+        8, // Strong knockback force
+      )
+
+      // Add a small "hit" effect
+      if (!gameState.hitEffects) {
+        gameState.hitEffects = []
+      }
+
+      gameState.hitEffects.push({
+        x: enemy.x,
+        y: enemy.y,
+        size: enemy.size * 1.5,
+        createdAt: Date.now(),
+        duration: 200,
+      })
+
+      // Only hit one enemy per swing
+      break
+    }
+  }
 }
 
 // Draw player
@@ -171,12 +241,64 @@ export function drawPlayer() {
   // Draw grabbed objects
   drawGrabbedObjects(ctx, screenX, screenY, player, camera, grabbedBomb, grabbedRock, grabbedEnemy)
 
+  // Draw hit effects
+  drawHitEffects(ctx, camera)
+
   // Flash player if recently hit
   if (Date.now() - player.lastHit < 500) {
     ctx.fillStyle = "rgba(255, 0, 0, 0.3)"
     ctx.beginPath()
     ctx.arc(screenX, screenY, player.size * 1.2, 0, Math.PI * 2)
     ctx.fill()
+  }
+}
+
+// Draw hit effects
+function drawHitEffects(ctx, camera) {
+  if (!gameState.hitEffects) return
+
+  for (let i = gameState.hitEffects.length - 1; i >= 0; i--) {
+    const effect = gameState.hitEffects[i]
+    const elapsed = Date.now() - effect.createdAt
+
+    // Remove expired effects
+    if (elapsed > effect.duration) {
+      gameState.hitEffects.splice(i, 1)
+      continue
+    }
+
+    // Calculate screen position
+    const screenX = effect.x - camera.x
+    const screenY = effect.y - camera.y
+
+    // Calculate opacity based on lifetime
+    const opacity = 1 - elapsed / effect.duration
+
+    // Draw hit effect (expanding circle)
+    const size = effect.size * (0.5 + 0.5 * (elapsed / effect.duration))
+
+    ctx.beginPath()
+    ctx.arc(screenX, screenY, size, 0, Math.PI * 2)
+    ctx.fillStyle = `rgba(255, 255, 255, ${opacity * 0.5})`
+    ctx.fill()
+
+    // Draw impact lines
+    const lineCount = 8
+    const lineLength = size * 0.5
+
+    ctx.strokeStyle = `rgba(255, 255, 255, ${opacity * 0.7})`
+    ctx.lineWidth = 2
+
+    for (let j = 0; j < lineCount; j++) {
+      const angle = (j / lineCount) * Math.PI * 2
+      const innerRadius = size * 0.7
+      const outerRadius = size + lineLength
+
+      ctx.beginPath()
+      ctx.moveTo(screenX + Math.cos(angle) * innerRadius, screenY + Math.sin(angle) * innerRadius)
+      ctx.lineTo(screenX + Math.cos(angle) * outerRadius, screenY + Math.sin(angle) * outerRadius)
+      ctx.stroke()
+    }
   }
 }
 
@@ -321,6 +443,23 @@ function drawHands(ctx, x, y, player) {
       ctx.beginPath()
       ctx.arc(rightHandX, rightHandY, HAND_SIZE, 0, Math.PI * 2)
       ctx.fill()
+
+      // Draw a trail effect for the melee attack during the forward swing
+      // Always show the trail effect regardless of apple count to make melee attack more visible
+      if (throwProgress >= 0.5 && throwProgress <= 0.9) {
+        const trailOpacity = 0.6 * (1 - (throwProgress - 0.5) * 2)
+        ctx.fillStyle = `rgba(255, 255, 255, ${trailOpacity})`
+
+        // Draw a trail arc following the hand movement
+        ctx.beginPath()
+        const trailAngle = player.direction + Math.PI / 4
+        const arcStartAngle = trailAngle - Math.PI / 3
+        const arcEndAngle = trailAngle + Math.PI / 3
+        ctx.arc(x, y, rightHandDistance, arcStartAngle, arcEndAngle)
+        ctx.lineWidth = HAND_SIZE * 2
+        ctx.strokeStyle = `rgba(255, 255, 255, ${trailOpacity})`
+        ctx.stroke()
+      }
 
       // Reset throwing state if animation is complete
       if (throwProgress >= 1) {
