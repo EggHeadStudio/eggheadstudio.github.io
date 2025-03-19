@@ -198,7 +198,6 @@ export function drawPlayer() {
     return // Don't draw player if game is over
   }
 
-  // Calculate screen position - player is always at the center of the screen
   const screenX = canvas.width / 2
   const screenY = canvas.height / 2
 
