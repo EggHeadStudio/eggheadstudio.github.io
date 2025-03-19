@@ -71,11 +71,79 @@ export function detonateAnyBombWithCountdown() {
       // Detonate the bomb immediately
       const explosionRadius = 100 + Math.random() * 50
       createExplosion(bomb.x, bomb.y, explosionRadius)
+
+      // Store the bomb position before removing it
+      const bombX = bomb.x
+      const bombY = bomb.y
+
+      // Remove the bomb from the array
       bombs.splice(i, 1)
+
+      // Check for chain reaction with other bombs
+      // Use setTimeout to ensure this runs after the current function completes
+      setTimeout(() => {
+        checkBombChainReaction(bombX, bombY, explosionRadius)
+      }, 0)
+
       return true
     }
   }
   return false
+}
+
+// Check for chain reaction with other bombs
+export function checkBombChainReaction(explosionX, explosionY, explosionRadius) {
+  const { bombs } = gameState
+
+  // Create a copy of the bombs array to safely modify the original during iteration
+  const bombsToCheck = [...bombs]
+
+  // Track bombs that will be detonated in the chain reaction
+  const bombsToDetonate = []
+
+  // Check each bomb to see if it's in the explosion radius
+  for (let i = 0; i < bombsToCheck.length; i++) {
+    const bomb = bombsToCheck[i]
+
+    // Skip the bomb if it's already counting down
+    if (bomb.countdown !== null) continue
+
+    // Calculate distance from explosion center to this bomb
+    const distance = getDistance(explosionX, explosionY, bomb.x, bomb.y)
+
+    // If bomb is within explosion radius, add it to detonation list
+    if (distance < explosionRadius + bomb.size) {
+      // Find the index in the original bombs array
+      const bombIndex = bombs.indexOf(bomb)
+      if (bombIndex !== -1) {
+        bombsToDetonate.push({
+          bomb: bomb,
+          index: bombIndex,
+          // Add a small random delay for more natural chain reaction
+          delay: Math.random() * 200 + 50,
+        })
+      }
+    }
+  }
+
+  // Detonate each affected bomb with a slight delay
+  bombsToDetonate.forEach((bombData) => {
+    setTimeout(() => {
+      // Make sure the bomb still exists in the array (it might have been removed by another explosion)
+      const currentIndex = bombs.indexOf(bombData.bomb)
+      if (currentIndex !== -1) {
+        // Create explosion for this bomb
+        const chainExplosionRadius = 100 + Math.random() * 50
+        createExplosion(bombData.bomb.x, bombData.bomb.y, chainExplosionRadius)
+
+        // Remove the bomb from the array
+        bombs.splice(currentIndex, 1)
+
+        // Recursively check for more chain reactions
+        checkBombChainReaction(bombData.bomb.x, bombData.bomb.y, chainExplosionRadius)
+      }
+    }, bombData.delay)
+  })
 }
 
 // Release a grabbed bomb
@@ -116,7 +184,17 @@ export function drawAndUpdateBombs() {
         if (bomb.countdown !== null && Date.now() >= bomb.countdown) {
           const explosionRadius = 100 + Math.random() * 50 // Random radius between 100-150
           createExplosion(bomb.x, bomb.y, explosionRadius)
+
+          // Store the bomb position before removing it
+          const bombX = bomb.x
+          const bombY = bomb.y
+
           bombs.splice(i, 1)
+
+          // Check for chain reaction
+          setTimeout(() => {
+            checkBombChainReaction(bombX, bombY, explosionRadius)
+          }, 0)
         }
         continue
       }
@@ -143,7 +221,18 @@ export function drawAndUpdateBombs() {
       if (bomb.countdown !== null && Date.now() >= bomb.countdown) {
         const explosionRadius = 100 + Math.random() * 50 // Random radius between 100-150
         createExplosion(bomb.x, bomb.y, explosionRadius)
+
+        // Store the bomb position before removing it
+        const bombX = bomb.x
+        const bombY = bomb.y
+
         bombs.splice(i, 1)
+
+        // Check for chain reaction
+        setTimeout(() => {
+          checkBombChainReaction(bombX, bombY, explosionRadius)
+        }, 0)
+
         continue
       }
 
