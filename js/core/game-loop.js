@@ -41,7 +41,8 @@ export function update() {
     // Update player position based on keyboard input
     updatePlayerPosition()
 
-    // Update camera position with zoom factor
+    // Update camera position - center the player in the viewport
+    // When zoomed out, we need to adjust the camera position to show more of the world
     camera.x = gameState.player.x - canvas.width / 2 / camera.zoom
     camera.y = gameState.player.y - canvas.height / 2 / camera.zoom
 
@@ -58,15 +59,10 @@ export function update() {
   // Apply zoom transformation
   ctx.save()
 
-  // Calculate the translation needed to center the zoomed content
-  const translateX = (canvas.width - canvas.width * camera.zoom) / 2
-  const translateY = (canvas.height - canvas.height * camera.zoom) / 2
-
-  // First translate to center the zoomed content
-  ctx.translate(translateX, translateY)
-
-  // Then apply the zoom
+  // Apply the zoom from the center of the canvas
+  ctx.translate(canvas.width / 2, canvas.height / 2)
   ctx.scale(camera.zoom, camera.zoom)
+  ctx.translate(-canvas.width / 2, -canvas.height / 2)
 
   // Draw terrain
   drawTerrain()
