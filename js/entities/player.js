@@ -198,8 +198,11 @@ export function drawPlayer() {
     return // Don't draw player if game is over
   }
 
-  const screenX = canvas.width / 2
-  const screenY = canvas.height / 2
+  // Calculate screen position with zoom factor
+  // Since we're applying the zoom transformation to the entire canvas,
+  // we need to adjust the player's position to be centered
+  const screenX = canvas.width / 2 / camera.zoom
+  const screenY = canvas.height / 2 / camera.zoom
 
   // Draw shadow using standardized function
   createShadow(ctx, screenX, screenY, player.size, "circle")
