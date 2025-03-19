@@ -170,6 +170,10 @@ function drawAndUpdateAppleSplashes() {
 export function throwApple() {
   const { player, isMobile, mousePosition, canvas, thrownApples } = gameState
 
+  // Set the throwing animation state regardless of apple count
+  player.throwingApple = Date.now()
+
+  // Only create and throw an apple if the player has apples
   if (player.apples > 0) {
     let angle
 
@@ -194,11 +198,9 @@ export function throwApple() {
     player.apples--
     updateAppleCounter()
 
-    // Set the throwing animation state
-    player.throwingApple = Date.now()
-
     return true
   }
+
   return false
 }
 
