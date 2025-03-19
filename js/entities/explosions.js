@@ -3,10 +3,11 @@ import { gameState } from "../core/game-state.js"
 import { modifyTerrainInRadius } from "../terrain/terrain-modifier.js"
 import { getDistance } from "../utils/math-utils.js"
 import { getExplosionParticleColor } from "../utils/color-utils.js"
+import { checkBombChainReaction } from "./bombs.js"
 
 // Create explosion
 export function createExplosion(x, y, radius) {
-  const { explosions, enemies, player } = gameState
+  const { explosions, enemies, player, bombs } = gameState
 
   // Create explosion object with larger radius
   const explosionRadius = radius * 2 + Math.random() * 100 // Much larger and more random radius
@@ -66,6 +67,10 @@ export function createExplosion(x, y, radius) {
     gameState.gameOver = true
     document.getElementById("gameOver").classList.add("active")
   }
+
+  // Check for chain reaction with other bombs
+  // This is now handled in the bombs.js file
+  checkBombChainReaction(x, y, explosionRadius)
 }
 
 // Draw and update explosions
@@ -124,4 +129,3 @@ export function drawAndUpdateExplosions() {
 
 // Import updateHealthDisplay after using it to avoid circular dependency
 import { updateHealthDisplay } from "../ui/ui-manager.js"
-
