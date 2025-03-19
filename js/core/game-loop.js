@@ -57,6 +57,15 @@ export function update() {
 
   // Apply zoom transformation
   ctx.save()
+
+  // Calculate the translation needed to center the zoomed content
+  const translateX = (canvas.width - canvas.width * camera.zoom) / 2
+  const translateY = (canvas.height - canvas.height * camera.zoom) / 2
+
+  // First translate to center the zoomed content
+  ctx.translate(translateX, translateY)
+
+  // Then apply the zoom
   ctx.scale(camera.zoom, camera.zoom)
 
   // Draw terrain
