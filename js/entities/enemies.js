@@ -22,6 +22,12 @@ export function generateEnemies(count) {
       throwStartTime: 0,
       throwVelocityX: 0,
       throwVelocityY: 0,
+      // Add properties for collision animation
+      isKnockedBack: false,
+      knockbackTime: 0,
+      knockbackVelocityX: 0,
+      knockbackVelocityY: 0,
+      knockbackDuration: 300, // 300ms knockback duration
     }
 
     // Ensure enemy is not on water and not too close to player
@@ -109,18 +115,121 @@ export function spawnEnemies() {
   }
 }
 
+// Apply knockback to an enemy
+function applyKnockbackToEnemy(enemy, sourceX, sourceY, force = 5) {
+  // Calculate knockback direction (away from source)
+  const angle = Math.atan2(enemy.y - sourceY, enemy.x - sourceX)
+
+  // Set knockback state
+  enemy.isKnockedBack = true
+  enemy.knockbackTime = Date.now()
+  enemy.knockbackVelocityX = Math.cos(angle) * force
+  enemy.knockbackVelocityY = Math.sin(angle) * force
+}
+
+// Check for collisions between thrown enemy and other enemies
+function checkThrownEnemyCollisions(thrownEnemy) {
+  const { enemies } = gameState
+
+  // Only check collisions if the enemy is being thrown and has significant velocity
+  if (
+    !thrownEnemy.isBeingThrown ||
+    (Math.abs(thrownEnemy.throwVelocityX) < 2 && Math.abs(thrownEnemy.throwVelocityY) < 2)
+  ) {
+    return
+  }
+
+  for (let i = 0; i < enemies.length; i++) {
+    const otherEnemy = enemies[i]
+
+    // Skip if it's the same enemy or if the other enemy is already being thrown
+    if (otherEnemy === thrownEnemy || otherEnemy.isBeingThrown) {
+      continue
+    }
+
+    // Check for collision
+    const distance = getDistance(thrownEnemy.x, thrownEnemy.y, otherEnemy.x, otherEnemy.y)
+    if (distance < thrownEnemy.size + otherEnemy.size) {
+      // Calculate impact force based on throw velocity
+      const impactForce = Math.sqrt(
+        thrownEnemy.throwVelocityX * thrownEnemy.throwVelocityX +
+          thrownEnemy.throwVelocityY * thrownEnemy.throwVelocityY,
+      )
+
+      // Apply knockback to the hit enemy
+      applyKnockbackToEnemy(
+        otherEnemy,
+        thrownEnemy.x,
+        thrownEnemy.y,
+        Math.min(impactForce, 8), // Cap the force at 8
+      )
+
+      // Reduce the thrown enemy's velocity
+      thrownEnemy.throwVelocityX *= 0.7
+      thrownEnemy.throwVelocityY *= 0.7
+    }
+  }
+}
+
 // Update enemy movement
 export function updateEnemyMovement(enemy, canSeePlayer) {
-  const { player, terrain, rocks, bombs } = gameState
+  const { player, terrain, rocks, bombs, enemies } = gameState
 
   // If this is the grabbed enemy, don't update its movement
   if (gameState.grabbedEnemy === enemy) return
+
+  // Handle knockback state
+  if (enemy.isKnockedBack) {
+    const knockbackElapsed = Date.now() - enemy.knockbackTime
+
+    if (knockbackElapsed < enemy.knockbackDuration) {
+      // Apply knockback movement
+      enemy.x += enemy.knockbackVelocityX
+      enemy.y += enemy.knockbackVelocityY
+
+      // Gradually reduce knockback velocity
+      enemy.knockbackVelocityX *= 0.9
+      enemy.knockbackVelocityY *= 0.9
+
+      // Check terrain boundaries
+      const tileX = Math.floor(enemy.x / TILE_SIZE)
+      const tileY = Math.floor(enemy.y / TILE_SIZE)
+
+      if (
+        tileX < 0 ||
+        tileX >= terrain[0].length ||
+        tileY < 0 ||
+        tileY >= terrain.length ||
+        terrain[tileY][tileX] === 0 // TERRAIN_TYPES.WATER
+      ) {
+        // Bounce off terrain boundaries
+        if (tileX < 0 || tileX >= terrain[0].length) {
+          enemy.knockbackVelocityX *= -0.5
+        }
+        if (tileY < 0 || tileY >= terrain.length) {
+          enemy.knockbackVelocityY *= -0.5
+        }
+
+        // Move enemy back to valid position
+        enemy.x = Math.max(0, Math.min(terrain[0].length * TILE_SIZE - 1, enemy.x))
+        enemy.y = Math.max(0, Math.min(terrain.length * TILE_SIZE - 1, enemy.y))
+      }
+
+      return // Skip normal movement while being knocked back
+    } else {
+      // End knockback state
+      enemy.isKnockedBack = false
+    }
+  }
 
   // Handle thrown enemy physics
   if (enemy.isBeingThrown) {
     // Update position based on throw velocity
     enemy.x += enemy.throwVelocityX
     enemy.y += enemy.throwVelocityY
+
+    // Check for collisions with other enemies
+    checkThrownEnemyCollisions(enemy)
 
     // Slow down the throw over time (friction)
     enemy.throwVelocityX *= 0.95
@@ -546,6 +655,18 @@ export function drawAndUpdateEnemies() {
         ctx.arc(starX, starY, dizzySize, 0, Math.PI * 2)
         ctx.fill()
       }
+    }
+
+    // Draw knockback effect
+    if (enemy.isKnockedBack) {
+      // Show a small impact effect
+      const knockbackProgress = (Date.now() - enemy.knockbackTime) / enemy.knockbackDuration
+      const impactSize = (1 - knockbackProgress) * 15
+
+      ctx.fillStyle = "rgba(255, 255, 255, " + 0.7 * (1 - knockbackProgress) + ")"
+      ctx.beginPath()
+      ctx.arc(screenX, screenY, enemy.size + impactSize, 0, Math.PI * 2)
+      ctx.fill()
     }
   }
 }
