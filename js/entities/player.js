@@ -198,9 +198,7 @@ export function drawPlayer() {
     return // Don't draw player if game is over
   }
 
-  // Calculate screen position with zoom factor
-  // Since we're applying the zoom transformation to the entire canvas,
-  // we need to adjust the player's position to be centered
+  // Calculate screen position - we're already in the scaled context, so we don't need to divide by zoom
   const screenX = canvas.width / 2 / camera.zoom
   const screenY = canvas.height / 2 / camera.zoom
 
