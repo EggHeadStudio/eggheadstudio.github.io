@@ -11,6 +11,7 @@ import { updateTimer } from "../ui/ui-manager.js"
 import { update } from "./game-loop.js"
 import { gameState } from "./game-state.js"
 import { createCharacter } from "../entities/character-factory.js"
+import { detectMobile } from "../input/mobile-controls.js"
 
 // Initialize the game
 export function init() {
@@ -31,6 +32,16 @@ export function init() {
   gameState.joystickActive = false
   gameState.joystickAngle = 0
   gameState.joystickDistance = 0
+
+  // Check if device is mobile
+  gameState.isMobile = detectMobile()
+
+  // Set camera zoom based on device type
+  gameState.camera = {
+    x: 0,
+    y: 0,
+    zoom: gameState.isMobile ? 0.7 : 1.0, // Zoom out on mobile devices
+  }
 
   // Cancel any existing game loop
   if (gameState.gameLoop) {
