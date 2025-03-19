@@ -36,11 +36,11 @@ export function init() {
   // Check if device is mobile
   gameState.isMobile = detectMobile()
 
-  // Set camera zoom based on device type - use a more noticeable zoom for mobile
+  // Set camera zoom based on device type - changed back to 0.7 as requested
   gameState.camera = {
     x: 0,
     y: 0,
-    zoom: gameState.isMobile ? 0.6 : 1.0, // More significant zoom out on mobile devices
+    zoom: gameState.isMobile ? 0.7 : 1.0, // Zoom out on mobile devices
   }
 
   // Cancel any existing game loop
