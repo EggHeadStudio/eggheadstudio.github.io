@@ -115,8 +115,8 @@ export function spawnEnemies() {
   }
 }
 
-// Apply knockback to an enemy
-function applyKnockbackToEnemy(enemy, sourceX, sourceY, force = 5) {
+// Apply knockback to an enemy - export this function for use in player.js
+export function applyKnockbackToEnemy(enemy, sourceX, sourceY, force = 5) {
   // Calculate knockback direction (away from source)
   const angle = Math.atan2(enemy.y - sourceY, enemy.x - sourceX)
 
