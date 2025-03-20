@@ -13,7 +13,7 @@ import { maintainGameElements } from "./game-maintenance.js"
 
 // Main game update loop
 export function update() {
-  const { canvas, ctx, gameOver, camera } = gameState
+  const { canvas, ctx, gameOver } = gameState
 
   // Clear canvas
   ctx.clearRect(0, 0, canvas.width, canvas.height)
@@ -41,9 +41,9 @@ export function update() {
     // Update player position based on keyboard input
     updatePlayerPosition()
 
-    // Update camera position with zoom factor
-    camera.x = gameState.player.x - canvas.width / 2 / camera.zoom
-    camera.y = gameState.player.y - canvas.height / 2 / camera.zoom
+    // Update camera position
+    gameState.camera.x = gameState.player.x - canvas.width / 2
+    gameState.camera.y = gameState.player.y - canvas.height / 2
 
     // Spawn new enemies
     spawnEnemies()
@@ -54,10 +54,6 @@ export function update() {
     // Check for collisions
     checkCollisions()
   }
-
-  // Apply zoom transformation
-  ctx.save()
-  ctx.scale(camera.zoom, camera.zoom)
 
   // Draw terrain
   drawTerrain()
@@ -82,9 +78,6 @@ export function update() {
 
   // Draw player
   drawPlayer()
-
-  // Restore canvas context
-  ctx.restore()
 
   // Continue game loop
   gameState.gameLoop = requestAnimationFrame(update)
