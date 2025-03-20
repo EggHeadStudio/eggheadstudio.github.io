@@ -12,11 +12,6 @@ import { update } from "./game-loop.js"
 import { gameState } from "./game-state.js"
 import { createCharacter } from "../entities/character-factory.js"
 
-// Function to detect if the device is mobile
-function detectMobile() {
-  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-}
-
 // Initialize the game
 export function init() {
   // Reset all game state
@@ -36,16 +31,6 @@ export function init() {
   gameState.joystickActive = false
   gameState.joystickAngle = 0
   gameState.joystickDistance = 0
-
-  // Check if device is mobile
-  gameState.isMobile = detectMobile()
-
-  // Set camera zoom based on device type
-  gameState.camera = {
-    x: 0,
-    y: 0,
-    zoom: gameState.isMobile ? 0.7 : 1.0, // Zoom out on mobile devices
-  }
 
   // Cancel any existing game loop
   if (gameState.gameLoop) {
