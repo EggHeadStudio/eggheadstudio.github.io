@@ -26,7 +26,7 @@ export const gameState = {
   buttonBActive: false,
 
   // Camera
-  camera: { x: 0, y: 0 },
+  camera: { x: 0, y: 0, zoom: 1.0 }, // Added zoom property with default value of 1.0
 
   // Game entities
   player: null,
