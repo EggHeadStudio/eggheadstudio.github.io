@@ -6,6 +6,19 @@ import { tryGrabRock, releaseRock } from "../entities/rocks.js"
 // Import the new enemy functions
 import { tryGrabEnemy, releaseEnemy } from "../entities/enemies.js"
 
+// Import detectMobile at the top of the file
+export function detectMobile() {
+  return (
+    navigator.userAgent.match(/Android/i) ||
+    navigator.userAgent.match(/webOS/i) ||
+    navigator.userAgent.match(/iPhone/i) ||
+    navigator.userAgent.match(/iPad/i) ||
+    navigator.userAgent.match(/iPod/i) ||
+    navigator.userAgent.match(/BlackBerry/i) ||
+    navigator.userAgent.match(/Windows Phone/i)
+  )
+}
+
 export function setupMobileControls() {
   if (!detectMobile()) return
 
@@ -255,16 +268,4 @@ export function checkOrientation() {
     // Landscape mode - show warning
     document.querySelector(".portrait-warning").style.display = "flex"
   }
-}
-
-export function detectMobile() {
-  return (
-    navigator.userAgent.match(/Android/i) ||
-    navigator.userAgent.match(/webOS/i) ||
-    navigator.userAgent.match(/iPhone/i) ||
-    navigator.userAgent.match(/iPad/i) ||
-    navigator.userAgent.match(/iPod/i) ||
-    navigator.userAgent.match(/BlackBerry/i) ||
-    navigator.userAgent.match(/Windows Phone/i)
-  )
 }
