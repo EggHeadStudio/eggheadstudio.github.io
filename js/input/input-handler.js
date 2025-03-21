@@ -3,6 +3,8 @@ import { gameState } from "../core/game-state.js"
 import { throwApple } from "../entities/apples.js"
 import { tryGrabBomb, releaseBomb, detonateAnyBombWithCountdown } from "../entities/bombs.js"
 import { tryGrabRock, releaseRock } from "../entities/rocks.js"
+import { tryGrabWoodenBox, releaseWoodenBox } from "../entities/wooden-boxes.js" // Import wooden box functions
+import { tryGrabEnemy, releaseEnemy } from "../entities/enemies.js"
 
 // Set up event listeners for keyboard and mouse
 export function setupEventListeners() {
@@ -41,7 +43,7 @@ export function setupEventListeners() {
 export function handleKeyDown(e) {
   gameState.keys[e.key] = true
 
-  // Space bar for grabbing/releasing bombs or rocks, or detonating bombs
+  // Space bar for grabbing/releasing bombs, rocks, wooden boxes, or enemies, or detonating bombs
   if (e.key === " ") {
     if (gameState.isGrabbing) {
       // If holding something, release it
@@ -49,6 +51,8 @@ export function handleKeyDown(e) {
         releaseBomb()
       } else if (gameState.grabbedRock) {
         releaseRock()
+      } else if (gameState.grabbedWoodenBox) {
+        releaseWoodenBox()
       } else if (gameState.grabbedEnemy) {
         releaseEnemy()
       }
@@ -57,10 +61,13 @@ export function handleKeyDown(e) {
       if (!detonateAnyBombWithCountdown()) {
         // If no bomb to detonate, try to grab a bomb
         if (!tryGrabBomb()) {
-          // If no bomb to grab, try to grab a rock
-          if (!tryGrabRock()) {
-            // If no rock to grab, try to grab an enemy
-            tryGrabEnemy()
+          // If no bomb to grab, try to grab a wooden box
+          if (!tryGrabWoodenBox()) {
+            // If no wooden box to grab, try to grab a rock
+            if (!tryGrabRock()) {
+              // If no rock to grab, try to grab an enemy
+              tryGrabEnemy()
+            }
           }
         }
       }
@@ -111,12 +118,10 @@ export function restartGame() {
   }
   gameState.timerInterval = setInterval(updateTimer, 1000)
 
-  // Ensure we reset grabbedEnemy
+  // Ensure we reset grabbed objects
   gameState.grabbedEnemy = null
+  gameState.grabbedWoodenBox = null
 }
 
 // Import updateTimer after declaring restartGame to avoid circular dependency
 import { updateTimer } from "../ui/ui-manager.js"
-
-// Import the new enemy functions
-import { tryGrabEnemy, releaseEnemy } from "../entities/enemies.js"
