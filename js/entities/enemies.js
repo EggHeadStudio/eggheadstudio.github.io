@@ -3,6 +3,8 @@ import { gameState } from "../core/game-state.js"
 import { ENEMY_SIZE, ENEMY_SPEED, ENEMY_CHASE_SPEED, TILE_SIZE } from "../core/constants.js"
 import { getDistance } from "../utils/math-utils.js"
 import { createShadow } from "../utils/rendering-utils.js"
+import { damageWoodenBox } from "../entities/wooden-boxes.js"
+import { isUnderRoof } from "../entities/wooden-boxes.js"
 
 // Generate enemies
 export function generateEnemies(count) {
@@ -169,11 +171,41 @@ function checkThrownEnemyCollisions(thrownEnemy) {
       thrownEnemy.throwVelocityY *= 0.7
     }
   }
+
+  // Check for collisions with wooden boxes
+  if (gameState.woodenBoxes) {
+    for (let i = 0; i < gameState.woodenBoxes.length; i++) {
+      const box = gameState.woodenBoxes[i]
+
+      // Skip if box is being carried or thrown
+      if (box === gameState.grabbedWoodenBox || box.isBeingThrown) continue
+
+      // Check for collision
+      const distance = getDistance(thrownEnemy.x, thrownEnemy.y, box.x, box.y)
+      if (distance < thrownEnemy.size + box.size * 0.8) {
+        // Calculate impact force based on throw velocity
+        const impactForce = Math.sqrt(
+          thrownEnemy.throwVelocityX * thrownEnemy.throwVelocityX +
+            thrownEnemy.throwVelocityY * thrownEnemy.throwVelocityY,
+        )
+
+        // Damage the box if impact is hard enough
+        if (impactForce > 5) {
+          damageWoodenBox(box)
+        }
+
+        // Reduce the thrown enemy's velocity
+        thrownEnemy.throwVelocityX *= 0.7
+        thrownEnemy.throwVelocityY *= 0.7
+        break
+      }
+    }
+  }
 }
 
 // Update enemy movement
 export function updateEnemyMovement(enemy, canSeePlayer) {
-  const { player, terrain, rocks, bombs, enemies } = gameState
+  const { player, terrain, rocks, bombs, enemies, woodenBoxes } = gameState
 
   // If this is the grabbed enemy, don't update its movement
   if (gameState.grabbedEnemy === enemy) return
@@ -304,7 +336,9 @@ export function updateEnemyMovement(enemy, canSeePlayer) {
 
     let canMove = true
     let collidedWithRock = false
+    let collidedWithBox = false
     let rockCollisionAngle = 0
+    let boxCollisionAngle = 0
 
     // Check terrain
     if (
@@ -322,6 +356,22 @@ export function updateEnemyMovement(enemy, canSeePlayer) {
           collidedWithRock = true
           rockCollisionAngle = Math.atan2(enemy.y - rock.y, enemy.x - rock.x)
           break
+        }
+      }
+
+      // Check collision with wooden boxes
+      if (canMove && woodenBoxes) {
+        for (const box of woodenBoxes) {
+          // Skip if box is being carried or thrown
+          if (box === gameState.grabbedWoodenBox || box.isBeingThrown) continue
+
+          const distance = getDistance(newX, newY, box.x, box.y)
+          if (distance < enemy.size + box.size * 0.8) {
+            canMove = false
+            collidedWithBox = true
+            boxCollisionAngle = Math.atan2(enemy.y - box.y, enemy.x - box.x)
+            break
+          }
         }
       }
     } else {
@@ -362,6 +412,19 @@ export function updateEnemyMovement(enemy, canSeePlayer) {
             break
           }
         }
+
+        // Check collision with wooden boxes
+        if (canMoveAlt1 && woodenBoxes) {
+          for (const box of woodenBoxes) {
+            // Skip if box is being carried or thrown
+            if (box === gameState.grabbedWoodenBox || box.isBeingThrown) continue
+
+            if (getDistance(alt1X, alt1Y, box.x, box.y) < enemy.size + box.size * 0.8) {
+              canMoveAlt1 = false
+              break
+            }
+          }
+        }
       } else {
         canMoveAlt1 = false
       }
@@ -389,6 +452,112 @@ export function updateEnemyMovement(enemy, canSeePlayer) {
             if (getDistance(alt2X, alt2Y, rock.x, rock.y) < enemy.size + rock.size * 0.8) {
               canMoveAlt2 = false
               break
+            }
+          }
+
+          // Check collision with wooden boxes
+          if (canMoveAlt2 && woodenBoxes) {
+            for (const box of woodenBoxes) {
+              // Skip if box is being carried or thrown
+              if (box === gameState.grabbedWoodenBox || box.isBeingThrown) continue
+
+              if (getDistance(alt2X, alt2Y, box.x, box.y) < enemy.size + box.size * 0.8) {
+                canMoveAlt2 = false
+                break
+              }
+            }
+          }
+        } else {
+          canMoveAlt2 = false
+        }
+
+        if (canMoveAlt2) {
+          enemy.x = alt2X
+          enemy.y = alt2Y
+        }
+      }
+    } else if (collidedWithBox) {
+      // Bump away from box
+      const bumpDistance = 2
+      enemy.x += Math.cos(boxCollisionAngle) * bumpDistance
+      enemy.y += Math.sin(boxCollisionAngle) * bumpDistance
+
+      // Try to move around obstacle (same logic as for rocks)
+      const alternateAngle1 = angleToPlayer + Math.PI / 4
+      const alternateAngle2 = angleToPlayer - Math.PI / 4
+
+      const alt1X = enemy.x + Math.cos(alternateAngle1) * ENEMY_CHASE_SPEED
+      const alt1Y = enemy.y + Math.sin(alternateAngle1) * ENEMY_CHASE_SPEED
+      const alt1TileX = Math.floor(alt1X / TILE_SIZE)
+      const alt1TileY = Math.floor(alt1Y / TILE_SIZE)
+
+      let canMoveAlt1 = true
+
+      if (
+        alt1TileX >= 0 &&
+        alt1TileX < terrain[0].length &&
+        alt1TileY >= 0 &&
+        alt1TileY < terrain.length &&
+        terrain[alt1TileY][alt1TileX] !== 0 // TERRAIN_TYPES.WATER
+      ) {
+        // Check collision with rocks and boxes
+        for (const rock of rocks) {
+          if (getDistance(alt1X, alt1Y, rock.x, rock.y) < enemy.size + rock.size * 0.8) {
+            canMoveAlt1 = false
+            break
+          }
+        }
+
+        if (canMoveAlt1 && woodenBoxes) {
+          for (const box of woodenBoxes) {
+            // Skip if box is being carried or thrown
+            if (box === gameState.grabbedWoodenBox || box.isBeingThrown) continue
+
+            if (getDistance(alt1X, alt1Y, box.x, box.y) < enemy.size + box.size * 0.8) {
+              canMoveAlt1 = false
+              break
+            }
+          }
+        }
+      } else {
+        canMoveAlt1 = false
+      }
+
+      if (canMoveAlt1) {
+        enemy.x = alt1X
+        enemy.y = alt1Y
+      } else {
+        const alt2X = enemy.x + Math.cos(alternateAngle2) * ENEMY_CHASE_SPEED
+        const alt2Y = enemy.y + Math.sin(alternateAngle2) * ENEMY_CHASE_SPEED
+        const alt2TileX = Math.floor(alt2X / TILE_SIZE)
+        const alt2TileY = Math.floor(alt2Y / TILE_SIZE)
+
+        let canMoveAlt2 = true
+
+        if (
+          alt2TileX >= 0 &&
+          alt2TileX < terrain[0].length &&
+          alt2TileY >= 0 &&
+          alt2TileY < terrain.length &&
+          terrain[alt2TileY][alt2TileX] !== 0 // TERRAIN_TYPES.WATER
+        ) {
+          // Check collision with rocks and boxes
+          for (const rock of rocks) {
+            if (getDistance(alt2X, alt2Y, rock.x, rock.y) < enemy.size + rock.size * 0.8) {
+              canMoveAlt2 = false
+              break
+            }
+          }
+
+          if (canMoveAlt2 && woodenBoxes) {
+            for (const box of woodenBoxes) {
+              // Skip if box is being carried or thrown
+              if (box === gameState.grabbedWoodenBox || box.isBeingThrown) continue
+
+              if (getDistance(alt2X, alt2Y, box.x, box.y) < enemy.size + box.size * 0.8) {
+                canMoveAlt2 = false
+                break
+              }
             }
           }
         } else {
@@ -426,6 +595,19 @@ export function updateEnemyMovement(enemy, canSeePlayer) {
             break
           }
         }
+
+        // Check collision with wooden boxes
+        if (canMoveAlt1 && woodenBoxes) {
+          for (const box of woodenBoxes) {
+            // Skip if box is being carried or thrown
+            if (box === gameState.grabbedWoodenBox || box.isBeingThrown) continue
+
+            if (getDistance(alt1X, alt1Y, box.x, box.y) < enemy.size + box.size * 0.8) {
+              canMoveAlt1 = false
+              break
+            }
+          }
+        }
       } else {
         canMoveAlt1 = false
       }
@@ -453,6 +635,19 @@ export function updateEnemyMovement(enemy, canSeePlayer) {
             if (getDistance(alt2X, alt2Y, rock.x, rock.y) < enemy.size + rock.size * 0.8) {
               canMoveAlt2 = false
               break
+            }
+          }
+
+          // Check collision with wooden boxes
+          if (canMoveAlt2 && woodenBoxes) {
+            for (const box of woodenBoxes) {
+              // Skip if box is being carried or thrown
+              if (box === gameState.grabbedWoodenBox || box.isBeingThrown) continue
+
+              if (getDistance(alt2X, alt2Y, box.x, box.y) < enemy.size + box.size * 0.8) {
+                canMoveAlt2 = false
+                break
+              }
             }
           }
         } else {
@@ -487,7 +682,9 @@ export function updateEnemyMovement(enemy, canSeePlayer) {
 
     let canMove = true
     let collidedWithRock = false
+    let collidedWithBox = false
     let rockCollisionAngle = 0
+    let boxCollisionAngle = 0
 
     // Check terrain
     if (
@@ -507,6 +704,22 @@ export function updateEnemyMovement(enemy, canSeePlayer) {
           break
         }
       }
+
+      // Check collision with wooden boxes
+      if (canMove && woodenBoxes) {
+        for (const box of woodenBoxes) {
+          // Skip if box is being carried or thrown
+          if (box === gameState.grabbedWoodenBox || box.isBeingThrown) continue
+
+          const distance = getDistance(newX, newY, box.x, box.y)
+          if (distance < enemy.size + box.size * 0.8) {
+            canMove = false
+            collidedWithBox = true
+            boxCollisionAngle = Math.atan2(enemy.y - box.y, enemy.x - box.x)
+            break
+          }
+        }
+      }
     } else {
       canMove = false
     }
@@ -519,6 +732,14 @@ export function updateEnemyMovement(enemy, canSeePlayer) {
       const bumpDistance = 2
       enemy.x += Math.cos(rockCollisionAngle) * bumpDistance
       enemy.y += Math.sin(rockCollisionAngle) * bumpDistance
+
+      // Change direction if hitting obstacle
+      enemy.direction = (enemy.direction + Math.PI + ((Math.random() * Math.PI) / 2 - Math.PI / 4)) % (Math.PI * 2)
+    } else if (collidedWithBox) {
+      // Bump away from box
+      const bumpDistance = 2
+      enemy.x += Math.cos(boxCollisionAngle) * bumpDistance
+      enemy.y += Math.sin(boxCollisionAngle) * bumpDistance
 
       // Change direction if hitting obstacle
       enemy.direction = (enemy.direction + Math.PI + ((Math.random() * Math.PI) / 2 - Math.PI / 4)) % (Math.PI * 2)
@@ -551,7 +772,8 @@ export function drawAndUpdateEnemies() {
 
     // Check if enemy can see player
     const distanceToPlayer = getDistance(player.x, player.y, enemy.x, enemy.y)
-    const canSeePlayer = distanceToPlayer < 300 // Detection radius
+    const playerUnderRoof = isUnderRoof(player.x, player.y)
+    const canSeePlayer = distanceToPlayer < 300 && !playerUnderRoof // Detection radius and not under roof
 
     // Update enemy movement
     if (!gameOver) {
