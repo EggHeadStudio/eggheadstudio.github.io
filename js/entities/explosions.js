@@ -4,10 +4,11 @@ import { modifyTerrainInRadius } from "../terrain/terrain-modifier.js"
 import { getDistance } from "../utils/math-utils.js"
 import { getExplosionParticleColor } from "../utils/color-utils.js"
 import { checkBombChainReaction } from "./bombs.js"
+import { damageWoodenBox } from "./wooden-boxes.js" // Import wooden box damage function
 
 // Create explosion
 export function createExplosion(x, y, radius) {
-  const { explosions, enemies, player, bombs } = gameState
+  const { explosions, enemies, player, bombs, woodenBoxes } = gameState
 
   // Create explosion object with larger radius
   const explosionRadius = radius * 2 + Math.random() * 100 // Much larger and more random radius
@@ -59,6 +60,18 @@ export function createExplosion(x, y, radius) {
     }
   }
 
+  // Check for wooden boxes in explosion radius and destroy them instantly
+  for (let i = woodenBoxes.length - 1; i >= 0; i--) {
+    const box = woodenBoxes[i]
+    const distance = getDistance(x, y, box.x, box.y)
+
+    if (distance < explosionRadius + box.size) {
+      // Set hitPoints to 0 to ensure instant destruction and create destruction effect
+      box.hitPoints = 0
+      damageWoodenBox(box, 3) // Force destruction by dealing full damage
+    }
+  }
+
   // Check if player is in explosion radius
   const distanceToPlayer = getDistance(x, y, player.x, player.y)
   if (distanceToPlayer < explosionRadius) {
@@ -69,7 +82,6 @@ export function createExplosion(x, y, radius) {
   }
 
   // Check for chain reaction with other bombs
-  // This is now handled in the bombs.js file
   checkBombChainReaction(x, y, explosionRadius)
 }
 
