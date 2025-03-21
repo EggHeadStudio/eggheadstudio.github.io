@@ -3,7 +3,7 @@ import { gameState } from "../core/game-state.js"
 import { throwApple } from "../entities/apples.js"
 import { tryGrabBomb, releaseBomb, detonateAnyBombWithCountdown } from "../entities/bombs.js"
 import { tryGrabRock, releaseRock } from "../entities/rocks.js"
-// Import the new enemy functions
+import { tryGrabWoodenBox, releaseWoodenBox } from "../entities/wooden-boxes.js" // Import wooden box functions
 import { tryGrabEnemy, releaseEnemy } from "../entities/enemies.js"
 
 export function setupMobileControls() {
@@ -79,59 +79,7 @@ export function setupMobileControls() {
   buttonB.addEventListener("touchcancel", handleButtonBEnd)
 }
 
-// Joystick handlers
-export function handleJoystickStart(e) {
-  e.preventDefault()
-
-  // Store the touch identifier for this joystick interaction
-  const touch = e.changedTouches[0]
-  gameState.touchTracker.joystickTouchId = touch.identifier
-
-  // Activate joystick
-  gameState.joystickActive = true
-
-  // Update joystick position
-  updateJoystickPosition(touch)
-}
-
-export function handleJoystickMove(e) {
-  // If joystick is not active, ignore move events
-  if (!gameState.joystickActive) return
-
-  // Find the touch that matches our stored joystick touch ID
-  for (let i = 0; i < e.changedTouches.length; i++) {
-    const touch = e.changedTouches[i]
-
-    // Only process the touch that started the joystick
-    if (touch.identifier === gameState.touchTracker.joystickTouchId) {
-      e.preventDefault()
-      updateJoystickPosition(touch)
-      return // Exit after processing the joystick touch
-    }
-  }
-}
-
-export function handleJoystickEnd(e) {
-  // Check if the joystick touch has ended
-  for (let i = 0; i < e.changedTouches.length; i++) {
-    const touch = e.changedTouches[i]
-
-    // Only process if this is the joystick touch
-    if (touch.identifier === gameState.touchTracker.joystickTouchId) {
-      // Reset joystick
-      gameState.joystickActive = false
-      gameState.touchTracker.joystickTouchId = null
-
-      const joystickKnob = document.querySelector(".joystick-knob")
-      joystickKnob.style.transform = "translate(-50%, -50%)"
-      gameState.joystickAngle = 0
-      gameState.joystickDistance = 0
-      return // Exit after processing the joystick touch
-    }
-  }
-}
-
-// In the handleButtonAStart function, ensure we reset grabbedEnemy when game is over
+// In the handleButtonAStart function, include wooden box interactions
 export function handleButtonAStart(e) {
   e.preventDefault()
   e.stopPropagation()
@@ -152,22 +100,28 @@ export function handleButtonAStart(e) {
         releaseBomb()
       } else if (gameState.grabbedRock) {
         releaseRock()
+      } else if (gameState.grabbedWoodenBox) {
+        releaseWoodenBox()
       } else if (gameState.grabbedEnemy) {
         releaseEnemy()
       }
     } else {
       // If not holding anything, try to grab a bomb
       if (!tryGrabBomb()) {
-        // If no bomb to grab, try to grab a rock
-        if (!tryGrabRock()) {
-          // If no rock to grab, try to grab an enemy
-          tryGrabEnemy()
+        // If no bomb to grab, try to grab a wooden box
+        if (!tryGrabWoodenBox()) {
+          // If no wooden box to grab, try to grab a rock
+          if (!tryGrabRock()) {
+            // If no rock to grab, try to grab an enemy
+            tryGrabEnemy()
+          }
         }
       }
     }
   }
 }
 
+// Other existing mobile control functions remain unchanged
 export function handleButtonAEnd(e) {
   // Check if this is the button A touch ending
   for (let i = 0; i < e.changedTouches.length; i++) {
@@ -267,4 +221,56 @@ export function detectMobile() {
     navigator.userAgent.match(/BlackBerry/i) ||
     navigator.userAgent.match(/Windows Phone/i)
   )
+}
+
+// Joystick handlers
+export function handleJoystickStart(e) {
+  e.preventDefault()
+
+  // Store the touch identifier for this joystick interaction
+  const touch = e.changedTouches[0]
+  gameState.touchTracker.joystickTouchId = touch.identifier
+
+  // Activate joystick
+  gameState.joystickActive = true
+
+  // Update joystick position
+  updateJoystickPosition(touch)
+}
+
+export function handleJoystickMove(e) {
+  // If joystick is not active, ignore move events
+  if (!gameState.joystickActive) return
+
+  // Find the touch that matches our stored joystick touch ID
+  for (let i = 0; i < e.changedTouches.length; i++) {
+    const touch = e.changedTouches[i]
+
+    // Only process the touch that started the joystick
+    if (touch.identifier === gameState.touchTracker.joystickTouchId) {
+      e.preventDefault()
+      updateJoystickPosition(touch)
+      return // Exit after processing the joystick touch
+    }
+  }
+}
+
+export function handleJoystickEnd(e) {
+  // Check if the joystick touch has ended
+  for (let i = 0; i < e.changedTouches.length; i++) {
+    const touch = e.changedTouches[i]
+
+    // Only process if this is the joystick touch
+    if (touch.identifier === gameState.touchTracker.joystickTouchId) {
+      // Reset joystick
+      gameState.joystickActive = false
+      gameState.touchTracker.joystickTouchId = null
+
+      const joystickKnob = document.querySelector(".joystick-knob")
+      joystickKnob.style.transform = "translate(-50%, -50%)"
+      gameState.joystickAngle = 0
+      gameState.joystickDistance = 0
+      return // Exit after processing the joystick touch
+    }
+  }
 }
