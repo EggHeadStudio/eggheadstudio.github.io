@@ -4,6 +4,7 @@ import { APPLE_SIZE, TILE_SIZE, APPLE_THROW_SPEED } from "../core/constants.js"
 import { getDistance } from "../utils/math-utils.js"
 import { createShadow } from "../utils/rendering-utils.js"
 import { updateAppleCounter } from "../ui/ui-manager.js"
+import { damageWoodenBox } from "../entities/wooden-boxes.js"
 
 // Generate apples
 export function generateApples(count) {
@@ -249,7 +250,7 @@ export function drawAndUpdateApples() {
 
 // Draw and update thrown apples
 export function drawAndUpdateThrownApples() {
-  const { thrownApples, gameOver, camera, ctx, canvas, enemies, bombs, rocks } = gameState
+  const { thrownApples, gameOver, camera, ctx, canvas, enemies, bombs, rocks, woodenBoxes } = gameState
 
   // Draw and update apple splashes first
   drawAndUpdateAppleSplashes()
@@ -343,7 +344,32 @@ export function drawAndUpdateThrownApples() {
         // Remove apple
         thrownApples.splice(i, 1)
         i--
+        hasCollided = true
         break
+      }
+    }
+
+    if (hasCollided) continue
+
+    // Check for collisions with wooden boxes
+    if (woodenBoxes) {
+      for (let j = 0; j < woodenBoxes.length; j++) {
+        const box = woodenBoxes[j]
+        const distance = getDistance(apple.x, apple.y, box.x, box.y)
+
+        if (distance < apple.size + box.size * 0.8) {
+          // Create apple splash effect
+          createAppleSplash(apple.x, apple.y, apple.velocityX, apple.velocityY)
+
+          // Damage the box
+          damageWoodenBox(box)
+
+          // Remove apple
+          thrownApples.splice(i, 1)
+          i--
+          hasCollided = true
+          break
+        }
       }
     }
   }
