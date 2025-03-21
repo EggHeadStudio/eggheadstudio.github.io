@@ -37,10 +37,14 @@ export const gameState = {
   thrownApples: [],
   explosions: [],
   rocks: [],
+  woodenBoxes: [], // Added wooden boxes array
+  boxDestructionEffects: [], // Added effects for box destruction
+  waterDrips: [], // Water drip effects for floating boxes
 
   // Interaction state
   isGrabbing: false,
   grabbedBomb: null,
   grabbedRock: null,
-  grabbedEnemy: null, // Add grabbed enemy state
+  grabbedEnemy: null,
+  grabbedWoodenBox: null, // Added for wooden box grabbing
 }
