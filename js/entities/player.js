@@ -4,6 +4,7 @@ import { TILE_SIZE } from "../core/constants.js"
 import { getDistance } from "../utils/math-utils.js"
 import { createShadow } from "../utils/rendering-utils.js"
 import { applyKnockbackToEnemy } from "../entities/enemies.js"
+import { damageWoodenBox } from "../entities/wooden-boxes.js"
 
 // Animation constants
 const HAND_SIZE = 11
@@ -27,8 +28,10 @@ export function updatePlayerPosition() {
     grabbedBomb,
     grabbedRock,
     grabbedEnemy,
+    grabbedWoodenBox,
     terrain,
     rocks,
+    woodenBoxes,
     isMobile,
     joystickActive,
     joystickAngle,
@@ -96,6 +99,19 @@ export function updatePlayerPosition() {
     }
   }
 
+  // Check collision with wooden boxes
+  if (canMove && woodenBoxes) {
+    for (const box of woodenBoxes) {
+      // Skip if this is the box being carried
+      if (box === grabbedWoodenBox) continue
+
+      if (getDistance(newX, newY, box.x, box.y) < player.size + box.size * 0.8) {
+        canMove = false
+        break
+      }
+    }
+  }
+
   // Move if possible
   if (canMove) {
     player.x = newX
@@ -117,6 +133,11 @@ export function updatePlayerPosition() {
       const angle = player.direction
       grabbedEnemy.x = player.x + Math.cos(angle) * (player.size + grabbedEnemy.size) * 0.8
       grabbedEnemy.y = player.y + Math.sin(angle) * (player.size + grabbedEnemy.size) * 0.8
+    } else if (grabbedWoodenBox) {
+      // Position the wooden box in front of the player in the direction of movement
+      const angle = player.direction
+      grabbedWoodenBox.x = player.x + Math.cos(angle) * (player.size + grabbedWoodenBox.size) * 0.8
+      grabbedWoodenBox.y = player.y + Math.sin(angle) * (player.size + grabbedWoodenBox.size) * 0.8
     }
   }
 
@@ -126,7 +147,7 @@ export function updatePlayerPosition() {
 
 // Check if player's melee attack hits any enemies
 function checkMeleeAttack() {
-  const { player, enemies } = gameState
+  const { player, enemies, woodenBoxes } = gameState
 
   // Only check during the active part of the throw animation
   if (!player.throwingApple) return
@@ -183,7 +204,41 @@ function checkMeleeAttack() {
       })
 
       // Only hit one enemy per swing
-      break
+      return
+    }
+  }
+
+  // Check for collision with wooden boxes
+  if (woodenBoxes) {
+    for (let i = 0; i < woodenBoxes.length; i++) {
+      const box = woodenBoxes[i]
+
+      // Skip if this is the grabbed box
+      if (gameState.grabbedWoodenBox === box) continue
+
+      // Check distance between hand and box
+      const distance = getDistance(rightHandX, rightHandY, box.x, box.y)
+
+      if (distance < HAND_SIZE + box.size * 0.8) {
+        // Damage the box
+        damageWoodenBox(box)
+
+        // Add a small "hit" effect
+        if (!gameState.hitEffects) {
+          gameState.hitEffects = []
+        }
+
+        gameState.hitEffects.push({
+          x: box.x,
+          y: box.y,
+          size: box.size * 1.2,
+          createdAt: Date.now(),
+          duration: 200,
+        })
+
+        // Only hit one box per swing
+        return
+      }
     }
   }
 }
@@ -715,6 +770,9 @@ function drawGrabbedObjects(ctx, screenX, screenY, player, camera, grabbedBomb, 
       ctx.lineTo(rockScreenX, rockScreenY)
       ctx.stroke()
       ctx.setLineDash([])
+    } else if (gameState.grabbedWoodenBox) {
+      // The wooden box drawing is handled in wooden-boxes.js
+      // We don't need to duplicate the rendering code here
     } else if (grabbedEnemy) {
       // Draw grabbed enemy
       const enemyScreenX = grabbedEnemy.x - camera.x
