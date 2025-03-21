@@ -5,6 +5,7 @@ import { spawnEnemies, drawAndUpdateEnemies } from "../entities/enemies.js"
 import { checkCollisions } from "./collision-detection.js"
 import { drawTerrain } from "../terrain/terrain-renderer.js"
 import { drawAndUpdateRocks } from "../entities/rocks.js"
+import { drawAndUpdateWoodenBoxes } from "../entities/wooden-boxes.js" // Import wooden boxes update
 import { drawAndUpdateApples, drawAndUpdateThrownApples } from "../entities/apples.js"
 import { drawAndUpdateBombs } from "../entities/bombs.js"
 import { drawAndUpdateExplosions } from "../entities/explosions.js"
@@ -60,6 +61,9 @@ export function update() {
 
   // Draw and update rocks
   drawAndUpdateRocks()
+
+  // Draw and update wooden boxes
+  drawAndUpdateWoodenBoxes()
 
   // Draw and update apples
   drawAndUpdateApples()
