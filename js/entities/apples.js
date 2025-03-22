@@ -5,6 +5,7 @@ import { getDistance } from "../utils/math-utils.js"
 import { createShadow } from "../utils/rendering-utils.js"
 import { updateAppleCounter } from "../ui/ui-manager.js"
 import { damageWoodenBox } from "../entities/wooden-boxes.js"
+import { incrementKillCount } from "../ui/ui-manager.js"
 
 // Generate apples
 export function generateApples(count) {
@@ -307,6 +308,10 @@ export function drawAndUpdateThrownApples() {
         thrownApples.splice(i, 1)
         i--
         hasCollided = true
+
+        // Increment kill count
+        incrementKillCount()
+
         break
       }
     }
