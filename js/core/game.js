@@ -12,6 +12,7 @@ import { updateTimer } from "../ui/ui-manager.js"
 import { update } from "./game-loop.js"
 import { gameState } from "./game-state.js"
 import { createCharacter } from "../entities/character-factory.js"
+import { updateKillCounter } from "../ui/ui-manager.js"
 
 // Initialize the game
 export function init() {
@@ -36,6 +37,7 @@ export function init() {
   gameState.joystickActive = false
   gameState.joystickAngle = 0
   gameState.joystickDistance = 0
+  gameState.killCount = 0 // Reset kill count when starting a new game
 
   // Cancel any existing game loop
   if (gameState.gameLoop) {
@@ -68,7 +70,7 @@ export function init() {
     color: "#3498db",
     isMoving: false,
     animationTime: 0,
-    strength: 1.0, // Default strength for picking up objects
+    strength: 2.0, // Default strength for picking up objects
   })
 
   // Generate initial terrain
@@ -107,6 +109,9 @@ export function init() {
     clearInterval(gameState.timerInterval)
   }
   gameState.timerInterval = setInterval(updateTimer, 1000)
+
+  // Initialize kill counter display
+  updateKillCounter()
 
   // Start game loop
   gameState.gameLoop = requestAnimationFrame(update)
