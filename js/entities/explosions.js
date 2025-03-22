@@ -6,6 +6,9 @@ import { getExplosionParticleColor } from "../utils/color-utils.js"
 import { checkBombChainReaction } from "./bombs.js"
 import { damageWoodenBox } from "./wooden-boxes.js" // Import wooden box damage function
 
+// Import the incrementKillCount function
+import { updateHealthDisplay, incrementKillCount } from "../ui/ui-manager.js"
+
 // Create explosion
 export function createExplosion(x, y, radius) {
   const { explosions, enemies, player, bombs, woodenBoxes } = gameState
@@ -57,6 +60,9 @@ export function createExplosion(x, y, radius) {
 
     if (distance < explosionRadius) {
       enemies.splice(i, 1)
+
+      // Increment kill count
+      incrementKillCount()
     }
   }
 
@@ -138,6 +144,3 @@ export function drawAndUpdateExplosions() {
     }
   }
 }
-
-// Import updateHealthDisplay after using it to avoid circular dependency
-import { updateHealthDisplay } from "../ui/ui-manager.js"
