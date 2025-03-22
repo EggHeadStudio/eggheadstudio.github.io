@@ -62,9 +62,6 @@ export function update() {
   // Draw and update rocks
   drawAndUpdateRocks()
 
-  // Draw and update wooden boxes (this now handles roof detection and drawing)
-  drawAndUpdateWoodenBoxes()
-
   // Draw and update apples
   drawAndUpdateApples()
 
@@ -82,6 +79,9 @@ export function update() {
 
   // Draw player
   drawPlayer()
+
+  // Draw and update wooden boxes (this now handles roof detection and drawing)
+  drawAndUpdateWoodenBoxes()
 
   // Continue game loop
   gameState.gameLoop = requestAnimationFrame(update)
