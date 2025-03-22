@@ -11,6 +11,7 @@ export const gameState = {
   elapsedTime: 0,
   timerInterval: null,
   lastEnemySpawnTime: 0,
+  killCount: 0, // Add kill count to track killed enemies
 
   // Input state
   keys: {},
