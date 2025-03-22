@@ -5,6 +5,8 @@ import { getDistance } from "../utils/math-utils.js"
 import { createShadow } from "../utils/rendering-utils.js"
 import { damageWoodenBox } from "../entities/wooden-boxes.js"
 import { isUnderRoof } from "../entities/wooden-boxes.js"
+// Import the incrementKillCount function
+import { incrementKillCount } from "../ui/ui-manager.js"
 
 // Generate enemies
 export function generateEnemies(count) {
@@ -286,6 +288,9 @@ export function updateEnemyMovement(enemy, canSeePlayer) {
         const enemyIndex = gameState.enemies.indexOf(enemy)
         if (enemyIndex !== -1) {
           gameState.enemies.splice(enemyIndex, 1)
+
+          // Increment kill count
+          incrementKillCount()
         }
         return
       }
