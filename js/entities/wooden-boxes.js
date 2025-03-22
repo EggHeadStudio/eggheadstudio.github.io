@@ -945,24 +945,46 @@ export function drawAndUpdateWoodenBoxes() {
   }
 }
 
-// Detect and create roof areas from wooden boxes and rocks
+// Modify the detectRoofAreas function to properly handle both wooden boxes and rocks
 function detectRoofAreas() {
   const { woodenBoxes, rocks } = gameState
 
   // Clear previous roof areas
   roofAreas = []
 
-  // Combine boxes and rocks for roof detection
-  const buildingObjects = [...woodenBoxes]
+  // Skip if there are no objects to form roofs
+  if ((!woodenBoxes || woodenBoxes.length === 0) && (!rocks || rocks.length === 0)) {
+    return
+  }
 
-  // Add rocks with type property
-  rocks.forEach((rock) => {
-    // Create a copy of the rock with a type property
-    buildingObjects.push({
-      ...rock,
-      type: "rock",
+  // Create a combined array of building objects (both boxes and rocks)
+  const buildingObjects = []
+
+  // Add wooden boxes
+  if (woodenBoxes && woodenBoxes.length > 0) {
+    woodenBoxes.forEach((box) => {
+      // Skip floating boxes - they can't form roofs
+      if (!box.isFloating && !box.isBeingThrown) {
+        buildingObjects.push({
+          ...box,
+          type: "box",
+        })
+      }
     })
-  })
+  }
+
+  // Add rocks
+  if (rocks && rocks.length > 0) {
+    rocks.forEach((rock) => {
+      // Skip rocks being carried
+      if (rock !== gameState.grabbedRock) {
+        buildingObjects.push({
+          ...rock,
+          type: "rock",
+        })
+      }
+    })
+  }
 
   // Skip if there are too few objects to form a roof (need at least 3)
   if (buildingObjects.length < 3) return
@@ -970,7 +992,7 @@ function detectRoofAreas() {
   // Find all snapped object groups
   const objectGroups = findSnappedObjectGroups(buildingObjects)
 
-  // For each group, check if they form a U-shape
+  // For each group, check if they form a U-shape or other valid roof structure
   for (const group of objectGroups) {
     if (group.length < 3) continue // Need at least 3 objects
 
@@ -1000,14 +1022,13 @@ function findSnappedObjectGroups(objects) {
       const currentObj = queue.shift()
       group.push(currentObj)
 
-      // Find all objects snapped to this one
+      // Find all objects close to this one
       for (const otherObj of objects) {
         if (visited.has(otherObj)) continue
 
-        // Check if objects are snapped together
         const distance = getDistance(currentObj.x, currentObj.y, otherObj.x, otherObj.y)
-        if (distance < currentObj.size * 2) {
-          // Close enough to be snapped
+        // Consider objects close if they're within 1.8x their combined sizes
+        if (distance < (currentObj.size + otherObj.size) * 1.8) {
           queue.push(otherObj)
           visited.add(otherObj)
         }
@@ -1028,14 +1049,20 @@ function findUShapes(objectGroup) {
 
   // Try each object as a potential corner
   for (const cornerObj of objectGroup) {
-    // Find objects aligned horizontally with this corner
+    // Find objects aligned horizontally with this corner (within a reasonable tolerance)
     const horizontalObjects = objectGroup.filter(
-      (obj) => Math.abs(obj.y - cornerObj.y) < obj.size * 0.5 && Math.abs(obj.x - cornerObj.x) > obj.size * 0.5,
+      (obj) =>
+        obj !== cornerObj &&
+        Math.abs(obj.y - cornerObj.y) < obj.size * 0.7 &&
+        Math.abs(obj.x - cornerObj.x) > obj.size * 0.5,
     )
 
     // Find objects aligned vertically with this corner
     const verticalObjects = objectGroup.filter(
-      (obj) => Math.abs(obj.x - cornerObj.x) < obj.size * 0.5 && Math.abs(obj.y - cornerObj.y) > obj.size * 0.5,
+      (obj) =>
+        obj !== cornerObj &&
+        Math.abs(obj.x - cornerObj.x) < obj.size * 0.7 &&
+        Math.abs(obj.y - cornerObj.y) > obj.size * 0.5,
     )
 
     // Need at least one object in each direction to form a U
@@ -1051,11 +1078,11 @@ function findUShapes(objectGroup) {
         verticalObjects[0],
       )
 
-      // Calculate the roof area
-      const minX = Math.min(cornerObj.x, furthestHorizontal.x, furthestVertical.x) - cornerObj.size / 2
-      const maxX = Math.max(cornerObj.x, furthestHorizontal.x, furthestVertical.x) + cornerObj.size / 2
-      const minY = Math.min(cornerObj.y, furthestHorizontal.y, furthestVertical.y) - cornerObj.size / 2
-      const maxY = Math.max(cornerObj.y, furthestHorizontal.y, furthestVertical.y) + cornerObj.size / 2
+      // Calculate the roof area with some padding
+      const minX = Math.min(cornerObj.x, furthestHorizontal.x, furthestVertical.x) - cornerObj.size * 0.6
+      const maxX = Math.max(cornerObj.x, furthestHorizontal.x, furthestVertical.x) + cornerObj.size * 0.6
+      const minY = Math.min(cornerObj.y, furthestHorizontal.y, furthestVertical.y) - cornerObj.size * 0.6
+      const maxY = Math.max(cornerObj.y, furthestHorizontal.y, furthestVertical.y) + cornerObj.size * 0.6
 
       // Create a roof area
       uShapes.push({
@@ -1064,6 +1091,7 @@ function findUShapes(objectGroup) {
         width: maxX - minX,
         height: maxY - minY,
         createdAt: Date.now(),
+        type: "u-shape",
       })
     }
   }
@@ -1071,7 +1099,7 @@ function findUShapes(objectGroup) {
   return uShapes
 }
 
-// Draw roof areas
+// Improve the drawRoofAreas function to make roofs more visually distinct
 function drawRoofAreas() {
   const { camera, ctx, player } = gameState
 
@@ -1087,8 +1115,11 @@ function drawRoofAreas() {
     ctx.strokeStyle = "rgba(139, 69, 19, 0.5)"
     ctx.lineWidth = 1
 
+    // Different patterns for different roof types
+    const gridSize = roof.type === "u-shape" ? 20 : 15
+
     // Horizontal lines
-    for (let y = 0; y < roof.height; y += 20) {
+    for (let y = 0; y < roof.height; y += gridSize) {
       ctx.beginPath()
       ctx.moveTo(screenX, screenY + y)
       ctx.lineTo(screenX + roof.width, screenY + y)
@@ -1096,12 +1127,17 @@ function drawRoofAreas() {
     }
 
     // Vertical lines
-    for (let x = 0; x < roof.width; x += 20) {
+    for (let x = 0; x < roof.width; x += gridSize) {
       ctx.beginPath()
       ctx.moveTo(screenX + x, screenY)
       ctx.lineTo(screenX + x, screenY + roof.height)
       ctx.stroke()
     }
+
+    // Add a subtle border
+    ctx.strokeStyle = "rgba(139, 69, 19, 0.6)"
+    ctx.lineWidth = 2
+    ctx.strokeRect(screenX, screenY, roof.width, roof.height)
 
     // Check if player is under this roof
     if (isPointUnderRoof(player.x, player.y, roof)) {
@@ -1142,7 +1178,7 @@ function isPointUnderRoof(x, y, specificRoof = null) {
   return false
 }
 
-// Check if a point is under any roof (exported function)
+// Improve the isUnderRoof function to be more reliable
 export function isUnderRoof(x, y) {
   return isPointUnderRoof(x, y)
 }
