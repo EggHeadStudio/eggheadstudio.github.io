@@ -798,7 +798,7 @@ export function drawAndUpdateWoodenBoxes() {
         }
       }
 
-      // Handle floating on water
+      // Handle floating on water\
       if (box.isFloating) {
         // Update float animation offset
         box.floatOffset = Math.sin(Date.now() / 500) * 3
@@ -939,13 +939,26 @@ export function drawAndUpdateWoodenBoxes() {
 
     // Detect and draw roof areas
     detectRoofAreas()
+
+    // Draw entities that should appear under roofs
+    drawEntitiesUnderRoof()
+
+    // Draw roof areas on top
     drawRoofAreas()
   } catch (error) {
     console.error("Error in drawAndUpdateWoodenBoxes:", error)
   }
 }
 
+// Draw entities that should appear under the roof
+function drawEntitiesUnderRoof() {
+  // This function is intentionally left empty
+  // The actual drawing of entities happens in their respective draw functions
+  // We're just ensuring the roof is drawn after all entities
+}
+
 // Modify the detectRoofAreas function to properly handle both wooden boxes and rocks
+// and prevent duplicate roof areas
 function detectRoofAreas() {
   const { woodenBoxes, rocks } = gameState
 
@@ -999,9 +1012,61 @@ function detectRoofAreas() {
     // Find potential U-shapes
     const uShapes = findUShapes(group)
 
-    // Add valid U-shapes as roof areas
-    roofAreas.push(...uShapes)
+    // Add valid U-shapes as roof areas, but prevent overlaps
+    for (const newRoof of uShapes) {
+      let shouldAdd = true
+
+      // Check for overlapping roofs and merge or skip as needed
+      for (let i = roofAreas.length - 1; i >= 0; i--) {
+        const existingRoof = roofAreas[i]
+
+        // Check if roofs overlap significantly
+        if (roofsOverlap(newRoof, existingRoof)) {
+          // If they overlap, merge them instead of adding both
+          mergeRoofs(existingRoof, newRoof)
+          shouldAdd = false
+          break
+        }
+      }
+
+      if (shouldAdd) {
+        roofAreas.push(newRoof)
+      }
+    }
   }
+}
+
+// Check if two roof areas overlap significantly
+function roofsOverlap(roof1, roof2) {
+  // Calculate the overlap area
+  const xOverlap = Math.max(0, Math.min(roof1.x + roof1.width, roof2.x + roof2.width) - Math.max(roof1.x, roof2.x))
+
+  const yOverlap = Math.max(0, Math.min(roof1.y + roof1.height, roof2.y + roof2.height) - Math.max(roof1.y, roof2.y))
+
+  const overlapArea = xOverlap * yOverlap
+  const roof1Area = roof1.width * roof1.height
+  const roof2Area = roof2.width * roof2.height
+
+  // If the overlap is more than 40% of either roof, consider them overlapping
+  return overlapArea > 0.4 * Math.min(roof1Area, roof2Area)
+}
+
+// Merge two overlapping roofs
+function mergeRoofs(roof1, roof2) {
+  // Calculate the bounding box that contains both roofs
+  const x = Math.min(roof1.x, roof2.x)
+  const y = Math.min(roof1.y, roof2.y)
+  const width = Math.max(roof1.x + roof1.width, roof2.x + roof2.width) - x
+  const height = Math.max(roof1.y + roof1.height, roof2.y + roof2.height) - y
+
+  // Update the first roof to be the merged roof
+  roof1.x = x
+  roof1.y = y
+  roof1.width = width
+  roof1.height = height
+
+  // Keep the most recent creation time
+  roof1.createdAt = Math.max(roof1.createdAt, roof2.createdAt)
 }
 
 // Find groups of connected objects (boxes and rocks)
@@ -1092,6 +1157,7 @@ function findUShapes(objectGroup) {
         height: maxY - minY,
         createdAt: Date.now(),
         type: "u-shape",
+        cornerRadius: 15, // Add corner radius for rounded corners
       })
     }
   }
@@ -1099,17 +1165,37 @@ function findUShapes(objectGroup) {
   return uShapes
 }
 
-// Improve the drawRoofAreas function to make roofs more visually distinct
+// Improve the drawRoofAreas function to make roofs more visually distinct with rounded corners
 function drawRoofAreas() {
   const { camera, ctx, player } = gameState
 
   for (const roof of roofAreas) {
     const screenX = roof.x - camera.x
     const screenY = roof.y - camera.y
+    const cornerRadius = roof.cornerRadius || 15 // Default to 15px if not specified
 
-    // Draw semi-transparent brown roof
+    // Draw semi-transparent brown roof with rounded corners
     ctx.fillStyle = "rgba(139, 69, 19, 0.4)" // Semi-transparent brown
-    ctx.fillRect(screenX, screenY, roof.width, roof.height)
+
+    // Draw rounded rectangle
+    ctx.beginPath()
+    ctx.moveTo(screenX + cornerRadius, screenY)
+    ctx.lineTo(screenX + roof.width - cornerRadius, screenY)
+    ctx.arcTo(screenX + roof.width, screenY, screenX + roof.width, screenY + cornerRadius, cornerRadius)
+    ctx.lineTo(screenX + roof.width, screenY + roof.height - cornerRadius)
+    ctx.arcTo(
+      screenX + roof.width,
+      screenY + roof.height,
+      screenX + roof.width - cornerRadius,
+      screenY + roof.height,
+      cornerRadius,
+    )
+    ctx.lineTo(screenX + cornerRadius, screenY + roof.height)
+    ctx.arcTo(screenX, screenY + roof.height, screenX, screenY + roof.height - cornerRadius, cornerRadius)
+    ctx.lineTo(screenX, screenY + cornerRadius)
+    ctx.arcTo(screenX, screenY, screenX + cornerRadius, screenY, cornerRadius)
+    ctx.closePath()
+    ctx.fill()
 
     // Draw subtle grid pattern for visual interest
     ctx.strokeStyle = "rgba(139, 69, 19, 0.5)"
@@ -1117,6 +1203,27 @@ function drawRoofAreas() {
 
     // Different patterns for different roof types
     const gridSize = roof.type === "u-shape" ? 20 : 15
+
+    // Create a clipping path for the grid lines to stay within the rounded rectangle
+    ctx.save()
+    ctx.beginPath()
+    ctx.moveTo(screenX + cornerRadius, screenY)
+    ctx.lineTo(screenX + roof.width - cornerRadius, screenY)
+    ctx.arcTo(screenX + roof.width, screenY, screenX + roof.width, screenY + cornerRadius, cornerRadius)
+    ctx.lineTo(screenX + roof.width, screenY + roof.height - cornerRadius)
+    ctx.arcTo(
+      screenX + roof.width,
+      screenY + roof.height,
+      screenX + roof.width - cornerRadius,
+      screenY + roof.height,
+      cornerRadius,
+    )
+    ctx.lineTo(screenX + cornerRadius, screenY + roof.height)
+    ctx.arcTo(screenX, screenY + roof.height, screenX, screenY + roof.height - cornerRadius, cornerRadius)
+    ctx.lineTo(screenX, screenY + cornerRadius)
+    ctx.arcTo(screenX, screenY, screenX + cornerRadius, screenY, cornerRadius)
+    ctx.closePath()
+    ctx.clip()
 
     // Horizontal lines
     for (let y = 0; y < roof.height; y += gridSize) {
@@ -1134,10 +1241,29 @@ function drawRoofAreas() {
       ctx.stroke()
     }
 
-    // Add a subtle border
+    ctx.restore() // Restore context after clipping
+
+    // Add a subtle border with rounded corners
     ctx.strokeStyle = "rgba(139, 69, 19, 0.6)"
     ctx.lineWidth = 2
-    ctx.strokeRect(screenX, screenY, roof.width, roof.height)
+    ctx.beginPath()
+    ctx.moveTo(screenX + cornerRadius, screenY)
+    ctx.lineTo(screenX + roof.width - cornerRadius, screenY)
+    ctx.arcTo(screenX + roof.width, screenY, screenX + roof.width, screenY + cornerRadius, cornerRadius)
+    ctx.lineTo(screenX + roof.width, screenY + roof.height - cornerRadius)
+    ctx.arcTo(
+      screenX + roof.width,
+      screenY + roof.height,
+      screenX + roof.width - cornerRadius,
+      screenY + roof.height,
+      cornerRadius,
+    )
+    ctx.lineTo(screenX + cornerRadius, screenY + roof.height)
+    ctx.arcTo(screenX, screenY + roof.height, screenX, screenY + roof.height - cornerRadius, cornerRadius)
+    ctx.lineTo(screenX, screenY + cornerRadius)
+    ctx.arcTo(screenX, screenY, screenX + cornerRadius, screenY, cornerRadius)
+    ctx.closePath()
+    ctx.stroke()
 
     // Check if player is under this roof
     if (isPointUnderRoof(player.x, player.y, roof)) {
