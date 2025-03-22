@@ -62,7 +62,7 @@ export function update() {
   // Draw and update rocks
   drawAndUpdateRocks()
 
-  // Draw and update wooden boxes
+  // Draw and update wooden boxes (this now handles roof detection and drawing)
   drawAndUpdateWoodenBoxes()
 
   // Draw and update apples
