@@ -28,3 +28,13 @@ export function updateTimer() {
   }
 }
 
+// Update kill counter
+export function updateKillCounter() {
+  document.getElementById("killCount").textContent = gameState.killCount.toString()
+}
+
+// Increment kill count
+export function incrementKillCount() {
+  gameState.killCount++
+  updateKillCounter()
+}
