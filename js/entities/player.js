@@ -335,27 +335,6 @@ export function drawPlayer() {
     drawGrabbedObjects(ctx, screenX, screenY, player, camera, grabbedBomb, grabbedRock, grabbedEnemy, grabbedWoodenBox)
   }
 
-  // Draw health indicator (only if not in a car)
-  if (!isInCar) {
-    const heartSize = 15
-    const startX = screenX - (player.health * heartSize) / 2
-    const startY = screenY - player.size - 20
-
-    // Health hearts
-    for (let i = 0; i < player.health; i++) {
-      ctx.fillStyle = "#e74c3c"
-      ctx.beginPath()
-      const heartX = startX + i * heartSize
-      // Draw a heart shape
-      ctx.moveTo(heartX, startY)
-      ctx.bezierCurveTo(heartX - 5, startY - 5, heartX - 10, startY, heartX - 5, startY + 5)
-      ctx.lineTo(heartX, startY + 10)
-      ctx.lineTo(heartX + 5, startY + 5)
-      ctx.bezierCurveTo(heartX + 10, startY, heartX + 5, startY - 5, heartX, startY)
-      ctx.fill()
-    }
-  }
-
   // Flash player if recently hit
   if (Date.now() - player.lastHit < 500) {
     ctx.fillStyle = "rgba(255, 0, 0, 0.3)"
