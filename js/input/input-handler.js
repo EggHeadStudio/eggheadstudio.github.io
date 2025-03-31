@@ -5,6 +5,7 @@ import { tryGrabBomb, releaseBomb, detonateAnyBombWithCountdown } from "../entit
 import { tryGrabRock, releaseRock } from "../entities/rocks.js"
 import { tryGrabWoodenBox, releaseWoodenBox } from "../entities/wooden-boxes.js" // Import wooden box functions
 import { tryGrabEnemy, releaseEnemy } from "../entities/enemies.js"
+import { checkCarInteraction, enterCar, exitCar } from "../entities/cars.js" // Import car interaction functions
 
 // Set up event listeners for keyboard and mouse
 export function setupEventListeners() {
@@ -43,30 +44,41 @@ export function setupEventListeners() {
 export function handleKeyDown(e) {
   gameState.keys[e.key] = true
 
-  // Space bar for grabbing/releasing bombs, rocks, wooden boxes, or enemies, or detonating bombs
+  // Space bar for car interaction, grabbing/releasing bombs, rocks, wooden boxes, or enemies, or detonating bombs
   if (e.key === " ") {
-    if (gameState.isGrabbing) {
-      // If holding something, release it
-      if (gameState.grabbedBomb) {
-        releaseBomb()
-      } else if (gameState.grabbedRock) {
-        releaseRock()
-      } else if (gameState.grabbedWoodenBox) {
-        releaseWoodenBox()
-      } else if (gameState.grabbedEnemy) {
-        releaseEnemy()
-      }
+    // First check if the player is in a car
+    if (gameState.isInCar) {
+      // If in a car, spacebar makes the player exit the car
+      exitCar()
     } else {
-      // If not holding anything, try to detonate a bomb with countdown
-      if (!detonateAnyBombWithCountdown()) {
-        // If no bomb to detonate, try to grab a bomb
-        if (!tryGrabBomb()) {
-          // If no bomb to grab, try to grab a wooden box
-          if (!tryGrabWoodenBox()) {
-            // If no wooden box to grab, try to grab a rock
-            if (!tryGrabRock()) {
-              // If no rock to grab, try to grab an enemy
-              tryGrabEnemy()
+      // Check if player is near a car to enter
+      const nearCar = checkCarInteraction();
+      if (nearCar) {
+        // Enter the car
+        enterCar(nearCar);
+      } else if (gameState.isGrabbing) {
+        // If holding something, release it
+        if (gameState.grabbedBomb) {
+          releaseBomb()
+        } else if (gameState.grabbedRock) {
+          releaseRock()
+        } else if (gameState.grabbedWoodenBox) {
+          releaseWoodenBox()
+        } else if (gameState.grabbedEnemy) {
+          releaseEnemy()
+        }
+      } else {
+        // If not holding anything, try to detonate a bomb with countdown
+        if (!detonateAnyBombWithCountdown()) {
+          // If no bomb to detonate, try to grab a bomb
+          if (!tryGrabBomb()) {
+            // If no bomb to grab, try to grab a wooden box
+            if (!tryGrabWoodenBox()) {
+              // If no wooden box to grab, try to grab a rock
+              if (!tryGrabRock()) {
+                // If no rock to grab, try to grab an enemy
+                tryGrabEnemy()
+              }
             }
           }
         }
@@ -92,8 +104,10 @@ export function handleMouseMove(e) {
 // Handle mouse clicks
 export function handleMouseDown(e) {
   if (e.button === 0) {
-    // Left mouse button
-    throwApple()
+    // Left mouse button - only throw apple if not in a car
+    if (!gameState.isInCar) {
+      throwApple()
+    }
   }
 }
 
@@ -121,6 +135,8 @@ export function restartGame() {
   // Ensure we reset grabbed objects
   gameState.grabbedEnemy = null
   gameState.grabbedWoodenBox = null
+  gameState.isInCar = false
+  gameState.drivingCar = null
 }
 
 // Import updateTimer after declaring restartGame to avoid circular dependency
