@@ -495,7 +495,7 @@ function drawBackpack(ctx, x, y, player) {
 // Draw the player's hands
 function drawHands(ctx, x, y, player) {
   try {
-    const { keys, isGrabbing, isInCar, drivingCar } = gameState;
+    const { keys, isGrabbing, isInCar, drivingCar, isMobile, joystickActive, joystickDistance } = gameState;
     
     // Calculate animation offset based on movement or idle state
     let handOffset;
@@ -637,7 +637,8 @@ function drawHands(ctx, x, y, player) {
       ctx.fill()
     } else {
       // Normal hand animation when not carrying
-      const isMovingForward = player.isMoving && (keys["ArrowUp"] || keys["w"]);
+      const isMovingForward = player.isMoving && 
+        (isMobile ? joystickActive && joystickDistance > 0.1 : (keys["ArrowUp"] || keys["w"]));
       
       if (isMovingForward) {
         // Walking/running animation only when moving forward
@@ -688,10 +689,11 @@ function drawHands(ctx, x, y, player) {
 
 // Draw the player's feet
 function drawFeet(ctx, x, y, player) {
-  const { keys, isInCar, drivingCar } = gameState;
+  const { keys, isInCar, drivingCar, isMobile, joystickActive, joystickDistance } = gameState;
   
   // Only animate feet when moving forward and not in a car
-  const isMovingForward = player.isMoving && (keys["ArrowUp"] || keys["w"]);
+  const isMovingForward = player.isMoving && 
+    (isMobile ? joystickActive && joystickDistance > 0.1 : (keys["ArrowUp"] || keys["w"]));
   const footOffset = (isMovingForward && !isInCar) 
     ? Math.sin(player.animationTime) * LIMB_MOVEMENT_RANGE 
     : 0;
