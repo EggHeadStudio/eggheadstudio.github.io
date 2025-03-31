@@ -8,14 +8,8 @@ export function updateAppleCounter() {
 
 // Update health display in UI
 export function updateHealthDisplay() {
-  const hearts = document.querySelectorAll(".heart")
-  for (let i = 0; i < hearts.length; i++) {
-    if (i < gameState.player.health) {
-      hearts[i].style.opacity = "1"
-    } else {
-      hearts[i].style.opacity = "0.3"
-    }
-  }
+  // This function now does nothing since we removed the health display
+  // We keep it to maintain compatibility with any code that might still call it
 }
 
 // Update timer
