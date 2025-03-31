@@ -1,5 +1,5 @@
 // Core game functionality
-import { PLAYER_SIZE, PLAYER_SPEED, ROCK_COUNT, WOODEN_BOX_COUNT } from "./constants.js"
+import { PLAYER_SIZE, PLAYER_SPEED, ROCK_COUNT, WOODEN_BOX_COUNT, CAR_COUNT } from "./constants.js"
 import { setupEventListeners } from "../input/input-handler.js"
 import { setupMobileControls } from "../input/mobile-controls.js"
 import { generateTerrain } from "../terrain/terrain-generator.js"
@@ -8,6 +8,7 @@ import { generateRocks } from "../entities/rocks.js"
 import { generateEnemies } from "../entities/enemies.js"
 import { generateApples } from "../entities/apples.js"
 import { generateWoodenBoxes } from "../entities/wooden-boxes.js" // Import wooden boxes generator
+import { generateCars } from "../entities/cars.js" // Import cars generator
 import { updateTimer } from "../ui/ui-manager.js"
 import { update } from "./game-loop.js"
 import { gameState } from "./game-state.js"
@@ -23,6 +24,8 @@ export function init() {
   gameState.grabbedRock = null
   gameState.grabbedEnemy = null
   gameState.grabbedWoodenBox = null // Reset grabbed wooden box
+  gameState.isInCar = false // Reset car state
+  gameState.drivingCar = null // Reset driving car
   gameState.bombs = []
   gameState.enemies = []
   gameState.apples = []
@@ -30,6 +33,7 @@ export function init() {
   gameState.explosions = []
   gameState.rocks = []
   gameState.woodenBoxes = [] // Initialize wooden boxes array
+  gameState.cars = [] // Initialize cars array
   gameState.boxDestructionEffects = [] // Initialize box destruction effects
   gameState.waterDrips = [] // Initialize water drips for floating boxes
   gameState.keys = {}
@@ -90,6 +94,9 @@ export function init() {
 
   // Generate initial apples
   generateApples(40)
+  
+  // Generate initial cars - one near player, the rest randomly distributed
+  generateCars(CAR_COUNT - 1, true); // First parameter is number of cars to place randomly, second parameter true = spawn one near player
 
   // Set up event listeners
   setupEventListeners()
