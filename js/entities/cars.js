@@ -343,7 +343,7 @@ function isValidPositionForMovingCar(x, y, tileX, tileY, car) {
   
   // Check collision with rocks
   for (const rock of rocks) {
-    if (getDistance(x, y, rock.x, rock.y) < car.size + rock.size * 0.8) {
+    if (getDistance(x, y, rock.x, rock.y) < car.size + rock.size * 0.2) {
       return false;
     }
   }
@@ -351,7 +351,7 @@ function isValidPositionForMovingCar(x, y, tileX, tileY, car) {
   // Check collision with wooden boxes
   if (woodenBoxes) {
     for (const box of woodenBoxes) {
-      if (getDistance(x, y, box.x, box.y) < car.size + box.size * 0.8) {
+      if (getDistance(x, y, box.x, box.y) < car.size + box.size * 0.2) {
         return false;
       }
     }
@@ -363,7 +363,7 @@ function isValidPositionForMovingCar(x, y, tileX, tileY, car) {
       // Skip the car being driven
       if (otherCar === car) continue;
       
-      if (getDistance(x, y, otherCar.x, otherCar.y) < car.size + otherCar.size * 0.8) {
+      if (getDistance(x, y, otherCar.x, otherCar.y) < car.size + otherCar.size * 0.4) {
         return false;
       }
     }
