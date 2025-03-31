@@ -6,6 +6,7 @@ import { checkCollisions } from "./collision-detection.js"
 import { drawTerrain } from "../terrain/terrain-renderer.js"
 import { drawAndUpdateRocks } from "../entities/rocks.js"
 import { drawAndUpdateWoodenBoxes } from "../entities/wooden-boxes.js" // Import wooden boxes update
+import { drawAndUpdateCars } from "../entities/cars.js" // Import cars update
 import { drawAndUpdateApples, drawAndUpdateThrownApples } from "../entities/apples.js"
 import { drawAndUpdateBombs } from "../entities/bombs.js"
 import { drawAndUpdateExplosions } from "../entities/explosions.js"
@@ -39,8 +40,10 @@ export function update() {
       )
     }
 
-    // Update player position based on keyboard input
-    updatePlayerPosition()
+    // Update player position based on keyboard input (only if not in a car)
+    if (!gameState.isInCar) {
+      updatePlayerPosition()
+    }
 
     // Update camera position
     gameState.camera.x = gameState.player.x - canvas.width / 2
@@ -77,8 +80,16 @@ export function update() {
   // Draw and update explosions
   drawAndUpdateExplosions()
 
-  // Draw player
-  drawPlayer()
+  // Draw and update cars (draw before player if player is in a car)
+  if (gameState.isInCar) {
+    drawAndUpdateCars()
+    drawPlayer()
+  } else {
+    // Draw player
+    drawPlayer()
+    // Draw and update cars (draw after player if player is not in a car)
+    drawAndUpdateCars()
+  }
 
   // Draw and update wooden boxes (this now handles roof detection and drawing)
   drawAndUpdateWoodenBoxes()
