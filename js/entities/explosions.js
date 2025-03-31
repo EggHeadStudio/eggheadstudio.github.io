@@ -5,9 +5,8 @@ import { getDistance } from "../utils/math-utils.js"
 import { getExplosionParticleColor } from "../utils/color-utils.js"
 import { checkBombChainReaction } from "./bombs.js"
 import { damageWoodenBox } from "./wooden-boxes.js" // Import wooden box damage function
-
-// Import the incrementKillCount function
-import { updateHealthDisplay, incrementKillCount } from "../ui/ui-manager.js"
+import { incrementKillCount } from "../ui/ui-manager.js"
+import { damageCar } from "./cars.js"
 
 // Create explosion
 export function createExplosion(x, y, radius) {
@@ -82,7 +81,6 @@ export function createExplosion(x, y, radius) {
   const distanceToPlayer = getDistance(x, y, player.x, player.y)
   if (distanceToPlayer < explosionRadius) {
     player.health = 0
-    updateHealthDisplay()
     gameState.gameOver = true
     document.getElementById("gameOver").classList.add("active")
   }
@@ -143,4 +141,29 @@ export function drawAndUpdateExplosions() {
       ctx.fill()
     }
   }
+}
+
+// Apply explosion damage to entities
+function applyExplosionDamage(explosion) {
+  const { player, enemies, rocks, woodenBoxes, bombs, cars, isInCar, drivingCar } = gameState
+  const explosionRadius = explosion.size
+  
+  // Check player damage
+  if (!isInCar) {
+    const playerDistance = getDistance(player.x, player.y, explosion.x, explosion.y)
+    if (playerDistance < explosionRadius) {
+      // Player takes damage if in explosion radius and not in a car
+      if (Date.now() - player.lastHit > 1000) {
+        player.health--
+        player.lastHit = Date.now()
+        
+        // Game over if health is 0
+        if (player.health <= 0) {
+          gameState.gameOver = true
+        }
+      }
+    }
+  }
+  
+  // ... rest of the function
 }
