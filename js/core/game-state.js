@@ -41,6 +41,7 @@ export const gameState = {
   woodenBoxes: [], // Added wooden boxes array
   boxDestructionEffects: [], // Added effects for box destruction
   waterDrips: [], // Water drip effects for floating boxes
+  cars: [], // Added cars array
 
   // Interaction state
   isGrabbing: false,
@@ -48,4 +49,8 @@ export const gameState = {
   grabbedRock: null,
   grabbedEnemy: null,
   grabbedWoodenBox: null, // Added for wooden box grabbing
+  
+  // Car state
+  isInCar: false,
+  drivingCar: null,
 }
