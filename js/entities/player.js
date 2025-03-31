@@ -245,7 +245,7 @@ function checkMeleeAttack() {
 
 // Draw player
 export function drawPlayer() {
-  const { player, canvas, ctx, gameOver, camera, timerInterval, isGrabbing, grabbedBomb, grabbedRock, grabbedEnemy } =
+  const { player, canvas, ctx, gameOver, camera, timerInterval, isGrabbing, grabbedBomb, grabbedRock, grabbedEnemy, grabbedWoodenBox, isInCar, drivingCar } =
     gameState
 
   if (gameOver) {
@@ -253,51 +253,108 @@ export function drawPlayer() {
     return // Don't draw player if game is over
   }
 
-  const screenX = canvas.width / 2
-  const screenY = canvas.height / 2
+  // Calculate screen position
+  const screenX = player.x - camera.x
+  const screenY = player.y - camera.y
 
-  // Draw shadow using standardized function
-  createShadow(ctx, screenX, screenY, player.size, "circle")
-
-  // Draw in order from bottom to top (lowest z-index to highest)
-
-  // 1. Draw feet first (lowest z-index: -2)
-  if (player.isMoving) {
-    drawFeet(ctx, screenX, screenY, player)
+  // Don't draw if off-screen
+  if (
+    screenX + player.size < 0 ||
+    screenX - player.size > canvas.width ||
+    screenY + player.size < 0 ||
+    screenY - player.size > canvas.height
+  ) {
+    return
   }
 
-  // 2. Draw backpack (z-index: -1)
-  drawBackpack(ctx, screenX, screenY, player)
+  // Draw player shadow
+  ctx.save()
+  ctx.globalAlpha = 0.3
+  ctx.fillStyle = "#000"
+  ctx.beginPath()
+  
+  // If player is in car, draw a smaller shadow inside the car
+  if (isInCar && drivingCar) {
+    ctx.ellipse(screenX + 3, screenY + 3, player.size * 0.6, player.size * 0.4, 0, 0, Math.PI * 2)
+  } else {
+    ctx.ellipse(screenX + 3, screenY + 3, player.size, player.size * 0.6, 0, 0, Math.PI * 2)
+  }
+  
+  ctx.fill()
+  ctx.restore()
 
-  // 3. Draw player body (z-index: 0)
+  // Draw hit effects if any
+  if (gameState.hitEffects) {
+    drawHitEffects(ctx, camera)
+  }
+
+  // Draw player base
+  ctx.save()
+  ctx.translate(screenX, screenY)
+  
+  // If player is in car, draw the player smaller and more centered
+  const scaleFactor = isInCar && drivingCar ? 0.8 : 1;
+  if (isInCar && drivingCar) {
+    ctx.scale(scaleFactor, scaleFactor);
+  }
+  
+  // Draw feet
+  drawFeet(ctx, 0, 0, player)
+
+  // Body
   ctx.fillStyle = player.color
   ctx.beginPath()
-  ctx.arc(screenX, screenY, player.size, 0, Math.PI * 2)
+  ctx.arc(0, 0, player.size * 0.9, 0, Math.PI * 2)
   ctx.fill()
 
-  // 4. Draw direction indicator (z-index: 1)
+  // Draw direction indicator (nose)
   const indicatorLength = player.size * 0.8
   ctx.strokeStyle = "gray"
   ctx.lineWidth = 9
   ctx.beginPath()
-  ctx.moveTo(screenX, screenY)
+  ctx.moveTo(0, 0)
   ctx.lineTo(
-    screenX + Math.cos(player.direction) * indicatorLength,
-    screenY + Math.sin(player.direction) * indicatorLength,
+    Math.cos(player.direction) * indicatorLength,
+    Math.sin(player.direction) * indicatorLength
   )
   ctx.stroke()
 
-  // 5. Draw player details - eyes (z-index: 2)
-  drawPlayerFace(ctx, screenX, screenY, player)
+  // Backpack
+  drawBackpack(ctx, 0, 0, player)
 
-  // 6. Draw hands (highest z-index: 3)
-  drawHands(ctx, screenX, screenY, player)
+  // Face
+  drawPlayerFace(ctx, 0, 0, player)
+
+  // Hands
+  drawHands(ctx, 0, 0, player)
+
+  ctx.restore()
 
   // Draw grabbed objects
-  drawGrabbedObjects(ctx, screenX, screenY, player, camera, grabbedBomb, grabbedRock, grabbedEnemy)
+  if (isGrabbing) {
+    drawGrabbedObjects(ctx, screenX, screenY, player, camera, grabbedBomb, grabbedRock, grabbedEnemy, grabbedWoodenBox)
+  }
 
-  // Draw hit effects
-  drawHitEffects(ctx, camera)
+  // Draw health indicator (only if not in a car)
+  if (!isInCar) {
+    const heartSize = 15
+    const startX = screenX - (player.health * heartSize) / 2
+    const startY = screenY - player.size - 20
+
+    // Health hearts
+    for (let i = 0; i < player.health; i++) {
+      ctx.fillStyle = "#e74c3c"
+      ctx.beginPath()
+      const heartX = startX + i * heartSize
+      // Draw a heart shape
+      ctx.moveTo(heartX, startY)
+      ctx.bezierCurveTo(heartX - 5, startY - 5, heartX - 10, startY, heartX - 5, startY + 5)
+      ctx.lineTo(heartX, startY + 10)
+      ctx.lineTo(heartX + 5, startY + 5)
+      ctx.bezierCurveTo(heartX + 10, startY, heartX + 5, startY - 5, heartX, startY)
+      ctx.fill()
+    }
+  }
 
   // Flash player if recently hit
   if (Date.now() - player.lastHit < 500) {
@@ -305,6 +362,22 @@ export function drawPlayer() {
     ctx.beginPath()
     ctx.arc(screenX, screenY, player.size * 1.2, 0, Math.PI * 2)
     ctx.fill()
+  }
+
+  // Draw game over screen if applicable
+  if (gameOver) {
+    ctx.fillStyle = "rgba(0, 0, 0, 0.7)"
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+    ctx.font = "48px Arial"
+    ctx.fillStyle = "#e74c3c"
+    ctx.textAlign = "center"
+    ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 50)
+
+    ctx.font = "24px Arial"
+    ctx.fillStyle = "#fff"
+    ctx.fillText("Your Score: " + Math.floor(gameState.elapsedTime), canvas.width / 2, canvas.height / 2)
+    ctx.fillText("Enemies Killed: " + gameState.killCount, canvas.width / 2, canvas.height / 2 + 40)
   }
 }
 
@@ -443,9 +516,11 @@ function drawBackpack(ctx, x, y, player) {
 // Draw the player's hands
 function drawHands(ctx, x, y, player) {
   try {
+    const { keys, isGrabbing, isInCar, drivingCar } = gameState;
+    
     // Calculate animation offset based on movement or idle state
-    let handOffset
-    let handDistance
+    let handOffset;
+    let handDistance;
 
     // Check if player is throwing an apple
     if (player.throwingApple && Date.now() - player.throwingApple < THROW_ANIMATION_DURATION) {
@@ -521,8 +596,39 @@ function drawHands(ctx, x, y, player) {
         player.throwingApple = null
       }
     }
+    // Check if player is driving a car
+    else if (isInCar && drivingCar) {
+      // When driving, position hands forward as if holding a steering wheel
+      handDistance = player.size * 1.2;
+      
+      // Calculate steering wheel rotation based on direction change
+      const steeringAngle = Math.sin(gameState.carDirectionChange || 0) * 0.3; // Max 30-degree rotation
+      
+      // Left hand position (left side of wheel)
+      const leftHandAngle = player.direction - Math.PI/6 + steeringAngle;
+      const leftHandX = x + Math.cos(leftHandAngle) * handDistance;
+      const leftHandY = y + Math.sin(leftHandAngle) * handDistance;
+      
+      // Right hand position (right side of wheel)
+      const rightHandAngle = player.direction + Math.PI/6 + steeringAngle;
+      const rightHandX = x + Math.cos(rightHandAngle) * handDistance;
+      const rightHandY = y + Math.sin(rightHandAngle) * handDistance;
+      
+      // Draw hands (light gray)
+      ctx.fillStyle = player.handColor || "#AAAAAA";
+      
+      // Left hand
+      ctx.beginPath();
+      ctx.arc(leftHandX, leftHandY, HAND_SIZE, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Right hand
+      ctx.beginPath();
+      ctx.arc(rightHandX, rightHandY, HAND_SIZE, 0, Math.PI * 2);
+      ctx.fill();
+    }
     // Check if player is carrying something
-    else if (gameState.isGrabbing) {
+    else if (isGrabbing) {
       // When carrying, position hands forward in the direction player is facing
       handOffset = 0 // No animation when carrying
       handDistance = player.size * 1.5 // Extended forward position
@@ -552,81 +658,95 @@ function drawHands(ctx, x, y, player) {
       ctx.fill()
     } else {
       // Normal hand animation when not carrying
-      if (player.isMoving) {
-        // Walking/running animation
-        handOffset = Math.sin(player.animationTime) * LIMB_MOVEMENT_RANGE
+      const isMovingForward = player.isMoving && (keys["ArrowUp"] || keys["w"]);
+      
+      if (isMovingForward) {
+        // Walking/running animation only when moving forward
+        handOffset = Math.sin(player.animationTime) * LIMB_MOVEMENT_RANGE;
       } else {
         // Idle animation - subtle breathing movement
-        handOffset = Math.sin(player.animationTime) * IDLE_ANIMATION_RANGE
+        handOffset = Math.sin(player.animationTime * 0.5) * IDLE_ANIMATION_RANGE;
       }
 
       // Base distance from center
-      handDistance = player.size * 1.2
+      handDistance = player.size * 1.2;
 
       // Calculate positions for hands (perpendicular to movement direction)
-      const handAngle1 = player.direction + Math.PI / 2 // Right hand
-      const handAngle2 = player.direction - Math.PI / 2 // Left hand
+      const handAngle1 = player.direction + Math.PI / 2; // Right hand
+      const handAngle2 = player.direction - Math.PI / 2; // Left hand
 
       // Calculate hand positions with animation
-      const rightHandX = x + Math.cos(handAngle1) * handDistance + Math.cos(player.direction) * handOffset
-      const rightHandY = y + Math.sin(handAngle1) * handDistance + Math.sin(player.direction) * handOffset
+      // When idle, make hands move slightly outward and inward (breathing effect)
+      const breathingFactor = isMovingForward ? 0 : Math.sin(player.animationTime * 0.5) * 3;
+      
+      const rightHandX = x + Math.cos(handAngle1) * (handDistance + breathingFactor) + 
+                         (isMovingForward ? Math.cos(player.direction) * handOffset : 0);
+      const rightHandY = y + Math.sin(handAngle1) * (handDistance + breathingFactor) + 
+                         (isMovingForward ? Math.sin(player.direction) * handOffset : 0);
 
-      const leftHandX = x + Math.cos(handAngle2) * handDistance + Math.cos(player.direction) * -handOffset
-      const leftHandY = y + Math.sin(handAngle2) * handDistance + Math.sin(player.direction) * -handOffset
+      const leftHandX = x + Math.cos(handAngle2) * (handDistance + breathingFactor) + 
+                        (isMovingForward ? Math.cos(player.direction) * -handOffset : 0);
+      const leftHandY = y + Math.sin(handAngle2) * (handDistance + breathingFactor) + 
+                        (isMovingForward ? Math.sin(player.direction) * -handOffset : 0);
 
       // Draw hands (light gray)
-      ctx.fillStyle = player.handColor || "#AAAAAA"
+      ctx.fillStyle = player.handColor || "#AAAAAA";
 
       // Right hand
-      ctx.beginPath()
-      ctx.arc(rightHandX, rightHandY, HAND_SIZE, 0, Math.PI * 2)
-      ctx.fill()
+      ctx.beginPath();
+      ctx.arc(rightHandX, rightHandY, HAND_SIZE, 0, Math.PI * 2);
+      ctx.fill();
 
       // Left hand
-      ctx.beginPath()
-      ctx.arc(leftHandX, leftHandY, HAND_SIZE, 0, Math.PI * 2)
-      ctx.fill()
+      ctx.beginPath();
+      ctx.arc(leftHandX, leftHandY, HAND_SIZE, 0, Math.PI * 2);
+      ctx.fill();
     }
   } catch (error) {
-    console.error("Error in drawHands:", error)
+    console.error("Error in drawHands:", error);
   }
 }
 
 // Draw the player's feet
 function drawFeet(ctx, x, y, player) {
-  // Calculate animation offset for feet
-  const footOffset = Math.sin(player.animationTime) * LIMB_MOVEMENT_RANGE
+  const { keys, isInCar, drivingCar } = gameState;
+  
+  // Only animate feet when moving forward and not in a car
+  const isMovingForward = player.isMoving && (keys["ArrowUp"] || keys["w"]);
+  const footOffset = (isMovingForward && !isInCar) 
+    ? Math.sin(player.animationTime) * LIMB_MOVEMENT_RANGE 
+    : 0;
 
   // Calculate positions for feet (slightly behind the player)
-  const footAngle1 = player.direction + Math.PI + Math.PI / 2 // Right foot
-  const footAngle2 = player.direction + Math.PI - Math.PI / 2 // Left foot
+  const footAngle1 = player.direction + Math.PI + Math.PI / 2; // Right foot
+  const footAngle2 = player.direction + Math.PI - Math.PI / 2; // Left foot
 
   // Base distance from center
-  const footDistance = player.size * 0.7
+  const footDistance = player.size * 0.7;
 
   // Calculate foot positions with animation
-  const rightFootX = x + Math.cos(footAngle1) * footDistance + Math.cos(player.direction) * footOffset
-  const rightFootY = y + Math.sin(footAngle1) * footDistance + Math.sin(player.direction) * footOffset
+  const rightFootX = x + Math.cos(footAngle1) * footDistance + Math.cos(player.direction) * footOffset;
+  const rightFootY = y + Math.sin(footAngle1) * footDistance + Math.sin(player.direction) * footOffset;
 
-  const leftFootX = x + Math.cos(footAngle2) * footDistance + Math.cos(player.direction) * -footOffset
-  const leftFootY = y + Math.sin(footAngle2) * footDistance + Math.sin(player.direction) * -footOffset
+  const leftFootX = x + Math.cos(footAngle2) * footDistance + Math.cos(player.direction) * -footOffset;
+  const leftFootY = y + Math.sin(footAngle2) * footDistance + Math.sin(player.direction) * -footOffset;
 
   // Draw feet (dark gray)
-  ctx.fillStyle = "#444444"
+  ctx.fillStyle = "#444444";
 
   // Right foot
-  ctx.beginPath()
-  ctx.arc(rightFootX, rightFootY, FOOT_SIZE, 0, Math.PI * 2)
-  ctx.fill()
+  ctx.beginPath();
+  ctx.arc(rightFootX, rightFootY, FOOT_SIZE, 0, Math.PI * 2);
+  ctx.fill();
 
   // Left foot
-  ctx.beginPath()
-  ctx.arc(leftFootX, leftFootY, FOOT_SIZE, 0, Math.PI * 2)
-  ctx.fill()
+  ctx.beginPath();
+  ctx.arc(leftFootX, leftFootY, FOOT_SIZE, 0, Math.PI * 2);
+  ctx.fill();
 }
 
 // Draw grabbed objects (bombs or rocks)
-function drawGrabbedObjects(ctx, screenX, screenY, player, camera, grabbedBomb, grabbedRock, grabbedEnemy) {
+function drawGrabbedObjects(ctx, screenX, screenY, player, camera, grabbedBomb, grabbedRock, grabbedEnemy, grabbedWoodenBox) {
   try {
     if (grabbedBomb) {
       const bombScreenX = grabbedBomb.x - camera.x
@@ -770,7 +890,7 @@ function drawGrabbedObjects(ctx, screenX, screenY, player, camera, grabbedBomb, 
       ctx.lineTo(rockScreenX, rockScreenY)
       ctx.stroke()
       ctx.setLineDash([])
-    } else if (gameState.grabbedWoodenBox) {
+    } else if (grabbedWoodenBox) {
       // The wooden box drawing is handled in wooden-boxes.js
       // We don't need to duplicate the rendering code here
     } else if (grabbedEnemy) {
