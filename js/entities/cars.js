@@ -215,6 +215,13 @@ export function updateCarPosition(car) {
     // Decelerate
     car.currentSpeed = Math.max(car.currentSpeed - CAR_DECELERATION, 0);
   }
+  
+  // Update wheel animation time when car is moving
+  if (car.currentSpeed > 0.1) {
+    // Simple animation timing based on speed
+    car.wheelAnimationTime = (car.wheelAnimationTime || 0) + 0.1 * car.currentSpeed;
+    if (car.wheelAnimationTime > 1) car.wheelAnimationTime -= 1; // Loop between 0-1
+  }
 
   // Calculate forward movement vector based on car's direction
   const forwardX = Math.cos(car.direction);
@@ -492,6 +499,10 @@ export function drawAndUpdateCars() {
     if (isInCar && drivingCar === car) {
       // Update position for the car being driven
       updateCarPosition(car);
+    } else if (car.isMoving || car.currentSpeed > 0) {
+      // For non-driven cars that are moving, just update animation
+      car.wheelAnimationTime = (car.wheelAnimationTime || 0) + 0.05;
+      if (car.wheelAnimationTime > 1) car.wheelAnimationTime -= 1;
     }
     
     // Calculate screen position
@@ -555,6 +566,9 @@ export function drawAndUpdateCars() {
     ctx.translate(screenX, screenY);
     ctx.rotate(car.direction);
     
+    // Store current car being drawn so the wheel animation can use it
+    ctx._currentDrawingCar = car;
+
     // Draw car body
     if (car.health === CAR_MAX_HEALTH) {
       // Undamaged car
@@ -579,6 +593,9 @@ export function drawAndUpdateCars() {
     drawBlockWheel(ctx, wheelOffsetX, -wheelOffsetY, wheelWidth, wheelHeight, Math.PI/2);
     drawBlockWheel(ctx, wheelOffsetX, wheelOffsetY, wheelWidth, wheelHeight, Math.PI/2);
     
+    // Clear the reference to avoid affecting other drawings
+    ctx._currentDrawingCar = null;
+
     ctx.restore();
     
     // If player is near this car and not in a car, draw interaction prompt
@@ -700,7 +717,7 @@ function drawDamagedCarBody(ctx, x, y, size, color, damageLevel) {
 function drawBlockWheel(ctx, x, y, width, height, rotation = 0) {
   ctx.save();
   ctx.translate(x, y);
-  ctx.rotate(rotation); // Apply 45-degree rotation
+  ctx.rotate(rotation); // Keep the original rotation
   
   // Wheel base (dark color)
   ctx.fillStyle = '#333';
@@ -708,18 +725,40 @@ function drawBlockWheel(ctx, x, y, width, height, rotation = 0) {
   ctx.roundRect(-width/2, -height/2, width, height, 3);
   ctx.fill();
   
+  // Get the current car being drawn
+  const car = ctx._currentDrawingCar || { wheelAnimationTime: 0 };
+  
+  // Determine which pattern to show based on animation time
+  const showAlternatePattern = car.wheelAnimationTime && car.wheelAnimationTime > 0.5;
+  
   // Wheel tread pattern (lighter color)
   ctx.fillStyle = '#555';
   
-  // Draw tread lines across the wheel
-  const treadCount = 3;
-  const treadHeight = height / (treadCount * 2 - 1);
-  
-  for (let i = 0; i < treadCount; i++) {
+  // Draw tread pattern based on animation state
+  if (showAlternatePattern) {
+    // Alternate pattern: Two tread lines
+    const treadHeight = height / 5;
+    
+    // Top tread
     ctx.beginPath();
-    const yPos = -height/2 + i * treadHeight * 2;
-    ctx.roundRect(-width/2 + 2, yPos, width - 4, treadHeight, 1);
+    ctx.roundRect(-width/2 + 2, -height/2 + 4, width - 4, treadHeight, 1);
     ctx.fill();
+    
+    // Bottom tread
+    ctx.beginPath();
+    ctx.roundRect(-width/2 + 2, height/2 - treadHeight - 4, width - 4, treadHeight, 1);
+    ctx.fill();
+  } else {
+    // Regular pattern: Three evenly spaced tread lines
+    const treadCount = 3;
+    const treadHeight = height / (treadCount * 2 - 1);
+    
+    for (let i = 0; i < treadCount; i++) {
+      ctx.beginPath();
+      const yPos = -height/2 + i * treadHeight * 2;
+      ctx.roundRect(-width/2 + 2, yPos, width - 4, treadHeight, 1);
+      ctx.fill();
+    }
   }
   
   ctx.restore();
