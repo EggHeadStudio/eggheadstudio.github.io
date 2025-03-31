@@ -5,6 +5,7 @@ import { tryGrabBomb, releaseBomb, detonateAnyBombWithCountdown } from "../entit
 import { tryGrabRock, releaseRock } from "../entities/rocks.js"
 import { tryGrabWoodenBox, releaseWoodenBox } from "../entities/wooden-boxes.js" // Import wooden box functions
 import { tryGrabEnemy, releaseEnemy } from "../entities/enemies.js"
+import { checkCarInteraction, enterCar, exitCar } from "../entities/cars.js" // Import car interaction functions
 
 export function setupMobileControls() {
   if (!detectMobile()) return
@@ -79,7 +80,7 @@ export function setupMobileControls() {
   buttonB.addEventListener("touchcancel", handleButtonBEnd)
 }
 
-// In the handleButtonAStart function, include wooden box interactions
+// In the handleButtonAStart function, include car interactions
 export function handleButtonAStart(e) {
   e.preventDefault()
   e.stopPropagation()
@@ -91,29 +92,42 @@ export function handleButtonAStart(e) {
   gameState.buttonAActive = true
   e.target.classList.add("button-active")
 
-  // First try to detonate any bomb with countdown
-  if (!detonateAnyBombWithCountdown()) {
-    // If no bomb to detonate, then try grab/release actions
-    if (gameState.isGrabbing) {
-      // If holding something, release it
-      if (gameState.grabbedBomb) {
-        releaseBomb()
-      } else if (gameState.grabbedRock) {
-        releaseRock()
-      } else if (gameState.grabbedWoodenBox) {
-        releaseWoodenBox()
-      } else if (gameState.grabbedEnemy) {
-        releaseEnemy()
-      }
+  // First check if the player is in a car
+  if (gameState.isInCar) {
+    // If in a car, button A makes the player exit the car
+    exitCar()
+  } else {
+    // Check if player is near a car to enter
+    const nearCar = checkCarInteraction()
+    if (nearCar) {
+      // Enter the car
+      enterCar(nearCar)
     } else {
-      // If not holding anything, try to grab a bomb
-      if (!tryGrabBomb()) {
-        // If no bomb to grab, try to grab a wooden box
-        if (!tryGrabWoodenBox()) {
-          // If no wooden box to grab, try to grab a rock
-          if (!tryGrabRock()) {
-            // If no rock to grab, try to grab an enemy
-            tryGrabEnemy()
+      // First try to detonate any bomb with countdown
+      if (!detonateAnyBombWithCountdown()) {
+        // If no bomb to detonate, then try grab/release actions
+        if (gameState.isGrabbing) {
+          // If holding something, release it
+          if (gameState.grabbedBomb) {
+            releaseBomb()
+          } else if (gameState.grabbedRock) {
+            releaseRock()
+          } else if (gameState.grabbedWoodenBox) {
+            releaseWoodenBox()
+          } else if (gameState.grabbedEnemy) {
+            releaseEnemy()
+          }
+        } else {
+          // If not holding anything, try to grab a bomb
+          if (!tryGrabBomb()) {
+            // If no bomb to grab, try to grab a wooden box
+            if (!tryGrabWoodenBox()) {
+              // If no wooden box to grab, try to grab a rock
+              if (!tryGrabRock()) {
+                // If no rock to grab, try to grab an enemy
+                tryGrabEnemy()
+              }
+            }
           }
         }
       }
@@ -148,8 +162,10 @@ export function handleButtonBStart(e) {
   gameState.buttonBActive = true
   e.target.classList.add("button-active")
 
-  // Button B is now only for throwing apples
-  throwApple()
+  // Button B is for throwing apples - only if not in a car
+  if (!gameState.isInCar) {
+    throwApple()
+  }
 }
 
 export function handleButtonBEnd(e) {
@@ -248,29 +264,27 @@ export function handleJoystickMove(e) {
 
     // Only process the touch that started the joystick
     if (touch.identifier === gameState.touchTracker.joystickTouchId) {
-      e.preventDefault()
       updateJoystickPosition(touch)
-      return // Exit after processing the joystick touch
+      break
     }
   }
 }
 
 export function handleJoystickEnd(e) {
-  // Check if the joystick touch has ended
+  // Find the touch that matches our stored joystick touch ID
   for (let i = 0; i < e.changedTouches.length; i++) {
     const touch = e.changedTouches[i]
 
-    // Only process if this is the joystick touch
     if (touch.identifier === gameState.touchTracker.joystickTouchId) {
       // Reset joystick
       gameState.joystickActive = false
+      gameState.joystickDistance = 0
       gameState.touchTracker.joystickTouchId = null
 
+      // Reset joystick knob to center
       const joystickKnob = document.querySelector(".joystick-knob")
       joystickKnob.style.transform = "translate(-50%, -50%)"
-      gameState.joystickAngle = 0
-      gameState.joystickDistance = 0
-      return // Exit after processing the joystick touch
+      return
     }
   }
 }
