@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400">
+  <defs>
+    <linearGradient id="gradC" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffd1dc" />
+      <stop offset="100%" stop-color="#ff9a9e" />
+    </linearGradient>
+  </defs>
+  <rect width="600" height="400" fill="url(#gradC)" rx="32" ry="32" />
+  <g fill="#5a1f31" font-family="'Arial', 'Helvetica', sans-serif" text-anchor="middle">
+    <text x="300" y="190" font-size="44" font-weight="bold">Kinkkukiusaus</text>
+    <text x="300" y="240" font-size="28">Kermaisa uuniruoka</text>
+  </g>
+</svg>

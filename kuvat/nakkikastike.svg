@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400">
+  <defs>
+    <linearGradient id="gradH" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f6d365" />
+      <stop offset="100%" stop-color="#fda085" />
+    </linearGradient>
+  </defs>
+  <rect width="600" height="400" fill="url(#gradH)" rx="32" ry="32" />
+  <g fill="#502416" font-family="'Arial', 'Helvetica', sans-serif" text-anchor="middle">
+    <text x="300" y="190" font-size="42" font-weight="bold">Nakkikastike</text>
+    <text x="300" y="240" font-size="28">Arjen pelastaja</text>
+  </g>
+</svg>

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400">
+  <defs>
+    <linearGradient id="gradA" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f5d547" />
+      <stop offset="100%" stop-color="#f29f05" />
+    </linearGradient>
+  </defs>
+  <rect width="600" height="400" fill="url(#gradA)" rx="32" ry="32" />
+  <g fill="#402319" font-family="'Arial', 'Helvetica', sans-serif" text-anchor="middle">
+    <text x="300" y="190" font-size="44" font-weight="bold">Makaronilaatikko</text>
+    <text x="300" y="240" font-size="28">Lämmin arkiklassikko</text>
+  </g>
+</svg>

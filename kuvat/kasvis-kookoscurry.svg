@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400">
+  <defs>
+    <linearGradient id="grad-kasvis-kookoscurry" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f6d365" />
+      <stop offset="100%" stop-color="#fda085" />
+    </linearGradient>
+  </defs>
+  <rect width="600" height="400" fill="url(#grad-kasvis-kookoscurry)" rx="36" ry="36" />
+  <g transform="translate(0, 10)">
+    <circle cx="300" cy="200" r="110" fill="#f7b538" opacity="0.9" />
+    <circle cx="260" cy="180" r="12" fill="#2e1f27" />
+    <circle cx="340" cy="180" r="12" fill="#2e1f27" />
+    <path d="M260 235 Q300 270 340 235" fill="none" stroke="#2e1f27" stroke-width="8" stroke-linecap="round" />
+  </g>
+  <g fill="#2e1f27" font-family="'Arial', 'Helvetica', sans-serif" text-anchor="middle">
+    <text x="300" y="60" font-size="40" font-weight="bold">Kasvis-kookoscurry</text>
+    <text x="300" y="350" font-size="28">Curry</text>
+  </g>
+</svg>

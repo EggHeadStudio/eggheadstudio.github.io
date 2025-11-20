@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400" role="img" aria-labelledby="title desc">
+  <title id="title">Reseptin paikkakuva</title>
+  <desc id="desc">Yksinkertainen paikkakuva resepteille</desc>
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f7c59f" />
+      <stop offset="100%" stop-color="#ed6b5a" />
+    </linearGradient>
+  </defs>
+  <rect width="600" height="400" fill="url(#grad)" rx="24" ry="24" />
+  <g fill="#ffffff" font-family="'Arial', 'Helvetica', sans-serif" text-anchor="middle">
+    <text x="300" y="190" font-size="40">Helppoa</text>
+    <text x="300" y="245" font-size="48" font-weight="bold">kotiruokaa</text>
+  </g>
+</svg>
