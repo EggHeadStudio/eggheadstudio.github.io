@@ -1,0 +1,1909 @@
+[
+  {
+    "id": "makaronilaatikko",
+    "title": "Makaronilaatikko",
+    "image": "kuvat/makaronilaatikko.svg",
+    "imageAlt": "Paistettu makaronilaatikko uunivuoassa",
+    "tags": [
+      "Uuniruoka",
+      "Klassikko"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "500 g makaronia",
+      "400 g jauhelihaa",
+      "1 sipuli",
+      "6 dl kevytmaitoa",
+      "4 kananmunaa",
+      "2 rkl tomaattipyreetä",
+      "1 rkl voita paistamiseen",
+      "1 tl suolaa",
+      "1/2 tl mustapippuria",
+      "1 tl kuivattua oreganoa"
+    ],
+    "instructions": [
+      "Kuumenna uuni 200 asteeseen ja voitele uunivuoka.",
+      "Keitä makaronit reilussa vedessä lähes kypsiksi ja valuta huolellisesti.",
+      "Ruskista jauheliha ja hienonnettu sipuli pannulla voissa, mausta suolalla, pippurilla ja tomaattipyreellä.",
+      "Sekoita makaronit ja jauhelihaseos uunivuoassa.",
+      "Vatkaa kulhossa maito ja kananmunat, mausta oreganolla ja kaada vuokaan.",
+      "Paista uunin alatasolla noin 35 minuuttia, kunnes pinta on saanut kauniin värin.",
+      "Anna vetäytyä 10 minuuttia ennen tarjoilua ja tarjoa raikkaan salaatin kanssa."
+    ],
+    "tips": "Jos haluat pinnasta rapeamman, ripottele päälle korppujauhoa tai juustoraastetta ennen paistoa."
+  },
+  {
+    "id": "tonnikalapasta",
+    "title": "Sitruunainen tonnikalapasta",
+    "image": "kuvat/tonnikalapasta.svg",
+    "imageAlt": "Sitruunainen tonnikalapasta pannulla",
+    "tags": [
+      "Nopea",
+      "Edullinen"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "500 g täysjyväpastaa",
+      "2 prk tonnikalaa vedessä",
+      "2 dl ruokakermaa",
+      "1 sitruunan mehu ja kuori",
+      "1 pieni punasipuli",
+      "2 valkosipulinkynttä",
+      "200 g pakasteherneitä",
+      "2 rkl oliiviöljyä",
+      "1 tl suolaa",
+      "1/2 tl mustapippuria",
+      "tuoretta tilliä tai persiljaa"
+    ],
+    "instructions": [
+      "Keitä pasta suolatussa vedessä pakkauksen ohjeen mukaan ja säästä desi keitinvettä.",
+      "Suikaloi punasipuli ja hienonna valkosipulit.",
+      "Kuumenna oliiviöljy pannulla, kuullota sipulit pehmeiksi.",
+      "Lisää tonnikala, ruokakerma, sitruunan mehu ja kuoriraaste pannulle.",
+      "Sekoita joukkoon pakasteherneet ja mausta suolalla sekä pippurilla.",
+      "Yhdistä pasta kastikkeeseen, lisää tarvittaessa keitinvettä, ja kääntele tasaiseksi.",
+      "Viimeistele hienonnetulla tillillä ja tarjoa heti."
+    ],
+    "tips": "Tonnikalan voi korvata savulohimurusilla, jos haluat juhlavamman version."
+  },
+  {
+    "id": "kinkkukiusaus",
+    "title": "Kermainen kinkkukiusaus",
+    "image": "kuvat/kinkkukiusaus.svg",
+    "imageAlt": "Kinkkukiusaus uunivuoassa",
+    "tags": [
+      "Uuniruoka",
+      "Helppo"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "1 kg peruna-sipulisekoitusta pakasteesta",
+      "400 g palvikinkkua",
+      "4 dl ruokakermaa",
+      "2 dl kevytmaitoa",
+      "2 dl juustoraastetta",
+      "1 tl suolaa",
+      "1/2 tl valkopippuria",
+      "1 tl kuivattua timjamia"
+    ],
+    "instructions": [
+      "Lämmitä uuni 200 asteeseen.",
+      "Kuutioi kinkku pieniksi paloiksi.",
+      "Sekoita peruna-sipulisekoitus, kinkku, juustoraaste ja mausteet suuressa kulhossa.",
+      "Kaada seos voideltuun uunivuokaan.",
+      "Yhdistä kerma ja maito, kaada seos tasaisesti vuokaan.",
+      "Paista 45–50 minuuttia, kunnes pinta on kullanruskea ja perunat pehmeitä.",
+      "Anna vetäytyä 5–10 minuuttia ennen tarjoilua."
+    ],
+    "tips": "Lisää päälle rucolaa tai kevätsipulia raikkauden lisäämiseksi."
+  },
+  {
+    "id": "kasvissosekeitto",
+    "title": "Samettinen kasvissosekeitto",
+    "image": "kuvat/kasvissosekeitto.svg",
+    "imageAlt": "Kulho kasvissosekeittoa",
+    "tags": [
+      "Kasvis",
+      "Gluteeniton"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "800 g juuressekoitusta (porkkana, bataatti, palsternakka)",
+      "1 pieni kukkakaali",
+      "1 sipuli",
+      "2 valkosipulinkynttä",
+      "1 rkl kasviöljyä",
+      "1 l kasvislientä",
+      "2 dl kookosmaitoa",
+      "1 tl suolaa",
+      "1/2 tl cayennepippuria",
+      "tuoretta persiljaa tarjoiluun"
+    ],
+    "instructions": [
+      "Kuutioi juurekset ja kukkakaali, silppua sipuli ja valkosipuli.",
+      "Kuullota sipulit kattilassa öljyssä.",
+      "Lisää juurekset ja kukkakaali, kääntele muutama minuutti.",
+      "Kaada joukkoon kasvisliemi ja keitä noin 20 minuuttia, kunnes kasvikset ovat pehmeitä.",
+      "Soseuta keitto sauvasekoittimella tasaiseksi.",
+      "Lisää kookosmaito ja mausta suolalla sekä cayennepippurilla.",
+      "Kuumenna vielä hetki ja tarjoa persiljasilpun kanssa."
+    ],
+    "tips": "Tarjoa keiton rinnalla ruisleipää tai paahtoleipää, jotta ateria on täyttävä."
+  },
+  {
+    "id": "uunimakkara",
+    "title": "Uunimakkara ja perunamuusi",
+    "image": "kuvat/uunimakkara.svg",
+    "imageAlt": "Uunimakkara pellillä",
+    "tags": [
+      "Koko perhe",
+      "Kotiruoka"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "6 lenkkimakkaran pätkää",
+      "1 sipuli",
+      "3 rkl sinappia",
+      "3 rkl ketsuppia",
+      "1 dl juustoraastetta",
+      "1 kg jauhoisia perunoita",
+      "2 dl maitoa",
+      "50 g voita",
+      "1 tl suolaa",
+      "1/2 tl mustapippuria"
+    ],
+    "instructions": [
+      "Kuumenna uuni 225 asteeseen.",
+      "Viillä makkaran päälle syvät ristikot ja aseta pataan tai uunivuokaan.",
+      "Pilko sipuli renkaiksi ja jaa makkaran päälle.",
+      "Levitä sinappi ja ketsuppi makkaroiden päälle, ripottele juustoraaste.",
+      "Paista uunissa noin 15 minuuttia tai kunnes juusto kuplii kauniisti.",
+      "Keitä perunat kypsiksi, valuta ja survo muusiksi.",
+      "Lisää voi ja kuuma maito, mausta suolalla ja pippurilla."
+    ],
+    "tips": "Lisää vuokaan tomaattiviipaleita tai paprikaa lisämakua varten."
+  },
+  {
+    "id": "broilerikastike",
+    "title": "Broilerikastike ja riisi",
+    "image": "kuvat/broilerikastike.svg",
+    "imageAlt": "Broilerikastike pannulla",
+    "tags": [
+      "Nopea",
+      "Arki"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "600 g broilerin fileesuikaleita",
+      "2 dl ruokakermaa",
+      "2 dl kanalientä",
+      "1 paprika",
+      "1 pieni kesäkurpitsa",
+      "1 sipuli",
+      "2 valkosipulinkynttä",
+      "2 rkl tomaattipyreetä",
+      "2 rkl rypsiöljyä",
+      "1 tl suolaa",
+      "1/2 tl savupaprikaa",
+      "1/2 tl mustapippuria",
+      "4 dl pitkäjyväistä riisiä"
+    ],
+    "instructions": [
+      "Keitä riisi pakkauksen ohjeen mukaan ja pidä lämpimänä.",
+      "Suikaloi paprika ja kesäkurpitsa, hienonna sipulit.",
+      "Ruskista broilerisuikaleet öljyssä pannulla ja nosta hetkeksi sivuun.",
+      "Kuullota sipulit pannulla, lisää tomaatipyree ja paista minuutti.",
+      "Lisää paprika ja kesäkurpitsa, kääntele pari minuuttia.",
+      "Kaada joukkoon kanalientä ja ruokakermaa, mausta suolalla, savupaprikalla ja mustapippurilla.",
+      "Sekoita broilerit takaisin kastikkeeseen ja hauduta 5 minuuttia.",
+      "Tarjoa kastike kuuman riisin kanssa."
+    ],
+    "tips": "Jos haluat tulisuutta, lisää ripaus chilirouhetta haudutusvaiheessa."
+  },
+  {
+    "id": "linssikeitto",
+    "title": "Savuisen mausteinen linssikeitto",
+    "image": "kuvat/linssikeitto.svg",
+    "imageAlt": "Punainen linssikeitto kulhossa",
+    "tags": [
+      "Kasvis",
+      "Edullinen"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "2 rkl oliiviöljyä",
+      "1 sipuli",
+      "2 valkosipulinkynttä",
+      "2 porkkanaa",
+      "2 sellerinvartta",
+      "2 tl savupaprikajauhetta",
+      "2 tl jauhettua juustokuminaa",
+      "400 g tomaattimurskaa",
+      "2 dl punaisia linssejä",
+      "1,2 l kasvislientä",
+      "1 laakerinlehti",
+      "1 tl suolaa",
+      "1/2 tl mustapippuria",
+      "1 sitruunan mehu",
+      "tuoretta persiljaa tarjoiluun"
+    ],
+    "instructions": [
+      "Hienonna sipuli ja valkosipulit, kuutioi porkkanat ja sellerit.",
+      "Kuumenna öljy kattilassa, kuullota sipulit pehmeiksi.",
+      "Lisää porkkana ja selleri, paista muutama minuutti.",
+      "Sekoita joukkoon savupaprika ja juustokumina, anna mausteiden herätä.",
+      "Lisää tomaattimurska, huuhdellut linssit ja kasvisliemi sekä laakerinlehti.",
+      "Anna keiton kiehua miedosti 20 minuuttia, kunnes linssit ovat pehmeitä.",
+      "Poista laakerinlehti, mausta suolalla, pippurilla ja sitruunamehulla.",
+      "Tarjoa persiljalla viimeisteltynä ja leivän kanssa."
+    ],
+    "tips": "Keitto säilyy jääkaapissa kolme päivää ja on seuraavana päivänä vielä maukkaampaa."
+  },
+  {
+    "id": "nakkikastike",
+    "title": "Perinteinen nakkikastike",
+    "image": "kuvat/nakkikastike.svg",
+    "imageAlt": "Nakkikastike kasarissa",
+    "tags": [
+      "Arki",
+      "Nopea"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "500 g nakkeja",
+      "1 sipuli",
+      "2 rkl voita",
+      "2 rkl vehnäjauhoja",
+      "5 dl täysmaitoa",
+      "1 dl vettä",
+      "2 rkl tomaattipyreetä",
+      "1 rkl dijon-sinappia",
+      "1 tl suolaa",
+      "1/2 tl mustapippuria",
+      "1/2 tl paprikajauhetta",
+      "tuoretta persiljaa viimeistelyyn",
+      "perunamuusia tai riisiä tarjoiluun"
+    ],
+    "instructions": [
+      "Viipaloi nakit ja hienonna sipuli.",
+      "Sulata voi pannulla, kuullota sipuli ja lisää nakit.",
+      "Ruskista nakkeja kevyesti, ripottele joukkoon vehnäjauhot ja sekoita.",
+      "Lisää maito vähitellen koko ajan sekoittaen, kaada lopuksi vesi.",
+      "Mausta tomaattipyreellä, sinapilla, suolalla, pippurilla ja paprikalla.",
+      "Hauduta kastiketta miedolla lämmöllä 10 minuuttia.",
+      "Tarkista maku ja lisää tarvittaessa mausteita.",
+      "Tarjoa perunamuusin tai riisin kanssa ja viimeistele persiljalla."
+    ],
+    "tips": "Lisää joukkoon paprika- tai hernekuutioita vaihtelua varten."
+  },
+  {
+    "id": "uuniperunat",
+    "title": "Uuniperunat ja tonnikalatäyte",
+    "image": "kuvat/uuniperunat.svg",
+    "imageAlt": "Täytetyt uuniperunat uunipellillä",
+    "tags": [
+      "Edullinen",
+      "Helppo"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "8 isoa jauhoista perunaa",
+      "2 prk tonnikalaa vedessä",
+      "2 dl turkkilaista jogurttia",
+      "1 pieni punasipuli",
+      "1/2 kurkku",
+      "1 rkl sitruunamehua",
+      "1 tl suolaa",
+      "1/2 tl mustapippuria",
+      "1 rkl hienonnettua ruohosipulia",
+      "1 ps vihersalaattia tarjoiluun"
+    ],
+    "instructions": [
+      "Lämmitä uuni 225 asteeseen ja pese perunat huolellisesti.",
+      "Pistele perunoihin muutama reikä ja paista ritilällä 55–60 minuuttia, kunnes pehmeitä.",
+      "Valuta tonnikala ja murenna haarukalla kulhoon.",
+      "Lisää jogurtti, hienonnettu punasipuli ja kuutioitu kurkku.",
+      "Mausta sitruunamehulla, suolalla, pippurilla ja ruohosipulilla.",
+      "Sekoita täyte tasaiseksi ja anna maustua jääkaapissa 10 minuuttia.",
+      "Leikkaa valmiisiin perunoihin risti, avaa varovasti ja lusikoi täytettä sisään.",
+      "Tarjoa raikkaan vihersalaatin kanssa."
+    ],
+    "tips": "Voit tehdä täytteestä laktoosittoman vaihtamalla jogurtin kaurafraicheen."
+  },
+  {
+    "id": "jauhelihakeitto",
+    "title": "Jauhelihakeitto",
+    "imageAlt": "Kulhollinen jauhelihakeittoa",
+    "tags": [
+      "Keitto",
+      "Arki"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "500 g naudan jauhelihaa",
+      "8 keskikokoista perunaa",
+      "4 porkkanaa",
+      "1 keltasipuli",
+      "2 valkosipulinkynttä",
+      "2 l vettä",
+      "2 lihaliemikuutiota",
+      "1 tl suolaa",
+      "1 tl mustapippuria",
+      "1 dl hienonnettua persiljaa"
+    ],
+    "instructions": [
+      "Kuori ja kuutioi perunat ja porkkanat valmiiksi kulhoon.",
+      "Silppua sipuli ja valkosipuli, ruskista ne jauhelihan kanssa isossa kattilassa.",
+      "Mausta jauheliha suolalla ja pippurilla, lisää kattilaan vesi ja liemikuutiot.",
+      "Kuumenna kiehuvaksi ja lisää perunat ja porkkanat.",
+      "Keitä 20 minuuttia, kunnes juurekset ovat kypsiä ja keitto maistuu lihalta.",
+      "Sekoita lopuksi persilja joukkoon ja tarjoa ruisleivän kanssa."
+    ],
+    "tips": "Voit lisätä joukkoon myös pakastemaissia tai herneitä väriksi.",
+    "image": "kuvat/jauhelihakeitto.svg"
+  },
+  {
+    "id": "kasvispannari-uunissa",
+    "title": "Kasvispannari uunissa",
+    "imageAlt": "Lämpimästä uunista otettu kasvispannari",
+    "tags": [
+      "Uuniruoka",
+      "Kasvis"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "6 dl maitoa",
+      "3 munaa",
+      "3 dl vehnäjauhoja",
+      "1 tl suolaa",
+      "1 tl kuivattua basilikaa",
+      "1 punainen paprika",
+      "200 g parsakaalia",
+      "150 g juustoraastetta",
+      "2 rkl rypsiöljyä"
+    ],
+    "instructions": [
+      "Lämmitä uuni 225 asteeseen ja voitele uunipelti kevyesti.",
+      "Vatkaa maito, munat, jauhot, suola ja basilika tasaiseksi taikinaksi.",
+      "Pilko paprika ja parsakaalin nuput pieniksi suupaloiksi.",
+      "Sekoita kasvikset ja juustoraaste taikinaan kevyesti.",
+      "Kaada taikina pellille ja pirskottele päälle rypsiöljyä.",
+      "Paista 25 minuuttia kunnes pinta on kullanruskea ja pannari on kohonnut."
+    ],
+    "tips": "Tarjoa kylmän kermaviilikastikkeen ja kurkkuviipaleiden kanssa.",
+    "image": "kuvat/kasvispannari-uunissa.svg"
+  },
+  {
+    "id": "kaurainen-omena-uunipuuro",
+    "title": "Kaurainen omena-uunipuuro",
+    "imageAlt": "Omenainen uunipuuro vuuassa",
+    "tags": [
+      "Aamiainen",
+      "Makea"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "5 dl kaurahiutaleita",
+      "5 dl maitoa",
+      "2 dl omenamehua",
+      "3 omenaa",
+      "2 rkl hunajaa",
+      "1 tl kanelia",
+      "1 tl vaniljasokeria",
+      "1 dl mantelilastuja",
+      "2 rkl voita"
+    ],
+    "instructions": [
+      "Voitele uunivuoka ja kuumenna uuni 200 asteeseen.",
+      "Sekoita kaurahiutaleet, maito, omenamehu, kaneli ja vaniljasokeri kulhossa.",
+      "Kuori ja kuutioi omenat, kääntele ne seoksen joukkoon.",
+      "Valuta hunaja ja sulatettu voi massan päälle ja ripottele mantelilastut.",
+      "Paista 30 minuuttia, kunnes pinta on saanut väriä ja neste on imeytynyt.",
+      "Anna tekeytyä 5 minuuttia ja tarjoa jogurtin tai maidon kanssa."
+    ],
+    "tips": "Lisää rusinoita tai kuivattuja karpaloita makeutta tuomaan.",
+    "image": "kuvat/kaurainen-omena-uunipuuro.svg"
+  },
+  {
+    "id": "sitruuna-hernepasta",
+    "title": "Sitruuna-hernepasta",
+    "imageAlt": "Sitruunainen hernepasta lautasella",
+    "tags": [
+      "Pasta",
+      "Nopea"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "500 g spagettia",
+      "300 g pakasteherneitä",
+      "2 sitruunan kuori ja mehu",
+      "2 dl ruokakermaa",
+      "1 dl raastettua parmesaania",
+      "2 valkosipulinkynttä",
+      "3 rkl oliiviöljyä",
+      "1 tl suolaa",
+      "1/2 tl mustapippuria",
+      "1 dl tuoretta persiljaa"
+    ],
+    "instructions": [
+      "Keitä pasta suolatussa vedessä al denteksi.",
+      "Kuumenna oliiviöljy pannulla ja kuullota hienonnettu valkosipuli.",
+      "Lisää kerma, sitruunan kuoriraaste ja mehu, kiehauta kevyesti.",
+      "Kaada joukkoon pakasteherneet ja anna lämmetä pari minuuttia.",
+      "Sekoita pasta kastikkeeseen, lisää parmesaani ja persilja.",
+      "Mausta suolalla ja pippurilla, tarjoa heti."
+    ],
+    "tips": "Voit lisätä joukkoon paahdettua broileria tai paistettua tofua proteiiniksi.",
+    "image": "kuvat/sitruuna-hernepasta.svg"
+  },
+  {
+    "id": "pinaatti-munakas",
+    "title": "Pinaatti-munakas",
+    "imageAlt": "Vihreä pinaattimunakas pannulla",
+    "tags": [
+      "Munaruoka",
+      "Nopea"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "8 munaa",
+      "200 g pakastepinaattia",
+      "1 dl kevytkermaa",
+      "1 dl juustoraastetta",
+      "1 pieni punasipuli",
+      "2 rkl voita",
+      "1 tl suolaa",
+      "1/2 tl mustapippuria",
+      "1/2 tl muskottipähkinää"
+    ],
+    "instructions": [
+      "Sulata pinaatti ja purista ylimääräinen neste pois.",
+      "Kuullota hienonnettu punasipuli voissa pannulla.",
+      "Sekoita munat, kerma, suola, pippuri ja muskotti kulhossa.",
+      "Lisää pinaatti ja juustoraaste munaseoksen joukkoon.",
+      "Kaada seos pannulle sipulin päälle ja paista miedolla lämmöllä.",
+      "Kypsennä munakas uunin grillivastuksen alla lopuksi, kunnes pinta hyytyy."
+    ],
+    "tips": "Tarjoa täysjyväleivän ja raikkaan salaatin kanssa.",
+    "image": "kuvat/pinaatti-munakas.svg"
+  },
+  {
+    "id": "makkara-kasvispannu",
+    "title": "Makkara-kasvispannu",
+    "imageAlt": "Paistinpannullinen makkaraa ja vihanneksia",
+    "tags": [
+      "Pannu",
+      "Arki"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "500 g lenkkimakkaraa",
+      "4 perunaa",
+      "2 porkkanaa",
+      "1 punainen paprika",
+      "1 sipuli",
+      "2 valkosipulinkynttä",
+      "2 rkl tomaattipyreetä",
+      "1 tl savupaprikajauhetta",
+      "1 tl suolaa",
+      "2 rkl rypsiöljyä"
+    ],
+    "instructions": [
+      "Kuori perunat ja porkkanat, leikkaa ne ohuiksi viipaleiksi.",
+      "Kuutioi makkara ja pilko paprika sekä sipuli.",
+      "Kuumenna öljy pannulla, ruskista peruna- ja porkkanaviipaleet.",
+      "Lisää makkara, sipuli ja valkosipuli, paista muutama minuutti.",
+      "Sekoita joukkoon tomaattipyree ja savupaprika, mausta suolalla.",
+      "Hauduta kannen alla 10 minuuttia kunnes perunat ovat kypsiä."
+    ],
+    "tips": "Viimeistele ruoka tuoreella persiljalla ennen tarjoilua.",
+    "image": "kuvat/makkara-kasvispannu.svg"
+  },
+  {
+    "id": "kalapihvit-ja-tillikastike",
+    "title": "Kalapihvit ja tillikastike",
+    "imageAlt": "Kalapihvejä lautasella tillikastikkeen kanssa",
+    "tags": [
+      "Kala",
+      "Arki"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "500 g pakastekalaa (seiti tai kolja)",
+      "2 kananmunaa",
+      "1 dl korppujauhoja",
+      "1 pieni sipuli",
+      "1 sitruunan mehu",
+      "1 tl suolaa",
+      "1/2 tl valkopippuria",
+      "2 rkl voita",
+      "2 dl kermaviiliä",
+      "1 dl tuoretta tilliä"
+    ],
+    "instructions": [
+      "Sulata kalat ja purista ylimääräinen neste pois.",
+      "Sekoita kalan joukkoon hienonnettu sipuli, munat ja korppujauhot.",
+      "Mausta suolalla, valkopippurilla ja sitruunamehulla, muotoile pihveiksi.",
+      "Paista pihvit voissa molemmin puolin kullanruskeiksi.",
+      "Sekoita kermaviiliin hienonnettu tilli ja mausta suolalla ja pippurilla.",
+      "Tarjoa kalapihvit tillikastikkeen ja perunamuusin kanssa."
+    ],
+    "tips": "Lisää massaan raastettua perunaa, jos haluat pehmeämmän rakenteen.",
+    "image": "kuvat/kalapihvit-ja-tillikastike.svg"
+  },
+  {
+    "id": "kikhernecurry-ja-riisi",
+    "title": "Kikhernecurry ja riisi",
+    "imageAlt": "Kulhollinen kikhernecurryä",
+    "tags": [
+      "Kasvis",
+      "Mausteinen"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "2 rkl rypsiöljyä",
+      "1 sipuli",
+      "3 valkosipulinkynttä",
+      "2 rkl punaista currytahnaa",
+      "2 tl jauhettua kurkumaa",
+      "2 tl jauhettua korianteria",
+      "2 tl garam masalaa",
+      "2 prk kikherneitä",
+      "400 g tomaattimurskaa",
+      "400 ml kookosmaitoa",
+      "4 dl jasmiiniriisiä"
+    ],
+    "instructions": [
+      "Huuhtele kikherneet ja lämmitä riisi pakkauksen ohjeen mukaan.",
+      "Kuumenna öljy kattilassa, kuullota silputtu sipuli ja valkosipuli.",
+      "Lisää currytahna ja kuivat mausteet, paista hetki.",
+      "Kaada joukkoon tomaattimurska ja kookosmaito, anna kiehua.",
+      "Lisää kikherneet ja hauduta 10 minuuttia kunnes kastike sakenee.",
+      "Tarjoa curry höyryävän riisin kanssa ja ripottele päälle korianteria."
+    ],
+    "tips": "Voit lisätä curryn joukkoon pinaattia tai kukkakaalia ennen haudutusta.",
+    "image": "kuvat/kikhernecurry-ja-riisi.svg"
+  },
+  {
+    "id": "maissi-jauhelihapannu",
+    "title": "Maissi-jauhelihapannu",
+    "imageAlt": "Paistinpannu maissi-jauhelihaseoksella",
+    "tags": [
+      "Pannu",
+      "Nopea"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "400 g jauhelihaa",
+      "1 keltasipuli",
+      "1 punainen paprika",
+      "340 g maissia (tölkki)",
+      "2 dl ruokakermaa",
+      "2 rkl tomaattipyreetä",
+      "1 tl paprikajauhetta",
+      "1 tl suolaa",
+      "1/2 tl mustapippuria",
+      "1 dl juustoraastetta"
+    ],
+    "instructions": [
+      "Silppua sipuli ja kuutioi paprika valmiiksi.",
+      "Ruskista jauheliha pannulla, lisää sipuli ja paprika.",
+      "Valuta maissi ja lisää pannulle tomaattipyreen kanssa.",
+      "Mausta paprikajauheella, suolalla ja pippurilla.",
+      "Kaada joukkoon kerma ja hauduta 5 minuuttia miedolla lämmöllä.",
+      "Ripottele päälle juustoraaste ja tarjoa riisin tai tortillojen kanssa."
+    ],
+    "tips": "Lisää halutessasi chilihiutaleita potkua tuomaan.",
+    "image": "kuvat/maissi-jauhelihapannu.svg"
+  },
+  {
+    "id": "broileri-perunapelti",
+    "title": "Broileri-perunapelti",
+    "imageAlt": "Uunipelti täynnä broileria ja perunoita",
+    "tags": [
+      "Uuniruoka",
+      "Arki"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "700 g broilerin koipinuijia tai paistileikkeitä",
+      "800 g perunoita",
+      "3 porkkanaa",
+      "1 punasipuli",
+      "3 rkl oliiviöljyä",
+      "2 rkl hunajaa",
+      "2 tl paprikajauhetta",
+      "1 tl suolaa",
+      "1/2 tl mustapippuria",
+      "1 sitruunan mehu"
+    ],
+    "instructions": [
+      "Lämmitä uuni 210 asteeseen ja vuoraa pelti leivinpaperilla.",
+      "Kuori perunat ja porkkanat, leikkaa ne lohkoiksi.",
+      "Viipaloi punasipuli ja sekoita kaikki kasvikset kulhossa.",
+      "Lisää oliiviöljy, hunaja, sitruunamehu ja mausteet, sekoita tasaiseksi.",
+      "Asettele kasvikset pellille ja broilerit päälle nahka ylöspäin.",
+      "Paista 35–40 minuuttia, kunnes broileri on kypsää ja pinta ruskistunut."
+    ],
+    "tips": "Lisää loppuvaiheessa kirsikkatomaatteja ja fetamurua, jos haluat juhlavuutta.",
+    "image": "kuvat/broileri-perunapelti.svg"
+  },
+  {
+    "id": "uunifalafelit-ja-jogurttikastike",
+    "title": "Uunifalafelit ja jogurttikastike",
+    "imageAlt": "Uunissa paistettuja falafeleja",
+    "tags": [
+      "Kasvis",
+      "Uuniruoka"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "2 prk kikherneitä",
+      "1 pieni sipuli",
+      "2 valkosipulinkynttä",
+      "1 dl tuoretta persiljaa",
+      "1 dl tuoretta korianteria",
+      "2 tl jauhettua juustokuminaa",
+      "2 tl jauhettua korianteria",
+      "1 tl suolaa",
+      "4 rkl oliiviöljyä",
+      "2 dl turkkilaista jogurttia"
+    ],
+    "instructions": [
+      "Kuumenna uuni 200 asteeseen ja voitele leivinpaperi kevyesti.",
+      "Huuhtele kikherneet ja valuta hyvin.",
+      "Sekoita kikherneet, sipuli, valkosipuli, yrtit ja mausteet monitoimikoneessa.",
+      "Muotoile taikinasta palloja ja aseta pellille.",
+      "Sivele falafelit oliiviöljyllä ja paista 20 minuuttia kääntäen puolivälissä.",
+      "Tarjoa jogurtin kanssa, johon on sekoitettu sitruunamehua ja suolaa."
+    ],
+    "tips": "Falafelit voi pakastaa ja lämmittää uunissa myöhemmin.",
+    "image": "kuvat/uunifalafelit-ja-jogurttikastike.svg"
+  },
+  {
+    "id": "punajuuripihvit-ja-perunamuusi",
+    "title": "Punajuuripihvit ja perunamuusi",
+    "imageAlt": "Punajuuripihvit perunamuusin päällä",
+    "tags": [
+      "Kasvis",
+      "Uuniruoka"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "600 g punajuuria",
+      "2 perunaa",
+      "1 dl kaurahiutaleita",
+      "2 kananmunaa",
+      "1 dl aurinkokuivattuja tomaatteja",
+      "1 tl suolaa",
+      "1/2 tl mustapippuria",
+      "800 g jauhoisia perunoita",
+      "3 dl maitoa",
+      "50 g voita"
+    ],
+    "instructions": [
+      "Kuori punajuuret ja perunat, raasta ne kulhoon.",
+      "Lisää kaurahiutaleet, munat, hienonnetut tomaatit ja mausteet.",
+      "Anna massan tekeytyä 10 minuuttia, jotta kaura turpoaa.",
+      "Muotoile pihveiksi ja paista 200 asteessa leivinpaperilla 20 minuuttia.",
+      "Keitä perunamuusia varten perunat kypsiksi, soseuta voin ja maidon kanssa.",
+      "Tarjoa punajuuripihvit kuuman perunamuusin päällä ja viimeistele yrteillä."
+    ],
+    "tips": "Lisää pihvimassaan fetajuustoa, jos haluat suolaisempaa makua.",
+    "image": "kuvat/punajuuripihvit-ja-perunamuusi.svg"
+  },
+  {
+    "id": "soija-bolognese",
+    "title": "Soija-bolognese",
+    "imageAlt": "Kasvisbolognese pastan kanssa",
+    "tags": [
+      "Pasta",
+      "Kasvis"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "300 g täysjyväpastaa",
+      "2 dl soijarouhetta",
+      "1 sipuli",
+      "2 valkosipulinkynttä",
+      "400 g tomaattimurskaa",
+      "2 rkl tomaattipyreetä",
+      "2 dl kasvislientä",
+      "1 tl kuivattua oreganoa",
+      "1 tl kuivattua basilikaa",
+      "2 rkl oliiviöljyä"
+    ],
+    "instructions": [
+      "Liota soijarouhetta kuumassa kasvisliemessä 10 minuuttia.",
+      "Silppua sipulit ja kuullota ne öljyssä kattilassa.",
+      "Lisää valutettu soijarouhe ja paista hetki, jotta se saa väriä.",
+      "Sekoita joukkoon tomaattimurska, pyree ja kuivatut yrtit.",
+      "Hauduta 15 minuuttia miedolla lämmöllä ja mausta suolalla sekä pippurilla.",
+      "Tarjoa kastike keitetyn pastan ja raastetun juuston kanssa."
+    ],
+    "tips": "Lisää joukkoon porkkanaraastetta makeuttamaan sosetta.",
+    "image": "kuvat/soija-bolognese.svg"
+  },
+  {
+    "id": "tomaattinen-linssipasta",
+    "title": "Tomaattinen linssipasta",
+    "imageAlt": "Pasta-annos linssikastikkeella",
+    "tags": [
+      "Pasta",
+      "Kasvis"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "400 g pennepastaa",
+      "2 dl punaisia linssejä",
+      "1 keltasipuli",
+      "3 valkosipulinkynttä",
+      "400 g tomaattimurskaa",
+      "2 rkl tomaattipyreetä",
+      "2 dl kasvislientä",
+      "1 tl savupaprikajauhetta",
+      "1 tl suolaa",
+      "1 dl basilikanlehtiä"
+    ],
+    "instructions": [
+      "Huuhtele linssit ja keitä pasta pakkauksen mukaan.",
+      "Kuumenna öljy, kuullota hienonnettu sipuli ja valkosipuli.",
+      "Lisää linssit, tomaattimurska ja pyree, sekoita.",
+      "Kaada kasvisliemi ja mausta paprikalla sekä suolalla.",
+      "Hauduta 15 minuuttia, kunnes linssit ovat pehmeitä.",
+      "Sekoita kastike pastaan ja ripottele päälle basilikaa."
+    ],
+    "tips": "Varaa hieman pastan keitinvettä kastikkeen notkistamiseen.",
+    "image": "kuvat/tomaattinen-linssipasta.svg"
+  },
+  {
+    "id": "kasviswokki-ja-nuudelit",
+    "title": "Kasviswokki ja nuudelit",
+    "imageAlt": "Kasviswokki wokkipannussa",
+    "tags": [
+      "Wok",
+      "Kasvis"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "400 g munanuudeleita",
+      "1 parsakaali",
+      "2 porkkanaa",
+      "1 punainen paprika",
+      "200 g sieniä",
+      "2 rkl soijakastiketta",
+      "2 rkl osterikastiketta",
+      "1 rkl seesamiöljyä",
+      "2 valkosipulinkynttä",
+      "1 rkl raastettua inkivääriä"
+    ],
+    "instructions": [
+      "Keitä nuudelit nopeasti ja valuta.",
+      "Pilko kasvikset suikaleiksi valmiiksi.",
+      "Kuumenna wokkipannu ja lisää seesamiöljy.",
+      "Paista kasvikset nopeasti, aloita kovemmista ja lisää sienet lopuksi.",
+      "Lisää valkosipuli ja inkivääri, sekoita joukkoon nuudelit.",
+      "Mausta soija- ja osterikastikkeella, tarjoa heti."
+    ],
+    "tips": "Viimeistele annos seesaminsiemenillä ja limemehulla.",
+    "image": "kuvat/kasviswokki-ja-nuudelit.svg"
+  },
+  {
+    "id": "tortillavuoka",
+    "title": "Tortillavuoka",
+    "imageAlt": "Paistettu tortillavuoka uunivuoassa",
+    "tags": [
+      "Uuniruoka",
+      "Texmex"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "8 tortillalettua",
+      "400 g jauhelihaa",
+      "1 sipuli",
+      "1 pussi tacomaustetta",
+      "400 g tomaattimurskaa",
+      "1 tölkki mustapapua",
+      "200 g maissia",
+      "2 dl juustoraastetta",
+      "2 dl kermaviiliä",
+      "1 limen mehu"
+    ],
+    "instructions": [
+      "Kuumenna uuni 200 asteeseen ja voitele vuoka.",
+      "Ruskista jauheliha sipulin kanssa, mausta tacomausteella.",
+      "Lisää tomaattimurska, huuhdellut pavut ja maissi, hauduta 5 minuuttia.",
+      "Aseta tortilloja vuokaan kerroksittain täytteen kanssa.",
+      "Viimeistele juustoraasteella ja paista 20 minuuttia.",
+      "Tarjoa limemehulla maustetun kermaviilin ja salaatin kanssa."
+    ],
+    "tips": "Ripota päälle jalapenoja, jos pidät tulisuudesta.",
+    "image": "kuvat/tortillavuoka.svg"
+  },
+  {
+    "id": "peruna-purjokeitto",
+    "title": "Peruna-purjokeitto",
+    "imageAlt": "Kermainen peruna-purjokeitto kulhossa",
+    "tags": [
+      "Keitto",
+      "Kasvis"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "800 g perunoita",
+      "1 suuri purjo",
+      "1 sipuli",
+      "2 rkl voita",
+      "1,2 l kasvislientä",
+      "2 dl ruokakermaa",
+      "1 tl suolaa",
+      "1/2 tl valkopippuria",
+      "1 dl hienonnettua ruohosipulia"
+    ],
+    "instructions": [
+      "Kuori ja kuutioi perunat, viipaloi purjo.",
+      "Kuullota purjo ja sipuli voissa kattilassa.",
+      "Lisää perunat ja kasvisliemi, keitä 20 minuuttia.",
+      "Soseuta keitto sileäksi ja lisää kerma.",
+      "Mausta suolalla ja valkopippurilla, kuumenna.",
+      "Tarjoa ruohosipulilla ja paahdetulla leivällä."
+    ],
+    "tips": "Lisää keittoon savulohta, jos haluat juhlavamman version.",
+    "image": "kuvat/peruna-purjokeitto.svg"
+  },
+  {
+    "id": "kaali-jauhelihapannu",
+    "title": "Kaali-jauhelihapannu",
+    "imageAlt": "Paistinpannu jossa kaalia ja jauhelihaa",
+    "tags": [
+      "Pannu",
+      "Kotiruoka"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "500 g jauhelihaa",
+      "600 g valkokaalia",
+      "1 sipuli",
+      "2 valkosipulinkynttä",
+      "2 rkl siirappia",
+      "1 tl suolaa",
+      "1 tl meiramia",
+      "1/2 tl mustapippuria",
+      "2 dl vettä",
+      "1 rkl voita"
+    ],
+    "instructions": [
+      "Suikaloi kaali ohuelti.",
+      "Ruskista jauheliha pannulla voissa.",
+      "Lisää sipulit ja kääntele muutama minuutti.",
+      "Sekoita joukkoon kaali ja mausteet.",
+      "Lisää vesi ja siirappi, hauduta kannen alla 15 minuuttia.",
+      "Tarjoa puolukkahillon ja perunoiden kanssa."
+    ],
+    "tips": "Ripota pinnalle ohrasuurimoita, jos haluat lisää rakennetta.",
+    "image": "kuvat/kaali-jauhelihapannu.svg"
+  },
+  {
+    "id": "tonnikala-uuniriisi",
+    "title": "Tonnikala-uuniriisi",
+    "imageAlt": "Uunissa paistettu tonnikalavuoka",
+    "tags": [
+      "Uuniruoka",
+      "Kala"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "4 dl pitkäjyväistä riisiä",
+      "2 prk tonnikalaa vedessä",
+      "1 purjo",
+      "2 dl pakasteherneitä",
+      "3 dl ruokakermaa",
+      "2 dl maitoa",
+      "1 tl sitruunapippuria",
+      "1 tl suolaa",
+      "1 dl juustoraastetta",
+      "1 rkl kapriksia"
+    ],
+    "instructions": [
+      "Keitä riisi lähes kypsäksi ja levitä uunivuokaan.",
+      "Silppua purjo ja kuullota sitä hetki pannulla.",
+      "Sekoita tonnikala, herneet ja purjo riisin joukkoon.",
+      "Yhdistä kerma ja maito, mausta sitruunapippurilla ja suolalla.",
+      "Kaada seos vuokaan ja ripottele juustoraaste päälle.",
+      "Paista 200 asteessa 20 minuuttia, viimeistele kapriksilla."
+    ],
+    "tips": "Korvaa osa kermasta kermaviilillä kevyemmän version saamiseksi.",
+    "image": "kuvat/tonnikala-uuniriisi.svg"
+  },
+  {
+    "id": "texmex-papukeitto",
+    "title": "Texmex-papukeitto",
+    "imageAlt": "Mausteinen papukeitto kulhossa",
+    "tags": [
+      "Keitto",
+      "Mausteinen"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "2 rkl oliiviöljyä",
+      "1 sipuli",
+      "2 valkosipulinkynttä",
+      "1 punainen paprika",
+      "1 tl juustokuminaa",
+      "1 tl savupaprikajauhetta",
+      "2 tl chilijauhetta",
+      "400 g tomaattimurskaa",
+      "2 tölkkiä kidneypapuja",
+      "1 l kasvislientä"
+    ],
+    "instructions": [
+      "Kuumenna öljy ja kuullota sipuli sekä valkosipuli.",
+      "Lisää paprika ja kuivat mausteet, paista hetki.",
+      "Kaada tomaattimurska ja kasvisliemi kattilaan.",
+      "Huuhtele pavut ja lisää keittoon.",
+      "Anna keiton kiehua 15 minuuttia miedolla lämmöllä.",
+      "Tarjoa limelohkojen ja korianterin kanssa."
+    ],
+    "tips": "Lisää maissia ja paahdettuja tortillalastuja pinnalle rapeutta tuomaan.",
+    "image": "kuvat/texmex-papukeitto.svg"
+  },
+  {
+    "id": "sienikastike-ja-perunamuusi",
+    "title": "Sienikastike ja perunamuusi",
+    "imageAlt": "Sienikastiketta perunamuusin kera",
+    "tags": [
+      "Kastike",
+      "Kasvis"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "500 g herkkusieniä",
+      "1 sipuli",
+      "3 rkl voita",
+      "2 rkl vehnäjauhoja",
+      "5 dl maitoa",
+      "1 tl suolaa",
+      "1/2 tl mustapippuria",
+      "1 tl timjamia",
+      "800 g perunoita",
+      "3 dl maitoa perunamuusiin"
+    ],
+    "instructions": [
+      "Viipaloi sienet ja silppua sipuli.",
+      "Paista sieniä kuivalla pannulla, kunnes neste haihtuu.",
+      "Lisää voi ja sipuli, kuullota pehmeäksi.",
+      "Ripota jauhot sekaan, lisää maito vähitellen vispilällä sekoittaen.",
+      "Mausta kastike suolalla, pippurilla ja timjamilla, anna sakeutua.",
+      "Tarjoa kuuman perunamuusin kanssa."
+    ],
+    "tips": "Lisää kastikkeeseen tilkka kermaa, jos haluat silkkisen lopputuloksen.",
+    "image": "kuvat/sienikastike-ja-perunamuusi.svg"
+  },
+  {
+    "id": "papupihvit-ja-jogurttidippi",
+    "title": "Papupihvit ja jogurttidippi",
+    "imageAlt": "Papupihvejä jogurttikastikkeen kanssa",
+    "tags": [
+      "Kasvis",
+      "Pannu"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "2 tölkkiä valkoisia papuja",
+      "1 pieni sipuli",
+      "2 valkosipulinkynttä",
+      "1 dl kaurahiutaleita",
+      "1 tl savupaprikajauhetta",
+      "1 tl suolaa",
+      "1/2 tl cayennepippuria",
+      "2 rkl vehnäjauhoja",
+      "3 rkl oliiviöljyä",
+      "2 dl turkkilaista jogurttia"
+    ],
+    "instructions": [
+      "Huuhtele pavut ja valuta ne hyvin.",
+      "Soseuta pavut, sipulit ja mausteet kulhossa.",
+      "Lisää kaurahiutaleet ja vehnäjauhot, sekoita tasaiseksi.",
+      "Muotoile massasta pihvejä ja anna levätä 15 minuuttia.",
+      "Paista pihvit öljyssä molemmin puolin kullanruskeiksi.",
+      "Sekoita jogurttiin valkosipulia ja sitruunamehua dipiksi."
+    ],
+    "tips": "Tarjoa pihvit salaatin ja paahdettujen perunoiden kanssa.",
+    "image": "kuvat/papupihvit-ja-jogurttidippi.svg"
+  },
+  {
+    "id": "bataatti-linssikeitto",
+    "title": "Bataatti-linssikeitto",
+    "imageAlt": "Samettinen bataattikeitto",
+    "tags": [
+      "Keitto",
+      "Kasvis"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "600 g bataattia",
+      "1 sipuli",
+      "2 valkosipulinkynttä",
+      "2 dl punaisia linssejä",
+      "1 rkl currytahnaa",
+      "1 tl savupaprikajauhetta",
+      "1 l kasvislientä",
+      "400 ml kookosmaitoa",
+      "1 lime",
+      "2 rkl rypsiöljyä"
+    ],
+    "instructions": [
+      "Kuori ja kuutioi bataatit, huuhtele linssit.",
+      "Kuullota sipuli ja valkosipuli öljyssä.",
+      "Lisää currytahna ja savupaprika, paista hetki.",
+      "Lisää bataatit, linssit ja kasvisliemi, keitä 20 minuuttia.",
+      "Soseuta keitto ja lisää kookosmaito.",
+      "Mausta limemehulla ja tarkista suola."
+    ],
+    "tips": "Tarjoa lisäksi paahdettuja siemeniä rapeutta tuomaan.",
+    "image": "kuvat/bataatti-linssikeitto.svg"
+  },
+  {
+    "id": "kaalilaatikko",
+    "title": "Kaalilaatikko",
+    "imageAlt": "Kaalilaatikko uunivuoassa",
+    "tags": [
+      "Uuniruoka",
+      "Klassikko"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "800 g kaalia",
+      "400 g jauhelihaa",
+      "1 sipuli",
+      "2 dl lihalientä",
+      "1 dl siirappia",
+      "2 dl puuroriisiä",
+      "2 rkl voita",
+      "1 tl suolaa",
+      "1/2 tl mustapippuria",
+      "2 rkl voita vuoan voiteluun"
+    ],
+    "instructions": [
+      "Suikaloi kaali ja kiehauta se nopeasti suolatussa vedessä.",
+      "Keitä puuroriisi puolikypsäksi.",
+      "Ruskista jauheliha ja sipuli pannulla.",
+      "Sekoita kaikki ainekset kulhossa ja mausta siirapilla, suolalla ja pippurilla.",
+      "Kaada vuokaan, lisää päälle voinokareita.",
+      "Paista 175 asteessa 1 tunti, peitä tarvittaessa foliolla."
+    ],
+    "tips": "Tarjoa puolukkahillon kanssa – klassikko yhdistelmä!",
+    "image": "kuvat/kaalilaatikko.svg"
+  },
+  {
+    "id": "paputaytteiset-quesadillat",
+    "title": "Paputäytteiset quesadillat",
+    "imageAlt": "Quesadillalohkoja paputäytteellä",
+    "tags": [
+      "Texmex",
+      "Nopea"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "8 tortillalettua",
+      "2 tölkkiä mustapapuja",
+      "1 sipuli",
+      "1 punainen paprika",
+      "1 tl juustokuminaa",
+      "1 tl paprikajauhetta",
+      "1 tl suolaa",
+      "200 g juustoraastetta",
+      "2 rkl limemehua",
+      "2 rkl rypsiöljyä"
+    ],
+    "instructions": [
+      "Kuumenna öljy pannulla ja kuullota sipuli sekä paprika.",
+      "Lisää mausteet ja huuhdellut pavut, paista muutama minuutti.",
+      "Sekoita joukkoon limemehu ja puolet juustoraasteesta.",
+      "Levitä täytettä tortillalle ja peitä toisella tortillalla.",
+      "Paista quesadillat kuivalla pannulla molemmin puolin kullanruskeiksi.",
+      "Leikkaa lohkoiksi ja tarjoa salsan kanssa."
+    ],
+    "tips": "Lisää jalapenoja, jos pidät tulisuudesta.",
+    "image": "kuvat/paputaytteiset-quesadillat.svg"
+  },
+  {
+    "id": "chili-sin-carne",
+    "title": "Chili sin carne",
+    "imageAlt": "Kasvis chili padassa",
+    "tags": [
+      "Pata",
+      "Mausteinen"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "2 rkl oliiviöljyä",
+      "1 sipuli",
+      "2 valkosipulinkynttä",
+      "1 vihreä paprika",
+      "1 punainen paprika",
+      "1 tl juustokuminaa",
+      "2 tl savupaprikaa",
+      "1 tl chilijauhetta",
+      "400 g tomaattimurskaa",
+      "3 tölkkiä erilaisia papuja"
+    ],
+    "instructions": [
+      "Kuumenna öljy ja kuullota sipulit sekä paprikat.",
+      "Lisää kuivat mausteet ja paista hetkinen, jotta aromit heräävät.",
+      "Kaada tomaattimurska ja huuhdellut pavut kattilaan.",
+      "Hauduta 25 minuuttia miedolla lämmöllä.",
+      "Mausta suolalla ja tarvittaessa lisää chilijauhetta.",
+      "Tarjoa riisin tai tortillalastujen kanssa."
+    ],
+    "tips": "Koristele avokadosiivuilla ja limemehulla tarjoiltaessa.",
+    "image": "kuvat/chili-sin-carne.svg"
+  },
+  {
+    "id": "uunibroccoli-ja-valkosipulipasta",
+    "title": "Uunibroccoli ja valkosipulipasta",
+    "imageAlt": "Broccoli-pasta-annos",
+    "tags": [
+      "Pasta",
+      "Kasvis"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "500 g pennepastaa",
+      "2 parsakaalia",
+      "4 valkosipulinkynttä",
+      "2 rkl oliiviöljyä",
+      "1 sitruunan kuori",
+      "1 sitruunan mehu",
+      "1 dl parmesaaniraastetta",
+      "1 tl chilihiutaleita",
+      "1 tl suolaa",
+      "1/2 tl mustapippuria"
+    ],
+    "instructions": [
+      "Kuumenna uuni 220 asteeseen.",
+      "Leikkaa parsakaali nuppuineen pieniksi paloiksi.",
+      "Sekoita parsakaaliin oliiviöljy, valkosipuli, suola ja chili.",
+      "Paista uunissa 15 minuuttia kunnes reunat paahtuvat.",
+      "Keitä pasta al denteksi ja sekoita uunibroccolin kanssa.",
+      "Lisää sitruunan mehu ja kuoriraaste sekä parmesaani ennen tarjoilua."
+    ],
+    "tips": "Lisää paahdettuja mantelilastuja rapeutta varten.",
+    "image": "kuvat/uunibroccoli-ja-valkosipulipasta.svg"
+  },
+  {
+    "id": "porkkana-linssipihvit",
+    "title": "Porkkana-linssipihvit",
+    "imageAlt": "Porkkanapihvejä tarjottimella",
+    "tags": [
+      "Kasvis",
+      "Pannu"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "4 porkkanaa",
+      "2 dl punaisia linssejä",
+      "1 keltasipuli",
+      "1 dl kaurajauhoja",
+      "2 kananmunaa",
+      "1 tl currya",
+      "1 tl suolaa",
+      "1/2 tl mustapippuria",
+      "2 rkl rypsiöljyä",
+      "2 dl kermaviiliä"
+    ],
+    "instructions": [
+      "Keitä linssit kypsiksi ja valuta.",
+      "Raasta porkkanat ja silppua sipuli.",
+      "Sekoita kaikki ainekset kulhossa ja mausta.",
+      "Anna taikinan levätä 10 minuuttia.",
+      "Muotoile pihveiksi ja paista öljyssä molemmin puolin.",
+      "Tarjoa kermaviilikastikkeen ja salaatin kanssa."
+    ],
+    "tips": "Lisää taikinaan kaurajuustoraastetta, jos haluat juustoisemman maun.",
+    "image": "kuvat/porkkana-linssipihvit.svg"
+  },
+  {
+    "id": "kinkku-paprikapasta",
+    "title": "Kinkku-paprikapasta",
+    "imageAlt": "Kermainen kinkkupasta",
+    "tags": [
+      "Pasta",
+      "Arki"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "500 g spagettia",
+      "300 g palvikinkkua",
+      "1 punainen paprika",
+      "1 keltainen paprika",
+      "2 dl ruokakermaa",
+      "100 g ranskankermaa",
+      "2 valkosipulinkynttä",
+      "1 tl paprikajauhetta",
+      "1 tl suolaa",
+      "1/2 tl mustapippuria"
+    ],
+    "instructions": [
+      "Keitä pasta kypsäksi ja valuta.",
+      "Suikaloi kinkku ja paprikat.",
+      "Paista kinkkua pannulla, lisää paprikat ja valkosipuli.",
+      "Kaada joukkoon kerma ja ranskankerma, mausta.",
+      "Anna kiehahtaa ja sekoita pasta kastikkeeseen.",
+      "Tarjoa persiljalla koristeltuna."
+    ],
+    "tips": "Voit lisätä joukkoon maissia tai herneitä väriksi.",
+    "image": "kuvat/kinkku-paprikapasta.svg"
+  },
+  {
+    "id": "sardiinipasta",
+    "title": "Sardiinipasta",
+    "imageAlt": "Sitruunainen sardiinipasta",
+    "tags": [
+      "Pasta",
+      "Kala"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "500 g spagettia",
+      "2 tölkkiä sardiineja öljyssä",
+      "2 valkosipulinkynttä",
+      "1 sitruunan mehu",
+      "1 sitruunan kuori",
+      "1 dl kapriksia",
+      "1 tl chilihiutaleita",
+      "1 dl tuoretta persiljaa",
+      "3 rkl oliiviöljyä",
+      "1/2 tl suolaa"
+    ],
+    "instructions": [
+      "Keitä pasta kypsäksi.",
+      "Kuumenna oliiviöljy, lisää valkosipuli ja chilihiutaleet.",
+      "Lisää sardiinit ja kaprikset, paista muutama minuutti.",
+      "Lisää sitruunan mehu ja raaste.",
+      "Sekoita pasta ja persilja joukkoon.",
+      "Mausta suolalla ja tarjoa heti."
+    ],
+    "tips": "Lisää paahdettuja korppujauhoja pinnalle rapeutta antamaan.",
+    "image": "kuvat/sardiinipasta.svg"
+  },
+  {
+    "id": "kurpitsarisotto",
+    "title": "Kurpitsarisotto",
+    "imageAlt": "Kermaista kurpitsarisottoa lautasella",
+    "tags": [
+      "Risotto",
+      "Kasvis"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "400 g risottoriisiä",
+      "500 g myskikurpitsaa",
+      "1 sipuli",
+      "2 valkosipulinkynttä",
+      "1 dl valkoviiniä (voi korvata liemellä)",
+      "1,2 l kasvislientä",
+      "50 g voita",
+      "1 dl parmesaania",
+      "1 tl suolaa",
+      "1/2 tl mustapippuria"
+    ],
+    "instructions": [
+      "Kuori ja kuutioi kurpitsa, paahda kuutioita 200 asteessa 15 minuuttia.",
+      "Kuullota sipuli ja valkosipuli voissa kattilassa.",
+      "Lisää riisi ja kääntele, kunnes se on läpikuultavaa.",
+      "Kaada valkoviini, anna imeytyä ja lisää liemi kauhallinen kerrallaan.",
+      "Sekoita lopuksi paahdetut kurpitsat ja parmesaani.",
+      "Mausta suolalla ja pippurilla, tarjoa heti."
+    ],
+    "tips": "Koristele salviavoilla tai paahdetuilla kurpitsansiemenillä.",
+    "image": "kuvat/kurpitsarisotto.svg"
+  },
+  {
+    "id": "kesakeitto",
+    "title": "Kesäkeitto",
+    "imageAlt": "Värikäs kesäkeitto kulhossa",
+    "tags": [
+      "Keitto",
+      "Kesä"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "4 perunaa",
+      "4 porkkanaa",
+      "200 g kukkakaalia",
+      "200 g vihreitä papuja",
+      "1 l vettä",
+      "3 dl maitoa",
+      "2 rkl voita",
+      "2 rkl vehnäjauhoja",
+      "1 tl suolaa",
+      "1/2 tl valkopippuria"
+    ],
+    "instructions": [
+      "Kuori ja kuutioi perunat sekä porkkanat.",
+      "Kiehauta vesi kattilassa ja lisää juurekset.",
+      "Lisää paloiteltu kukkakaali ja pavut muutaman minuutin kuluttua.",
+      "Valmista erikseen voisuurus ja lisää keittoon.",
+      "Kaada maito kattilaan ja anna kiehua hiljalleen.",
+      "Mausta suolalla ja valkopippurilla, tarjoa tuoreen tillin kanssa."
+    ],
+    "tips": "Lisää keittoon tuoreita herneitä, jos niitä on saatavilla.",
+    "image": "kuvat/kesakeitto.svg"
+  },
+  {
+    "id": "tofu-teriyakipannu",
+    "title": "Tofu-teriyakipannu",
+    "imageAlt": "Tofupannun annos kulhossa",
+    "tags": [
+      "Pannu",
+      "Kasvis"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "400 g kiinteää tofua",
+      "2 rkl maissitärkkelystä",
+      "2 rkl seesamiöljyä",
+      "1 parsakaali",
+      "1 paprika",
+      "1 porkkana",
+      "1 dl teriyakikastiketta",
+      "1 tl chilihiutaleita",
+      "2 valkosipulinkynttä",
+      "1 dl kevätsipulia"
+    ],
+    "instructions": [
+      "Purista tofusta ylimääräinen neste ja kuutioi.",
+      "Pyörittele tofu maissitärkkelyksessä ja paista seesamiöljyssä.",
+      "Lisää kasvikset ja kypsennä pari minuuttia.",
+      "Kaada teriyakikastike ja chilihiutaleet pannulle.",
+      "Sekoita, kunnes kastike kuorruttaa tofun ja kasvikset.",
+      "Viimeistele kevätsipulilla ja tarjoa riisin kanssa."
+    ],
+    "tips": "Ripota päälle seesaminsiemeniä lisärapseksi.",
+    "image": "kuvat/tofu-teriyakipannu.svg"
+  },
+  {
+    "id": "parsakaali-kinkkupiirakka",
+    "title": "Parsakaali-kinkkupiirakka",
+    "imageAlt": "Parsakaali-kinkkupiirakka pellillä",
+    "tags": [
+      "Piirakka",
+      "Uuniruoka"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "1 suolainen piirakkapohja",
+      "400 g parsakaalia",
+      "200 g kinkkusuikaleita",
+      "2 dl ruokakermaa",
+      "2 dl kevytmaitoa",
+      "3 munaa",
+      "150 g juustoraastetta",
+      "1 tl suolaa",
+      "1/2 tl mustapippuria",
+      "1 tl kuivattua timjamia"
+    ],
+    "instructions": [
+      "Esipaista piirakkapohjaa 200 asteessa 10 minuuttia.",
+      "Ryöppää parsakaalin nuput nopeasti ja valuta.",
+      "Levitä pohjan päälle parsakaali ja kinkku.",
+      "Sekoita munat, kerma, maito ja mausteet kulhossa.",
+      "Kaada seos pohjan päälle ja ripottele juustoraaste.",
+      "Paista 30 minuuttia, kunnes täyte hyytyy ja pinta ruskistuu."
+    ],
+    "tips": "Lisää pinnalle kirsikkatomaatteja kirjavuutta tuomaan.",
+    "image": "kuvat/parsakaali-kinkkupiirakka.svg"
+  },
+  {
+    "id": "vihanneslasagne",
+    "title": "Vihanneslasagne",
+    "imageAlt": "Kasvislasagne paloiteltuna",
+    "tags": [
+      "Lasagne",
+      "Kasvis"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "12 lasagnelevyä",
+      "2 kesäkurpitsaa",
+      "1 munakoiso",
+      "400 g tomaattimurskaa",
+      "2 rkl tomaattipyreetä",
+      "2 dl ricottaa",
+      "2 dl juustoraastetta",
+      "2 valkosipulinkynttä",
+      "1 tl oreganoa",
+      "1 tl suolaa"
+    ],
+    "instructions": [
+      "Leikkaa kesäkurpitsa ja munakoiso ohutiin viipaleisiin.",
+      "Kuullota valkosipuli öljyssä ja lisää tomaattimurska sekä pyree.",
+      "Mausta oreganolla ja suolalla, hauduta 10 minuuttia.",
+      "Kasaa lasagne: kastiketta, levyt, vihannesiivut, ricotta, toista.",
+      "Päälle juustoraaste ja paista 200 asteessa 35 minuuttia.",
+      "Anna lasagnen levätä 10 minuuttia ennen leikkaamista."
+    ],
+    "tips": "Lisää väliin pestolla maustettua pinaattia tuomaan vihreyttä.",
+    "image": "kuvat/vihanneslasagne.svg"
+  },
+  {
+    "id": "juustoinen-kukkakaaligratiini",
+    "title": "Juustoinen kukkakaaligratiini",
+    "imageAlt": "Kukkakaaligratiini vuoassa",
+    "tags": [
+      "Uuniruoka",
+      "Kasvis"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "2 kukkakaalia",
+      "3 rkl voita",
+      "3 rkl vehnäjauhoja",
+      "5 dl maitoa",
+      "200 g juustoraastetta",
+      "1 tl suolaa",
+      "1/2 tl muskottia",
+      "1 dl korppujauhoja",
+      "2 rkl oliiviöljyä",
+      "1 dl persiljaa"
+    ],
+    "instructions": [
+      "Esikypsennä kukkakaalin nuput höyryssä 5 minuuttia.",
+      "Sulata voi kattilassa ja sekoita joukkoon jauhot.",
+      "Lisää maito vähitellen, keitä paksuksi bechameliksi.",
+      "Lisää juustoraaste, suola ja muskotti.",
+      "Kaada kastike kukkakaalien päälle vuokaan, ripottele korppujauho ja öljy.",
+      "Paista 200 asteessa 25 minuuttia kunnes pinta ruskistuu."
+    ],
+    "tips": "Koristele tuoreella persiljalla ennen tarjoilua.",
+    "image": "kuvat/juustoinen-kukkakaaligratiini.svg"
+  },
+  {
+    "id": "savupaprika-linssipannu",
+    "title": "Savupaprika-linssipannu",
+    "imageAlt": "Linssipannu wokkipannussa",
+    "tags": [
+      "Pannu",
+      "Kasvis"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "2 rkl oliiviöljyä",
+      "1 sipuli",
+      "2 valkosipulinkynttä",
+      "1 punainen paprika",
+      "2 dl vihreitä linssejä",
+      "400 g tomaattimurskaa",
+      "2 tl savupaprikajauhetta",
+      "1 tl suolaa",
+      "1/2 tl mustapippuria",
+      "1 dl vihreää oliivia"
+    ],
+    "instructions": [
+      "Huuhtele linssit ja keitä paketin ohjeen mukaan.",
+      "Kuullota sipuli ja valkosipuli öljyssä.",
+      "Lisää paprika ja savupaprika, paista hetki.",
+      "Sekoita joukkoon tomaattimurska ja kypsät linssit.",
+      "Hauduta 10 minuuttia ja lisää oliivit.",
+      "Mausta suolalla ja pippurilla, tarjoa leivän kanssa."
+    ],
+    "tips": "Lisää lopuksi kourallinen pinaattia tuomaan vihreyttä.",
+    "image": "kuvat/savupaprika-linssipannu.svg"
+  },
+  {
+    "id": "juures-kookospata",
+    "title": "Juures-kookospata",
+    "imageAlt": "Juurespata kookoskastikkeessa",
+    "tags": [
+      "Pata",
+      "Kasvis"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "2 rkl rypsiöljyä",
+      "2 porkkanaa",
+      "2 palsternakkaa",
+      "1 bataatti",
+      "1 sipuli",
+      "1 rkl currytahnaa",
+      "1 tl kanelia",
+      "400 ml kookosmaitoa",
+      "3 dl kasvislientä",
+      "1 limen mehu"
+    ],
+    "instructions": [
+      "Kuori ja kuutioi kaikki juurekset.",
+      "Kuumenna öljy padassa, kuullota sipuli ja currytahna.",
+      "Lisää juurekset ja paista muutama minuutti.",
+      "Kaada kookosmaito ja kasvisliemi, mausta kanelilla.",
+      "Hauduta 30 minuuttia, kunnes juurekset ovat pehmeitä.",
+      "Lisää limemehu ja tarkista maku ennen tarjoilua."
+    ],
+    "tips": "Tarjoa jasmiiniriisin tai naan-leivän kanssa.",
+    "image": "kuvat/juures-kookospata.svg"
+  },
+  {
+    "id": "munakoiso-linssivuoka",
+    "title": "Munakoiso-linssivuoka",
+    "imageAlt": "Munakoisovuoka uunista",
+    "tags": [
+      "Uuniruoka",
+      "Kasvis"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "2 munakoisoa",
+      "2 dl vihreitä linssejä",
+      "1 sipuli",
+      "2 valkosipulinkynttä",
+      "400 g tomaattimurskaa",
+      "1 tl kuivattua oreganoa",
+      "1 tl suolaa",
+      "1/2 tl mustapippuria",
+      "2 rkl oliiviöljyä",
+      "150 g mozzarellaraastetta"
+    ],
+    "instructions": [
+      "Leikkaa munakoisot ja ripottele niille suolaa, anna hikoilla.",
+      "Huuhtele linssit ja keitä lähes kypsiksi.",
+      "Kuullota sipuli ja valkosipuli öljyssä, lisää tomaattimurska ja mausteet.",
+      "Pyyhi munakoisojen suola pois ja paista siivuja kevyesti pannulla.",
+      "Kasaa vuokaan kerroksittain munakoisoa, linssejä ja kastiketta.",
+      "Ripota mozzarella päälle ja paista 200 asteessa 25 minuuttia."
+    ],
+    "tips": "Lisää väliin paahdettua paprikaa, jos kaipaat makeutta.",
+    "image": "kuvat/munakoiso-linssivuoka.svg"
+  },
+  {
+    "id": "kana-nuudelikeitto",
+    "title": "Kana-nuudelikeitto",
+    "imageAlt": "Kana-nuudelikeitto kulhossa",
+    "tags": [
+      "Keitto",
+      "Pikaruoka"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "2 rkl rypsiöljyä",
+      "400 g broilerin fileesuikaleita",
+      "1 litra kana- tai kasvislientä",
+      "3 porkkanaa",
+      "1 purjo",
+      "2 valkosipulinkynttä",
+      "200 g munanuudeleita",
+      "1 tl suolaa",
+      "1/2 tl mustapippuria",
+      "1 dl korianteria"
+    ],
+    "instructions": [
+      "Kuumenna öljy kattilassa ja ruskista broileri kevyesti.",
+      "Lisää viipaloidut porkkanat, purjo ja valkosipuli.",
+      "Kaada liemi kattilaan ja kiehauta.",
+      "Lisää nuudelit ja keitä 5 minuuttia.",
+      "Mausta suolalla ja pippurilla.",
+      "Ripota korianteria pinnalle ja tarjoa heti."
+    ],
+    "tips": "Lisää chiliä, jos haluat keittoon potkua.",
+    "image": "kuvat/kana-nuudelikeitto.svg"
+  },
+  {
+    "id": "juurespihvit-ja-yrttikermaviili",
+    "title": "Juurespihvit ja yrttikermaviili",
+    "imageAlt": "Juurespihvejä yrttikastikkeella",
+    "tags": [
+      "Kasvis",
+      "Pannu"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "3 porkkanaa",
+      "2 palsternakkaa",
+      "2 perunaa",
+      "1 dl kaurajauhoja",
+      "2 kananmunaa",
+      "1 tl suolaa",
+      "1/2 tl mustapippuria",
+      "2 rkl rypsiöljyä",
+      "2 dl kermaviiliä",
+      "1 dl hienonnettua ruohosipulia"
+    ],
+    "instructions": [
+      "Raasta juurekset ja purista ylimääräinen neste.",
+      "Lisää kaurajauho ja kananmunat, mausta suolalla ja pippurilla.",
+      "Muotoile pihveiksi ja anna levätä 10 minuuttia.",
+      "Paista öljyssä molemmin puolin kullanruskeiksi.",
+      "Sekoita kermaviiliin ruohosipuli ja mausta suolalla.",
+      "Tarjoa pihvit kastikkeen ja vihersalaatin kanssa."
+    ],
+    "tips": "Lisää taikinaan raastettua juustoa, jos haluat tuhdimman maun.",
+    "image": "kuvat/juurespihvit-ja-yrttikermaviili.svg"
+  },
+  {
+    "id": "hummus-tabbouleh-kulho",
+    "title": "Hummus-tabbouleh kulho",
+    "imageAlt": "Kulho hummusta ja tabbouleh-salaattia",
+    "tags": [
+      "Salaatti",
+      "Kasvis"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "2 prk kikherneitä",
+      "2 rkl tahinia",
+      "2 valkosipulinkynttä",
+      "1 sitruunan mehu",
+      "4 rkl oliiviöljyä",
+      "3 dl bulguria",
+      "1 kurkku",
+      "3 tomaattia",
+      "1 dl tuoretta persiljaa",
+      "1 dl minttua"
+    ],
+    "instructions": [
+      "Huuhtele kikherneet ja soseuta tahinin, valkosipulin, sitruunan ja öljyn kanssa hummukseksi.",
+      "Mausta hummus suolalla ja pippurilla, lisää vettä tarvittaessa.",
+      "Keitä bulgur ja jäähdytä se.",
+      "Kuutioi kurkku ja tomaatit, sekoita bulgurin kanssa.",
+      "Lisää hienonnetut yrtit, sitruunamehua ja oliiviöljyä.",
+      "Tarjoa hummus kulhon pohjalla ja tabbouleh sen päällä."
+    ],
+    "tips": "Tarjoa lisäksi paahdettua pitaleipää dipattavaksi.",
+    "image": "kuvat/hummus-tabbouleh-kulho.svg"
+  },
+  {
+    "id": "kasvis-kookoscurry",
+    "title": "Kasvis-kookoscurry",
+    "imageAlt": "Värikäs vihannescurry",
+    "tags": [
+      "Curry",
+      "Kasvis"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "2 rkl kookosöljyä",
+      "1 sipuli",
+      "2 valkosipulinkynttä",
+      "1 rkl raastettua inkivääriä",
+      "2 rkl keltaista currytahnaa",
+      "2 perunaa",
+      "2 porkkanaa",
+      "1 paprika",
+      "400 ml kookosmaitoa",
+      "3 dl kasvislientä"
+    ],
+    "instructions": [
+      "Kuumenna öljy padassa, kuullota sipuli, valkosipuli ja inkivääri.",
+      "Lisää currytahna ja paista hetki.",
+      "Lisää kuutioidut juurekset ja paprika, kääntele.",
+      "Kaada kookosmaito ja kasvisliemi kattilaan.",
+      "Hauduta 25 minuuttia, kunnes kasvikset ovat pehmeitä.",
+      "Mausta suolalla ja tarjoa basmatiriisin kanssa."
+    ],
+    "tips": "Lisää lopuksi pinaattia ja limemehua raikastamaan makua.",
+    "image": "kuvat/kasvis-kookoscurry.svg"
+  },
+  {
+    "id": "sitruunainen-bulgursalaatti",
+    "title": "Sitruunainen bulgursalaatti",
+    "imageAlt": "Raikas bulgursalaatti kulhossa",
+    "tags": [
+      "Salaatti",
+      "Kasvis"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "3 dl bulguria",
+      "1 kurkku",
+      "2 tomaattia",
+      "1 punainen paprika",
+      "1 punasipuli",
+      "1 sitruunan mehu",
+      "3 rkl oliiviöljyä",
+      "1 tl suolaa",
+      "1/2 tl mustapippuria",
+      "1 dl hienonnettua persiljaa"
+    ],
+    "instructions": [
+      "Keitä bulgur kypsäksi ja jäähdytä.",
+      "Kuutioi kasvikset ja sipuli pieniksi paloiksi.",
+      "Sekoita bulgur ja kasvikset suureen kulhoon.",
+      "Lisää sitruunan mehu, oliiviöljy ja mausteet.",
+      "Sekoita joukkoon persilja.",
+      "Anna maustua jääkaapissa 20 minuuttia ennen tarjoilua."
+    ],
+    "tips": "Lisää murennettua fetaa tai paahdettuja kikherneitä proteiiniksi.",
+    "image": "kuvat/sitruunainen-bulgursalaatti.svg"
+  },
+  {
+    "id": "uunijuurekset-ja-kikherneet",
+    "title": "Uunijuurekset ja kikherneet",
+    "imageAlt": "Uunissa paahdettuja juureksia ja kikherneitä",
+    "tags": [
+      "Uuniruoka",
+      "Kasvis"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "2 porkkanaa",
+      "2 palsternakkaa",
+      "2 punajuurta",
+      "2 perunaa",
+      "2 rkl oliiviöljyä",
+      "1 tl suolaa",
+      "1 tl rosmariinia",
+      "1/2 tl mustapippuria",
+      "2 tölkkiä kikherneitä",
+      "1 sitruunan mehu"
+    ],
+    "instructions": [
+      "Kuumenna uuni 210 asteeseen.",
+      "Kuori ja kuutioi juurekset tasakokoisiksi paloiksi.",
+      "Sekoita juureksiin öljy ja mausteet, levitä pellille.",
+      "Paahda 25 minuuttia, lisää valutetut kikherneet.",
+      "Paahda vielä 10 minuuttia, kunnes kaikki on rapeaa.",
+      "Purista päälle sitruunamehua ennen tarjoilua."
+    ],
+    "tips": "Tarjoa jogurtti-limettikastikkeen kanssa.",
+    "image": "kuvat/uunijuurekset-ja-kikherneet.svg"
+  },
+  {
+    "id": "paprikainen-jauhelihakastike",
+    "title": "Paprikainen jauhelihakastike",
+    "imageAlt": "Jauhelihakastike pannulla",
+    "tags": [
+      "Kastike",
+      "Arki"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "400 g jauhelihaa",
+      "1 sipuli",
+      "2 valkosipulinkynttä",
+      "1 punainen paprika",
+      "2 rkl tomaattipyreetä",
+      "2 dl ruokakermaa",
+      "2 dl lihalientä",
+      "1 tl savupaprikajauhetta",
+      "1 tl suolaa",
+      "1/2 tl mustapippuria"
+    ],
+    "instructions": [
+      "Ruskista jauheliha pannulla ja lisää hienonnettu sipuli.",
+      "Lisää valkosipuli ja paprikakuutiot, paista hetki.",
+      "Sekoita joukkoon tomaattipyree ja savupaprika.",
+      "Kaada kerma ja liemi, anna kiehua 10 minuuttia.",
+      "Mausta suolalla ja pippurilla.",
+      "Tarjoa perunamuusin tai pastan kanssa."
+    ],
+    "tips": "Lisää kastikkeeseen lusikallinen sinappia makua syventämään.",
+    "image": "kuvat/paprikainen-jauhelihakastike.svg"
+  },
+  {
+    "id": "valkosipuliset-uunibataatit",
+    "title": "Valkosipuliset uunibataatit",
+    "imageAlt": "Uunissa paahdetut bataatit valkosipulilla",
+    "tags": [
+      "Uuniruoka",
+      "Kasvis"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "4 bataattia",
+      "3 valkosipulinkynttä",
+      "3 rkl oliiviöljyä",
+      "1 tl suolaa",
+      "1/2 tl mustapippuria",
+      "1 tl rosmariinia",
+      "1 dl kermaviiliä",
+      "1 tl sitruunamehua",
+      "1 dl tuoretta korianteria"
+    ],
+    "instructions": [
+      "Lämmitä uuni 210 asteeseen ja pese bataatit.",
+      "Leikkaa bataatit veneiksi ja levitä pellille.",
+      "Murskaa valkosipuli, sekoita se öljyn ja mausteiden kanssa.",
+      "Sivele bataatit mausteseoksella ja paista 25 minuuttia.",
+      "Sekoita kermaviiliin sitruunamehu ja hienonnettu korianteri dipiksi.",
+      "Tarjoa kuumat bataatit kastikkeen kanssa."
+    ],
+    "tips": "Ripota päälle paahdettuja siemeniä saadaksesi lisää tekstuuria.",
+    "image": "kuvat/valkosipuliset-uunibataatit.svg"
+  },
+  {
+    "id": "kaurapihvit-ja-kermaviili",
+    "title": "Kaurapihvit ja kermaviili",
+    "imageAlt": "Kaurapihvejä tarjottimella",
+    "tags": [
+      "Kasvis",
+      "Edullinen"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "4 dl kaurahiutaleita",
+      "2 dl maitoa",
+      "2 kananmunaa",
+      "1 dl juustoraastetta",
+      "1 keltasipuli",
+      "1 tl suolaa",
+      "1/2 tl mustapippuria",
+      "2 rkl rypsiöljyä",
+      "2 dl kermaviiliä",
+      "1 rkl sinappia"
+    ],
+    "instructions": [
+      "Sekoita kaurahiutaleet ja maito, anna turvota 10 minuuttia.",
+      "Lisää munat, juusto, hienonnettu sipuli ja mausteet.",
+      "Muotoile massasta pihvejä.",
+      "Paista öljyssä molemmin puolin kullanruskeiksi.",
+      "Sekoita kermaviiliin sinappi ja mausta suolalla.",
+      "Tarjoa pihvit kastikkeen ja salaatin kera."
+    ],
+    "tips": "Lisää joukkoon hienonnettuja yrttejä makua syventämään.",
+    "image": "kuvat/kaurapihvit-ja-kermaviili.svg"
+  },
+  {
+    "id": "linssi-tomaattikeitto",
+    "title": "Linssi-tomaattikeitto",
+    "imageAlt": "Punainen linssikeitto kulhossa",
+    "tags": [
+      "Keitto",
+      "Kasvis"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "1 sipuli",
+      "2 valkosipulinkynttä",
+      "2 rkl oliiviöljyä",
+      "2 dl punaisia linssejä",
+      "400 g tomaattimurskaa",
+      "1 rkl tomaattipyreetä",
+      "1 tl savupaprikajauhetta",
+      "1 l kasvislientä",
+      "1 tl suolaa",
+      "1/2 tl mustapippuria"
+    ],
+    "instructions": [
+      "Kuullota sipuli ja valkosipuli öljyssä.",
+      "Lisää linssit, tomaattimurska ja pyree.",
+      "Mausta savupaprikalla ja kaada liemi päälle.",
+      "Kiehauta ja hauduta 20 minuuttia.",
+      "Soseuta keitto sileäksi tai jätä rouheaksi makusi mukaan.",
+      "Tarjoa jogurttilurauksella ja tuoreella leivällä."
+    ],
+    "tips": "Lisää pientä potkua chilihiutaleilla.",
+    "image": "kuvat/linssi-tomaattikeitto.svg"
+  },
+  {
+    "id": "herkkusieni-pinaattipasta",
+    "title": "Herkkusieni-pinaattipasta",
+    "imageAlt": "Kermainen sieni-pinaattipasta",
+    "tags": [
+      "Pasta",
+      "Kasvis"
+    ],
+    "servings": "5 annosta",
+    "shoppingList": [
+      "500 g tagliatellea",
+      "300 g herkkusieniä",
+      "200 g tuoretta pinaattia",
+      "2 valkosipulinkynttä",
+      "2 rkl oliiviöljyä",
+      "2 dl ruokakermaa",
+      "1 dl kasvislientä",
+      "1 tl sitruunamehua",
+      "1/2 tl suolaa",
+      "1/2 tl mustapippuria"
+    ],
+    "instructions": [
+      "Keitä pasta pakkauksen ohjeen mukaan ja säästä hieman keitinvettä.",
+      "Viipaloi herkkusienet ja kuullota ne oliiviöljyssä pannulla.",
+      "Lisää murskattu valkosipuli ja jatka paistamista minuutin ajan.",
+      "Kaada joukkoon kerma ja kasvisliemi, anna kiehahtaa.",
+      "Sekoita mukaan tuore pinaatti, kunnes se painuu kasaan.",
+      "Lisää sitruunamehu, suola ja pippuri, yhdistä kastike pastaan ja notkista keitinvedellä tarpeen mukaan."
+    ],
+    "tips": "Koristele annos parmesaanilla tai ravintohiivahiutaleilla vegaanista versiota varten.",
+    "image": "kuvat/herkkusieni-pinaattipasta.svg"
+  }
+]

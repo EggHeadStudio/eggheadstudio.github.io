@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Helppoa kotiruokaa</title>
+  <meta name="description" content="Staattinen reseptisovellus arjen kotiruokiin.">
+  <link rel="stylesheet" href="style_kotiruoka.css">
+</head>
+<body>
+  <header class="site-header">
+    <h1>Helppoa kotiruokaa</h1>
+    <p class="tagline">Edulliset perhereseptit yhdessä paikassa</p>
+  </header>
+
+  <main class="app" id="app" aria-live="polite">
+    <article class="recipe-card" id="recipe-card">
+      <header class="recipe-header">
+        <h2 id="recipe-title">Ladataan reseptejä…</h2>
+        <p id="recipe-tags" class="recipe-tags" aria-live="off"></p>
+      </header>
+      <figure class="recipe-figure">
+        <img id="recipe-image" src="kuvat/placeholder.svg" alt="" loading="lazy">
+        <figcaption id="recipe-servings" class="recipe-servings"></figcaption>
+      </figure>
+      <section class="recipe-content">
+        <h3>Ainekset</h3>
+        <ul id="recipe-ingredients" class="recipe-list">
+          <li>Rauhoitu hetki – reseptit latautuvat.</li>
+        </ul>
+        <h3>Valmistus</h3>
+        <ol id="recipe-instructions" class="recipe-steps">
+          <li>Pysy sivulla, niin esittelemme herkullista kotiruokaa pian.</li>
+        </ol>
+        <section id="recipe-tips" class="recipe-tips" hidden>
+          <h3>Vinkki</h3>
+          <p id="recipe-tips-text"></p>
+        </section>
+      </section>
+    </article>
+
+    <nav class="controls" aria-label="Reseptin vaihtaminen">
+      <button type="button" id="prev-button" class="control-button" aria-label="Näytä edellinen resepti">Edellinen</button>
+      <button type="button" id="next-button" class="control-button" aria-label="Näytä seuraava resepti">Seuraava</button>
+      <button type="button" id="random-button" class="control-button" aria-label="Arvo satunnainen resepti">Yllätä minut</button>
+      <button type="button" id="capture-button" class="control-button primary" aria-label="Tallenna resepti kuvana">Tallenna kuvana</button>
+    </nav>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+  <div class="loading-overlay" id="loading-overlay" hidden>
+    <span class="loading-spinner" aria-hidden="true"></span>
+    <span>Ladataan…</span>
+  </div>
+
+  <noscript>
+    <p class="noscript">Tämä sovellus tarvitsee JavaScriptin, jotta reseptien selaus ja tallentaminen toimivat.</p>
+  </noscript>
+
+  <script src="app.js" defer></script>
+</body>
+</html>
