@@ -1,0 +1,566 @@
+/* Fix the CSS file name */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Arial", sans-serif;
+  background-color: #121212;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.game-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  max-width: 1200px;
+  max-height: 800px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.game-container.hud-hidden .ui-container,
+.game-container.hud-hidden #timer,
+.game-container.hud-hidden .kill-counter,
+.game-container.hud-hidden .mobile-controls,
+.game-container.hud-hidden .minimap-frame {
+  opacity: 0;
+  pointer-events: none;
+}
+
+#gameCanvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  background-color: #2c3e50;
+}
+
+.start-menu {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at top, rgba(255, 209, 102, 0.18), transparent 35%),
+    linear-gradient(160deg, rgba(7, 28, 44, 0.94), rgba(21, 53, 43, 0.9));
+}
+
+.start-menu:not(.active) {
+  display: none;
+}
+
+.start-menu-panel {
+  width: min(920px, 100%);
+  max-height: 100%;
+  overflow: auto;
+  padding: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 24px;
+  background: rgba(8, 19, 28, 0.86);
+  backdrop-filter: blur(14px);
+  color: #f5f1e8;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+}
+
+.menu-copy {
+  margin-bottom: 24px;
+}
+
+.menu-kicker {
+  margin-bottom: 8px;
+  color: #ffd166;
+  text-transform: uppercase;
+  letter-spacing: 0.24em;
+  font-size: 12px;
+}
+
+.menu-copy h1 {
+  margin-bottom: 12px;
+  font-size: clamp(34px, 6vw, 56px);
+}
+
+.menu-description {
+  max-width: 62ch;
+  color: rgba(245, 241, 232, 0.78);
+  line-height: 1.5;
+}
+
+.menu-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.menu-card {
+  padding: 20px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.menu-card-header {
+  margin-bottom: 16px;
+}
+
+.menu-card-header h2 {
+  margin-bottom: 6px;
+}
+
+.menu-card-header p {
+  color: rgba(245, 241, 232, 0.72);
+  line-height: 1.45;
+}
+
+.character-options,
+.time-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.menu-option {
+  min-width: 120px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.menu-option:hover,
+.menu-option:focus-visible {
+  transform: translateY(-1px);
+  border-color: rgba(255, 209, 102, 0.7);
+}
+
+.menu-option.active {
+  background: rgba(255, 209, 102, 0.16);
+  border-color: #ffd166;
+}
+
+.menu-option strong,
+.menu-option span {
+  display: block;
+}
+
+.menu-option span {
+  margin-top: 4px;
+  color: rgba(245, 241, 232, 0.72);
+  font-size: 13px;
+}
+
+.character-preview {
+  margin-top: 18px;
+  padding: 16px;
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.character-preview-figure {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.character-preview-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.2);
+}
+
+.character-preview-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.character-preview-stats div {
+  padding: 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.character-preview-stats strong,
+.character-preview-stats span {
+  display: block;
+}
+
+.character-preview-stats span {
+  margin-top: 4px;
+  color: rgba(245, 241, 232, 0.78);
+}
+
+.primary-menu-button {
+  padding: 14px 22px;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ffd166, #f08a24);
+  color: #17232d;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.primary-menu-button:hover,
+.primary-menu-button:focus-visible {
+  filter: brightness(1.05);
+}
+
+.menu-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.secondary-menu-button {
+  padding: 14px 22px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #f5f1e8;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.secondary-menu-button:hover,
+.secondary-menu-button:focus-visible {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.start-menu.game-over-mode .menu-kicker {
+  color: #ff8a73;
+}
+
+.minimap-frame {
+  position: absolute;
+  top: 92px;
+  right: 10px;
+  z-index: 5;
+  width: 160px;
+  height: 160px;
+  padding: 8px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(8, 17, 24, 0.7);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.28);
+  cursor: pointer;
+}
+
+.time-of-day-label {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.35);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+#minimapCanvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border-radius: 12px;
+}
+
+.ui-container {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  pointer-events: none;
+}
+
+.apple-counter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sledgehammer-indicator {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: rgba(12, 18, 22, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+}
+
+.sledgehammer-indicator.active {
+  display: flex;
+}
+
+.sledgehammer-icon {
+  position: relative;
+  width: 14px;
+  height: 14px;
+}
+
+.sledgehammer-icon::before,
+.sledgehammer-icon::after {
+  content: "";
+  position: absolute;
+  display: block;
+}
+
+.sledgehammer-icon::before {
+  left: 6px;
+  top: 2px;
+  width: 3px;
+  height: 11px;
+  border-radius: 2px;
+  background: #8b5a2b;
+}
+
+.sledgehammer-icon::after {
+  left: 1px;
+  top: 0;
+  width: 12px;
+  height: 4px;
+  border-radius: 2px;
+  background: #b4bcc1;
+}
+
+.apple-icon {
+  width: 20px;
+  height: 20px;
+  background-color: #e74c3c;
+  border-radius: 50%;
+  position: relative;
+}
+
+.apple-icon::after {
+  content: "";
+  position: absolute;
+  top: -5px;
+  left: 8px;
+  width: 4px;
+  height: 8px;
+  background-color: #27ae60;
+  border-radius: 2px;
+}
+
+#appleCount {
+  color: white;
+  font-weight: bold;
+  font-size: 18px;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+/* Mobile Controls */
+.mobile-controls {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 200px;
+  pointer-events: none;
+  display: none; /* Hidden by default, shown on mobile */
+}
+
+.joystick-container {
+  position: absolute;
+  bottom: 30px;
+  left: 30px;
+  width: 120px;
+  height: 120px;
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 50%;
+  pointer-events: auto;
+}
+
+.joystick-knob {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 50px;
+  height: 50px;
+  background-color: rgba(255, 255, 255, 0.5);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.action-buttons {
+  position: absolute;
+  bottom: 30px;
+  right: 30px;
+  display: flex;
+  gap: 20px;
+  pointer-events: auto;
+}
+
+.action-button {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 24px;
+  font-weight: bold;
+  color: white;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+  user-select: none;
+}
+
+.button-a {
+  background-color: rgba(52, 152, 219, 0.7);
+}
+
+.button-b {
+  background-color: rgba(231, 76, 60, 0.7);
+}
+
+.button-active {
+  transform: scale(0.9);
+}
+
+/* Portrait mode warning */
+.portrait-warning {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.9);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  display: none;
+}
+
+.portrait-warning-content {
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+  max-width: 80%;
+}
+
+.portrait-warning-content h2 {
+  margin-bottom: 10px;
+  color: #e74c3c;
+}
+
+.portrait-warning-content p {
+  margin-bottom: 20px;
+}
+
+.portrait-warning-content button {
+  background-color: #3498db;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+#timer {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 24px;
+  color: #ffffff;
+  background-color: rgba(0, 0, 0, 0.5);
+  padding: 5px 10px;
+  border-radius: 5px;
+}
+
+.kill-counter {
+  position: absolute;
+  top: 50px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: rgba(0, 0, 0, 0.5);
+  padding: 5px 10px;
+  border-radius: 5px;
+}
+
+.skull-icon {
+  width: 20px;
+  height: 20px;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="1"></circle><circle cx="15" cy="12" r="1"></circle><path d="M8 20v2h8v-2"></path><path d="M12.5 17l-.5-1-.5 1h1z"></path><path d="M16 20a2 2 0 0 0 1.56-3.25 8 8 0 1 0-11.12 0A2 2 0 0 0 8 20"></path></svg>');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
+
+#killCount {
+  color: white;
+  font-weight: bold;
+  font-size: 18px;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+@media (max-width: 768px) {
+  .start-menu {
+    padding: 14px;
+  }
+
+  .start-menu-panel {
+    padding: 20px;
+    border-radius: 18px;
+  }
+
+  .menu-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .character-preview-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .menu-actions {
+    flex-direction: column;
+  }
+
+  .primary-menu-button,
+  .secondary-menu-button {
+    width: 100%;
+  }
+
+  .minimap-frame {
+    top: 86px;
+    width: 104px;
+    height: 104px;
+    padding: 6px;
+    border-radius: 14px;
+  }
+
+  .time-of-day-label {
+    top: 6px;
+    padding: 3px 7px;
+    font-size: 9px;
+  }
+}

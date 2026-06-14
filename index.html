@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Top-Down Adventure</title>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="game-container">
+  <canvas id="gameCanvas"></canvas>
+  <div id="startMenu" class="start-menu active">
+    <div class="start-menu-panel">
+      <div class="menu-copy">
+        <p class="menu-kicker">Top-Down Survival</p>
+        <h1 id="menuTitle">Start Expedition</h1>
+        <p id="menuDescription" class="menu-description">Pick your starting loadout and time of day. The menu is structured so new characters and options can be added here later without changing the game bootstrap.</p>
+      </div>
+
+      <div class="menu-grid">
+        <section class="menu-card">
+          <div class="menu-card-header">
+            <h2>Character</h2>
+            <p>Choose a skin and preview the base stats.</p>
+          </div>
+          <div id="characterOptions" class="character-options"></div>
+          <div id="characterPreview" class="character-preview"></div>
+        </section>
+
+        <section class="menu-card">
+          <div class="menu-card-header">
+            <h2>Start Time</h2>
+            <p>Select a lighting preset so dawn, day, dusk, and night are easy to test.</p>
+          </div>
+          <div id="timeOptions" class="time-options"></div>
+        </section>
+      </div>
+
+      <div class="menu-actions">
+        <button id="resumeGameButton" class="primary-menu-button">Resume Game</button>
+        <button id="newGameButton" class="secondary-menu-button">Start New Game</button>
+      </div>
+    </div>
+  </div>
+  <div class="ui-container">
+    <div class="apple-counter">
+      <div class="apple-icon"></div>
+      <div id="appleCount">0</div>
+      <div id="sledgehammerIndicator" class="sledgehammer-indicator" aria-label="Sledgehammer equipped">
+        <div class="sledgehammer-icon"></div>
+      </div>
+    </div>
+  </div>
+  <div id="timer">00:00</div>
+  <div class="kill-counter">
+    <div class="skull-icon"></div>
+    <div id="killCount">0</div>
+  </div>
+  <div class="minimap-frame" aria-label="Realtime minimap">
+    <div id="timeOfDayLabel" class="time-of-day-label">Day</div>
+    <canvas id="minimapCanvas"></canvas>
+  </div>
+  <div class="mobile-controls">
+    <div class="joystick-container">
+      <div class="joystick-knob"></div>
+    </div>
+    <div class="action-buttons">
+      <div class="action-button button-a">A</div>
+      <div class="action-button button-b">B</div>
+    </div>
+  </div>
+  
+  <div class="portrait-warning">
+    <div class="portrait-warning-content">
+      <h2>Rotate Your Device</h2>
+      <p>Please rotate your device to portrait mode for the best gaming experience.</p>
+      <button id="dismissWarning">Continue Anyway</button>
+    </div>
+  </div>
+</div>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
