@@ -6,6 +6,7 @@ import { createShadow, roundRect } from "../utils/rendering-utils.js"
 import { isPlayerPositionClear, movePlayerToNearestSafePosition } from "../utils/player-position-utils.js"
 import { createExplosion } from "./explosions.js"
 import { getRandomColor } from "../utils/color-utils.js"
+import { isSpawnPositionClear } from "../utils/spawn-utils.js"
 
 // Generate bombs
 export function generateBombs(count) {
@@ -21,15 +22,11 @@ export function generateBombs(count) {
       exploding: false,
     }
 
-    // Ensure bomb is not on water
-    const tileX = Math.floor(bomb.x / TILE_SIZE)
-    const tileY = Math.floor(bomb.y / TILE_SIZE)
     if (
-      tileX >= 0 &&
-      tileX < terrain[0].length &&
-      tileY >= 0 &&
-      tileY < terrain.length &&
-      terrain[tileY][tileX] !== 0 // TERRAIN_TYPES.WATER
+      isSpawnPositionClear(bomb.x, bomb.y, bomb.size, {
+        requireLand: true,
+        playerDistanceBuffer: 120,
+      })
     ) {
       bombs.push(bomb)
     } else {

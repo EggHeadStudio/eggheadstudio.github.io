@@ -5,6 +5,7 @@ import { getDistance } from "../utils/math-utils.js"
 import { isPlayerPositionClear, movePlayerToNearestSafePosition } from "../utils/player-position-utils.js"
 import { createShadow } from "../utils/rendering-utils.js"
 import { createSnapEffect } from "../entities/wooden-boxes.js"
+import { isSpawnPositionClear } from "../utils/spawn-utils.js"
 
 const HAMMER_ROCK_SIZE_SCALE = 0.88
 
@@ -23,66 +24,10 @@ export function generateRocks(count) {
       type: "rock", // Identify this as a rock for roof detection
     }
 
-    // Ensure rock is not on water and not overlapping with other objects
-    const tileX = Math.floor(rock.x / TILE_SIZE)
-    const tileY = Math.floor(rock.y / TILE_SIZE)
-
-    let validPosition = false
-    if (
-      tileX >= 0 &&
-      tileX < terrain[0].length &&
-      tileY >= 0 &&
-      tileY < terrain.length &&
-      terrain[tileY][tileX] !== 0 // TERRAIN_TYPES.WATER
-    ) {
-      // Check for overlap with other rocks
-      validPosition = true
-      for (const otherRock of rocks) {
-        if (getDistance(rock.x, rock.y, otherRock.x, otherRock.y) < rock.size + otherRock.size) {
-          validPosition = false
-          break
-        }
-      }
-
-      // Check for overlap with bombs
-      if (validPosition) {
-        for (const bomb of bombs) {
-          if (getDistance(rock.x, rock.y, bomb.x, bomb.y) < rock.size + bomb.size) {
-            validPosition = false
-            break
-          }
-        }
-      }
-
-      // Check for overlap with apples
-      if (validPosition) {
-        for (const apple of apples) {
-          if (getDistance(rock.x, rock.y, apple.x, apple.y) < rock.size + apple.size * 2) {
-            validPosition = false
-            break
-          }
-        }
-      }
-
-      // Check for overlap with enemies
-      if (validPosition) {
-        for (const enemy of enemies) {
-          if (getDistance(rock.x, rock.y, enemy.x, enemy.y) < rock.size + enemy.size * 2) {
-            validPosition = false
-            break
-          }
-        }
-      }
-
-      // Check if too close to player
-      if (validPosition) {
-        if (getDistance(rock.x, rock.y, player.x, player.y) < rock.size + player.size + 100) {
-          validPosition = false
-        }
-      }
-    } else {
-      validPosition = false
-    }
+    const validPosition = isSpawnPositionClear(rock.x, rock.y, rock.size, {
+      requireLand: true,
+      playerDistanceBuffer: 100,
+    })
 
     if (validPosition) {
       rocks.push(rock)

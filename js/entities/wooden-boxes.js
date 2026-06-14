@@ -11,6 +11,7 @@ import { getDistance } from "../utils/math-utils.js"
 import { isPlayerPositionClear, movePlayerToNearestSafePosition } from "../utils/player-position-utils.js"
 import { createShadow } from "../utils/rendering-utils.js"
 import { applyKnockbackToEnemy } from "../entities/enemies.js"
+import { isLandPosition, isSpawnPositionClear, isWaterPosition } from "../utils/spawn-utils.js"
 
 // Roof system for wooden boxes and rocks
 let roofAreas = [] // Store detected roof areas
@@ -29,61 +30,13 @@ export function generateWoodenBoxes(count) {
     const tileX = Math.floor(woodenBox.x / TILE_SIZE)
     const tileY = Math.floor(woodenBox.y / TILE_SIZE)
 
-    let validPosition = true
-
-    // Ensure box is not on invalid terrain (outside map) and not too close to player
-    if (
-      tileX < 0 ||
-      tileX >= terrain[0].length ||
-      tileY < 0 ||
-      tileY >= terrain.length ||
-      getDistance(woodenBox.x, woodenBox.y, player.x, player.y) < woodenBox.size + player.size + 100
-    ) {
-      validPosition = false
-    }
-
-    // Check for overlap with other objects (only if not in water)
-    if (validPosition && terrain[tileY][tileX] !== 0) {
-      // Not water
-      // Check overlap with other wooden boxes
-      for (const otherBox of woodenBoxes) {
-        if (getDistance(woodenBox.x, woodenBox.y, otherBox.x, otherBox.y) < woodenBox.size + otherBox.size) {
-          validPosition = false
-          break
-        }
-      }
-
-      // Check overlap with rocks
-      if (validPosition) {
-        for (const rock of rocks) {
-          if (getDistance(woodenBox.x, woodenBox.y, rock.x, rock.y) < woodenBox.size + rock.size) {
-            validPosition = false
-            break
-          }
-        }
-      }
-
-      // Check overlap with bombs
-      if (validPosition) {
-        for (const bomb of bombs) {
-          if (getDistance(woodenBox.x, woodenBox.y, bomb.x, bomb.x) < woodenBox.size + bomb.size) {
-            validPosition = false
-            break
-          }
-        }
-      }
-    }
+    const validPosition = isSpawnPositionClear(woodenBox.x, woodenBox.y, woodenBox.size, {
+      playerDistanceBuffer: 100,
+    })
 
     if (validPosition) {
       // Set floating state if on water
-      if (
-        tileX >= 0 &&
-        tileX < terrain[0].length &&
-        tileY >= 0 &&
-        tileY < terrain.length &&
-        terrain[tileY][tileX] === 0
-      ) {
-        // TERRAIN_TYPES.WATER
+      if (isWaterPosition(woodenBox.x, woodenBox.y)) {
         woodenBox.isFloating = true
         woodenBox.floatAngle = Math.random() * Math.PI * 2
       }

@@ -2,12 +2,32 @@
 import { gameState } from "../core/game-state.js"
 import {
   ENEMY_SIZE,
-  ENEMY_SPEED,
-  ENEMY_CHASE_SPEED,
-  ENEMY_SWIM_SPEED,
   TILE_SIZE,
   ENEMY_SPAWN_INTERVAL,
-  ENEMY_SPAWN_BATCH,
+  ENEMY_SPAWN_BATCH_RED,
+  ENEMY_SPAWN_BATCH_YELLOW,
+  ENEMY_SPAWN_BATCH_BLACK,
+  ENEMY_RED_COLOR,
+  ENEMY_RED_SIZE,
+  ENEMY_RED_HEALTH,
+  ENEMY_RED_SPEED,
+  ENEMY_RED_CHASE_SPEED,
+  ENEMY_RED_SWIM_SPEED,
+  ENEMY_YELLOW_COLOR,
+  ENEMY_YELLOW_SIZE,
+  ENEMY_YELLOW_HEALTH,
+  ENEMY_YELLOW_SPEED,
+  ENEMY_YELLOW_CHASE_SPEED,
+  ENEMY_YELLOW_SWIM_SPEED,
+  ENEMY_BLACK_COLOR,
+  ENEMY_BLACK_SIZE,
+  ENEMY_BLACK_HEALTH,
+  ENEMY_BLACK_SPEED,
+  ENEMY_BLACK_CHASE_SPEED,
+  ENEMY_BLACK_SWIM_SPEED,
+  INITIAL_RED_ENEMY_COUNT,
+  INITIAL_YELLOW_ENEMY_COUNT,
+  INITIAL_BLACK_ENEMY_COUNT,
   TERRAIN_TYPES,
 } from "../core/constants.js"
 import { getDistance } from "../utils/math-utils.js"
@@ -16,12 +36,169 @@ import { damageWoodenBox } from "../entities/wooden-boxes.js"
 import { isUnderRoof } from "../entities/wooden-boxes.js"
 // Import the incrementKillCount function
 import { incrementKillCount } from "../ui/ui-manager.js"
+import { isSpawnPositionClear } from "../utils/spawn-utils.js"
+import { createDeathEffect } from "./death-effects.js"
 
 const ENEMY_MAX_HEALTH = 5
 const ENEMY_HIT_INVULNERABILITY = 180
 const ENEMY_FLOAT_SPEED = 0.42
 const ENEMY_FLOAT_BOB = 2.2
 const ENEMY_WAKE_LIFETIME = 320
+const ENEMY_CLEANUP_EFFECT_DURATION = 900
+
+const ENEMY_TYPE_CONFIG = {
+  red: {
+    color: ENEMY_RED_COLOR,
+    size: ENEMY_RED_SIZE,
+    health: ENEMY_RED_HEALTH,
+    speed: ENEMY_RED_SPEED,
+    chaseSpeed: ENEMY_RED_CHASE_SPEED,
+    swimSpeed: ENEMY_RED_SWIM_SPEED,
+  },
+  yellow: {
+    color: ENEMY_YELLOW_COLOR,
+    size: ENEMY_YELLOW_SIZE,
+    health: ENEMY_YELLOW_HEALTH,
+    speed: ENEMY_YELLOW_SPEED,
+    chaseSpeed: ENEMY_YELLOW_CHASE_SPEED,
+    swimSpeed: ENEMY_YELLOW_SWIM_SPEED,
+  },
+  black: {
+    color: ENEMY_BLACK_COLOR,
+    size: ENEMY_BLACK_SIZE,
+    health: ENEMY_BLACK_HEALTH,
+    speed: ENEMY_BLACK_SPEED,
+    chaseSpeed: ENEMY_BLACK_CHASE_SPEED,
+    swimSpeed: ENEMY_BLACK_SWIM_SPEED,
+  },
+}
+
+function isNightSpawnPhase(phase = gameState.dayNight?.currentPhase) {
+  return phase === "night"
+}
+
+export function getInitialEnemySpawnPlan(phase = gameState.dayNight?.currentPhase) {
+  return {
+    red: INITIAL_RED_ENEMY_COUNT,
+    yellow: INITIAL_YELLOW_ENEMY_COUNT,
+    black: isNightSpawnPhase(phase) ? INITIAL_BLACK_ENEMY_COUNT : 0,
+  }
+}
+
+function getAmbientEnemySpawnPlan(phase = gameState.dayNight?.currentPhase) {
+  return {
+    red: ENEMY_SPAWN_BATCH_RED,
+    yellow: ENEMY_SPAWN_BATCH_YELLOW,
+    black: isNightSpawnPhase(phase) ? ENEMY_SPAWN_BATCH_BLACK : 0,
+  }
+}
+
+function createEnemy(type, x, y) {
+  const config = ENEMY_TYPE_CONFIG[type]
+
+  return {
+    x,
+    y,
+    type,
+    size: config.size,
+    speed: config.speed,
+    chaseSpeed: config.chaseSpeed,
+    swimSpeed: config.swimSpeed,
+    direction: Math.random() * Math.PI * 2,
+    color: config.color,
+    health: config.health,
+    maxHealth: config.health,
+    lastHit: 0,
+    directionChangeTime: 0,
+    isChasing: false,
+    isBeingThrown: false,
+    throwStartTime: 0,
+    throwVelocityX: 0,
+    throwVelocityY: 0,
+    isKnockedBack: false,
+    knockbackTime: 0,
+    knockbackVelocityX: 0,
+    knockbackVelocityY: 0,
+    knockbackDuration: 300,
+    bruiseMarks: createEnemyBruiseMarks(),
+    floatAngle: Math.random() * Math.PI * 2,
+    floatOffset: 0,
+    foamTrail: [],
+    bowWaves: [],
+    isSwimming: false,
+  }
+}
+
+function spawnEnemyCleanupEffects(enemiesToClear) {
+  if (!enemiesToClear || enemiesToClear.length === 0) {
+    return
+  }
+
+  if (!gameState.enemyCleanupEffects) {
+    gameState.enemyCleanupEffects = []
+  }
+
+  const now = Date.now()
+  for (const enemy of enemiesToClear) {
+    gameState.enemyCleanupEffects.push({
+      x: enemy.x,
+      y: enemy.y,
+      size: enemy.size,
+      color: enemy.color,
+      createdAt: now,
+      duration: ENEMY_CLEANUP_EFFECT_DURATION,
+      driftX: (Math.random() - 0.5) * 0.7,
+      driftY: -0.35 - Math.random() * 0.45,
+    })
+  }
+}
+
+function drawEnemyCleanupEffects(ctx, camera) {
+  if (!gameState.enemyCleanupEffects || gameState.enemyCleanupEffects.length === 0) {
+    return
+  }
+
+  const now = Date.now()
+
+  for (let i = gameState.enemyCleanupEffects.length - 1; i >= 0; i--) {
+    const effect = gameState.enemyCleanupEffects[i]
+    const elapsed = now - effect.createdAt
+
+    if (elapsed >= effect.duration) {
+      gameState.enemyCleanupEffects.splice(i, 1)
+      continue
+    }
+
+    const progress = elapsed / effect.duration
+    const fade = 1 - progress
+    const screenX = effect.x - camera.x + effect.driftX * elapsed * 0.05
+    const screenY = effect.y - camera.y + effect.driftY * elapsed * 0.05
+    const radius = effect.size * (0.72 + progress * 0.9)
+
+    ctx.save()
+    ctx.globalAlpha = fade * 0.45
+    ctx.fillStyle = effect.color
+    ctx.beginPath()
+    ctx.arc(screenX, screenY, radius, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.globalAlpha = fade * 0.65
+    ctx.strokeStyle = "rgba(255, 244, 210, 0.95)"
+    ctx.lineWidth = Math.max(1, 3 * fade)
+    ctx.beginPath()
+    ctx.arc(screenX, screenY, radius * (1.08 + progress * 0.3), 0, Math.PI * 2)
+    ctx.stroke()
+    ctx.restore()
+  }
+}
+
+export function spawnImmediateNightBlackEnemies() {
+  const currentBlackCount = gameState.enemies.filter((enemy) => enemy.type === "black").length
+  const missingBlackCount = Math.max(0, INITIAL_BLACK_ENEMY_COUNT - currentBlackCount)
+
+  if (missingBlackCount > 0) {
+    generateEnemies({ black: missingBlackCount })
+  }
+}
 
 function findBrokenRaftForEnemy(enemy) {
   const { boats } = gameState
@@ -80,7 +257,7 @@ function drawEnemy(ctx, enemy, camera) {
     ctx.restore()
   }
 
-  ctx.fillStyle = enemy.isChasing ? "#ff3b30" : enemy.color
+  ctx.fillStyle = enemy.color
   ctx.beginPath()
   ctx.arc(screenX, screenY, enemy.size * (enemy.isSwimming ? 0.92 : 1), 0, Math.PI * 2)
   ctx.fill()
@@ -177,57 +354,46 @@ function drawEnemy(ctx, enemy, camera) {
 }
 
 // Generate enemies
-export function generateEnemies(count) {
-  const { terrain, enemies, player } = gameState
+export function generateEnemies(countOrPlan) {
+  const { terrain, enemies } = gameState
+  const spawnPlan = typeof countOrPlan === "number" ? { red: countOrPlan } : countOrPlan
 
-  for (let i = 0; i < count; i++) {
-    const enemy = {
-      x: Math.random() * (terrain[0].length * TILE_SIZE),
-      y: Math.random() * (terrain.length * TILE_SIZE),
-      size: ENEMY_SIZE,
-      speed: ENEMY_SPEED,
-      direction: Math.random() * Math.PI * 2,
-      color: "#e74c3c",
-      health: ENEMY_MAX_HEALTH,
-      maxHealth: ENEMY_MAX_HEALTH,
-      lastHit: 0,
-      directionChangeTime: 0,
-      isChasing: false,
-      isBeingThrown: false,
-      throwStartTime: 0,
-      throwVelocityX: 0,
-      throwVelocityY: 0,
-      // Add properties for collision animation
-      isKnockedBack: false,
-      knockbackTime: 0,
-      knockbackVelocityX: 0,
-      knockbackVelocityY: 0,
-      knockbackDuration: 300, // 300ms knockback duration
-      bruiseMarks: createEnemyBruiseMarks(),
-      floatAngle: Math.random() * Math.PI * 2,
-      floatOffset: 0,
-      foamTrail: [],
-      bowWaves: [],
-      isSwimming: false,
+  for (const [type, requestedCount] of Object.entries(spawnPlan)) {
+    const count = Math.max(0, requestedCount || 0)
+
+    for (let i = 0; i < count; i++) {
+      const enemy = createEnemy(
+        type,
+        Math.random() * (terrain[0].length * TILE_SIZE),
+        Math.random() * (terrain.length * TILE_SIZE),
+      )
+
+      if (
+        isSpawnPositionClear(enemy.x, enemy.y, enemy.size, {
+          requireLand: true,
+          playerDistanceBuffer: 300,
+        })
+      ) {
+        enemies.push(enemy)
+      } else {
+        i--
+      }
     }
+  }
+}
 
-    // Ensure enemy is not on water and not too close to player
-    const tileX = Math.floor(enemy.x / TILE_SIZE)
-    const tileY = Math.floor(enemy.y / TILE_SIZE)
-    const distanceToPlayer = getDistance(player.x, player.y, enemy.x, enemy.y)
+export function clearAllEnemies(options = {}) {
+  const { spawnCleanupEffects = false } = options
 
-    if (
-      tileX >= 0 &&
-      tileX < terrain[0].length &&
-      tileY >= 0 &&
-      tileY < terrain.length &&
-      terrain[tileY][tileX] !== 0 && // TERRAIN_TYPES.WATER
-      distanceToPlayer > 300
-    ) {
-      enemies.push(enemy)
-    } else {
-      i-- // Try again
-    }
+  if (spawnCleanupEffects) {
+    spawnEnemyCleanupEffects(gameState.enemies)
+  }
+
+  gameState.enemies = []
+
+  if (gameState.grabbedEnemy) {
+    gameState.grabbedEnemy = null
+    gameState.isGrabbing = false
   }
 }
 
@@ -235,11 +401,9 @@ export function generateEnemies(count) {
 export function tryGrabEnemy() {
   const { player, enemies } = gameState
 
-  // Define a larger grab distance (1.5x the normal collision distance)
-  const grabDistance = (player.size + ENEMY_SIZE) * 1.5
-
   for (let i = 0; i < enemies.length; i++) {
     const enemy = enemies[i]
+    const grabDistance = (player.size + enemy.size) * 1.5
     const distance = getDistance(player.x, player.y, enemy.x, enemy.y)
 
     // Use the larger grab distance instead of the collision distance
@@ -290,7 +454,7 @@ export function spawnEnemies() {
   const currentTime = Date.now()
 
   if (currentTime - gameState.lastEnemySpawnTime > ENEMY_SPAWN_INTERVAL) {
-    generateEnemies(ENEMY_SPAWN_BATCH)
+    generateEnemies(getAmbientEnemySpawnPlan())
     gameState.lastEnemySpawnTime = currentTime
   }
 }
@@ -308,7 +472,7 @@ export function applyKnockbackToEnemy(enemy, sourceX, sourceY, force = 5) {
 }
 
 export function damageEnemy(enemy, amount = 1, options = {}) {
-  if (!enemy) {
+  if (!enemy || enemy.health <= 0) {
     return false
   }
 
@@ -323,11 +487,25 @@ export function damageEnemy(enemy, amount = 1, options = {}) {
   enemy.lastHit = currentTime
 
   if (enemy.health <= 0) {
+    createDeathEffect({
+      x: enemy.x,
+      y: enemy.y,
+      size: enemy.size,
+      sourceVelocityX: enemy.isBeingThrown ? enemy.throwVelocityX : enemy.knockbackVelocityX,
+      sourceVelocityY: enemy.isBeingThrown ? enemy.throwVelocityY : enemy.knockbackVelocityY,
+    })
+
     const enemyIndex = gameState.enemies.indexOf(enemy)
     if (enemyIndex !== -1) {
       gameState.enemies.splice(enemyIndex, 1)
-      incrementKillCount()
     }
+
+    if (gameState.grabbedEnemy === enemy) {
+      gameState.grabbedEnemy = null
+      gameState.isGrabbing = false
+    }
+
+    incrementKillCount()
   }
 
   return true
@@ -784,7 +962,7 @@ export function updateEnemyMovement(enemy, canSeePlayer) {
       playerTileY < terrain.length &&
       terrain[playerTileY][playerTileX] === TERRAIN_TYPES.WATER
 
-    const chaseSpeed = isChasingBoatOnWater ? ENEMY_SWIM_SPEED : ENEMY_CHASE_SPEED
+    const chaseSpeed = isChasingBoatOnWater ? enemy.swimSpeed : enemy.chaseSpeed
     enemy.isSwimming = isChasingBoatOnWater
     const moveEnemyAtAngle = (angle) => {
       const targetX = enemy.x + Math.cos(angle) * chaseSpeed
@@ -924,6 +1102,8 @@ export function updateEnemyMovement(enemy, canSeePlayer) {
 // Draw and update enemies
 export function drawAndUpdateEnemies() {
   const { enemies, camera, ctx, canvas, player, gameOver } = gameState
+
+  drawEnemyCleanupEffects(ctx, camera)
 
   for (let i = 0; i < enemies.length; i++) {
     const enemy = enemies[i]

@@ -3,6 +3,7 @@ import { gameState } from "../core/game-state.js"
 import { getDistance } from "../utils/math-utils.js"
 import { TILE_SIZE, TERRAIN_TYPES, CAR_COUNT } from "../core/constants.js"
 import { findNearestSafePlayerPosition } from "../utils/player-position-utils.js"
+import { isSpawnPositionClear } from "../utils/spawn-utils.js"
 
 // Car constants
 export const CAR_SIZE = 65
@@ -14,8 +15,9 @@ export const CAR_INTERACTION_RANGE = 80
 export const CAR_MAX_HEALTH = 3
 
 // Generate initial cars
-export function generateCars(count, spawnNearPlayer = false) {
-  const { canvas, terrain, player, rocks, woodenBoxes, bombs } = gameState
+export function generateCars(count, spawnNearPlayer = false, options = {}) {
+  const { terrain, player, rocks, woodenBoxes, bombs } = gameState
+  const { ignoreLimit = false } = options
   
   // Initialize cars array if it doesn't exist
   if (!gameState.cars) {
@@ -23,12 +25,12 @@ export function generateCars(count, spawnNearPlayer = false) {
   }
 
   // If we already have the maximum number of cars, don't spawn more
-  if (gameState.cars.length >= CAR_COUNT) {
+  if (!ignoreLimit && gameState.cars.length >= CAR_COUNT) {
     return;
   }
 
   // Calculate how many cars to actually spawn based on the limit
-  const carsToSpawn = Math.min(count, CAR_COUNT - gameState.cars.length);
+  const carsToSpawn = ignoreLimit ? count : Math.min(count, CAR_COUNT - gameState.cars.length);
   
   // Handle spawning a car near the player if requested
   if (spawnNearPlayer && player && carsToSpawn > 0) {
@@ -89,8 +91,8 @@ export function generateCars(count, spawnNearPlayer = false) {
       attempts++;
       
       // Random position within a larger world area
-      x = Math.random() * canvas.width * 4;
-      y = Math.random() * canvas.height * 4;
+      x = Math.random() * (terrain[0].length * TILE_SIZE);
+      y = Math.random() * (terrain.length * TILE_SIZE);
       
       tileX = Math.floor(x / TILE_SIZE);
       tileY = Math.floor(y / TILE_SIZE);
@@ -129,6 +131,15 @@ function isValidCarPosition(x, y, tileX, tileY, terrain, rocks, woodenBoxes, bom
   
   // Check terrain (must be on grass or dirt)
   if (terrain[tileY][tileX] !== TERRAIN_TYPES.GRASS && terrain[tileY][tileX] !== TERRAIN_TYPES.DIRT) {
+    return false;
+  }
+
+  if (!isSpawnPositionClear(x, y, CAR_SIZE, {
+    requireLand: true,
+    playerDistanceBuffer: 180,
+    includeCars: false,
+    includeBoats: false,
+  })) {
     return false;
   }
   

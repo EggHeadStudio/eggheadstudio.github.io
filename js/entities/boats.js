@@ -15,18 +15,20 @@ import {
 import { getDistance } from "../utils/math-utils.js"
 import { findNearestSafePlayerPosition } from "../utils/player-position-utils.js"
 import { triggerGameOver } from "../core/game.js"
+import { isSpawnPositionClear, isWaterPosition } from "../utils/spawn-utils.js"
 
 const BOAT_FLOAT_BOB = 2.5
 const BOAT_WAKE_LIFETIME = 420
 
-export function generateBoats(count) {
+export function generateBoats(count, options = {}) {
   const { terrain, player } = gameState
+  const { ignoreLimit = false } = options
 
   if (!gameState.boats) {
     gameState.boats = []
   }
 
-  const boatsToSpawn = Math.min(count, BOAT_COUNT - gameState.boats.length)
+  const boatsToSpawn = ignoreLimit ? count : Math.min(count, BOAT_COUNT - gameState.boats.length)
 
   for (let i = 0; i < boatsToSpawn; i++) {
     let placed = false
@@ -41,12 +43,14 @@ export function generateBoats(count) {
       const tileY = Math.floor(y / TILE_SIZE)
 
       if (
-        tileX < 0 ||
-        tileX >= terrain[0].length ||
-        tileY < 0 ||
-        tileY >= terrain.length ||
-        terrain[tileY][tileX] !== TERRAIN_TYPES.WATER ||
-        getDistance(x, y, player.x, player.y) < 260
+        !isSpawnPositionClear(x, y, BOAT_SIZE, {
+          requireWater: true,
+          playerDistanceBuffer: 260,
+          includeBombs: false,
+          includeApples: false,
+          includeRocks: false,
+          includeEnemies: false,
+        })
       ) {
         continue
       }
@@ -85,9 +89,7 @@ function getBoatCollisionRadius(boat) {
 }
 
 function isInsideWorldWater(x, y) {
-  const tileX = Math.floor(x / TILE_SIZE)
-  const tileY = Math.floor(y / TILE_SIZE)
-  return isWaterTile(tileX, tileY)
+  return isWaterPosition(x, y)
 }
 
 function canBoxMoveTo(box, x, y, pushingBoat) {

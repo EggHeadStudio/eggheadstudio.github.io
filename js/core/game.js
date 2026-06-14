@@ -9,7 +9,6 @@ import {
   WORLD_MAP_SIZE,
   MOBILE_VIEWPORT_SCALE,
   INITIAL_BOMB_COUNT,
-  INITIAL_ENEMY_COUNT,
   INITIAL_APPLE_COUNT,
 } from "./constants.js"
 import { setupEventListeners } from "../input/input-handler.js"
@@ -17,7 +16,7 @@ import { detectMobile, setupMobileControls } from "../input/mobile-controls.js"
 import { generateTerrain } from "../terrain/terrain-generator.js"
 import { generateBombs } from "../entities/bombs.js"
 import { generateRocks } from "../entities/rocks.js"
-import { generateEnemies } from "../entities/enemies.js"
+import { generateEnemies, getInitialEnemySpawnPlan } from "../entities/enemies.js"
 import { generateApples } from "../entities/apples.js"
 import { generateSledgehammers } from "../entities/sledgehammers.js"
 import { generateWoodenBoxes } from "../entities/wooden-boxes.js" // Import wooden boxes generator
@@ -27,6 +26,7 @@ import { updateTimer } from "../ui/ui-manager.js"
 import { update } from "./game-loop.js"
 import { gameState } from "./game-state.js"
 import { createCharacter } from "../entities/character-factory.js"
+import { beginPlayerDeathSequence, PLAYER_DEATH_MENU_DELAY } from "../entities/player.js"
 import { initializeDayNightCycle } from "./day-night-cycle.js"
 import { resetHud, setHudVisibility, updateKillCounter } from "../ui/ui-manager.js"
 import { showGameOverMenu } from "../ui/start-menu.js"
@@ -65,10 +65,16 @@ function normalizeGameConfig(config = {}) {
 export function init(config = gameState.startupConfig) {
   const normalizedConfig = normalizeGameConfig(config)
 
+  if (gameState.gameOverTimeoutId) {
+    clearTimeout(gameState.gameOverTimeoutId)
+    gameState.gameOverTimeoutId = null
+  }
+
   // Reset all game state
   gameState.isStarted = true
   gameState.isPaused = false
   gameState.gameOver = false
+  gameState.pendingGameOver = false
   gameState.pauseStartedAt = 0
   gameState.menuMode = "play"
   gameState.isGrabbing = false
@@ -85,10 +91,12 @@ export function init(config = gameState.startupConfig) {
   gameState.sledgehammers = []
   gameState.thrownApples = []
   gameState.explosions = []
+  gameState.deathEffects = []
   gameState.rocks = []
   gameState.woodenBoxes = [] // Initialize wooden boxes array
   gameState.cars = [] // Initialize cars array
   gameState.boats = []
+  gameState.enemyCleanupEffects = []
   gameState.boxDestructionEffects = [] // Initialize box destruction effects
   gameState.waterDrips = [] // Initialize water drips for floating boxes
   gameState.keys = {}
@@ -152,7 +160,7 @@ export function init(config = gameState.startupConfig) {
   generateRocks(ROCK_COUNT)
 
   // Generate initial enemies
-  generateEnemies(INITIAL_ENEMY_COUNT)
+  generateEnemies(getInitialEnemySpawnPlan(normalizedConfig.startPhase))
 
   // Generate initial apples
   generateApples(INITIAL_APPLE_COUNT, { spawnNearPlayer: false })
@@ -241,7 +249,40 @@ export function triggerGameOver() {
     return
   }
 
+  if (gameState.player?.health <= 0) {
+    beginPlayerDeathSequence()
+
+    if (gameState.pendingGameOver) {
+      return
+    }
+
+    gameState.pendingGameOver = true
+    gameState.keys = {}
+    gameState.joystickActive = false
+    gameState.joystickDistance = 0
+    gameState.buttonAActive = false
+    gameState.buttonBActive = false
+    gameState.gameOverTimeoutId = setTimeout(() => {
+      if (!gameState.isStarted || gameState.gameOver) {
+        return
+      }
+
+      finalizeGameOver()
+    }, PLAYER_DEATH_MENU_DELAY)
+    return
+  }
+
+  finalizeGameOver()
+}
+
+function finalizeGameOver() {
+  if (gameState.gameOver) {
+    return
+  }
+
   gameState.gameOver = true
+  gameState.pendingGameOver = false
+  gameState.gameOverTimeoutId = null
   gameState.isPaused = true
   gameState.pauseStartedAt = 0
   gameState.menuMode = "gameover"

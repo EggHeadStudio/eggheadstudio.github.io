@@ -1,4 +1,6 @@
 import { gameState } from "./game-state.js"
+import { refreshWorldForNewDay } from "./game-maintenance.js"
+import { spawnImmediateNightBlackEnemies } from "../entities/enemies.js"
 
 const TRANSITION_DURATION = 30 * 1000
 
@@ -94,6 +96,7 @@ export function updateDayNightCycle() {
   }
 
   const elapsed = (Date.now() - gameState.dayNight.cycleStartTime) % TOTAL_CYCLE_DURATION
+  const previousPhase = gameState.dayNight.currentPhase
   let offset = 0
 
   for (const segment of PHASE_SEGMENTS) {
@@ -107,6 +110,14 @@ export function updateDayNightCycle() {
       gameState.dayNight.phaseProgress = progress
       gameState.dayNight.displayLabel = segment.label
       gameState.dayNight.lighting = lightingState
+
+      if (previousPhase && previousPhase !== segment.key && segment.key === "duskToNight") {
+        spawnImmediateNightBlackEnemies()
+      }
+
+      if (previousPhase && previousPhase !== segment.key && segment.key === "dawnToDay") {
+        refreshWorldForNewDay()
+      }
 
       updateTimeOfDayLabel(segment.label)
       return

@@ -11,6 +11,7 @@ import { drawAndUpdateBoats } from "../entities/boats.js"
 import { drawAndUpdateApples, drawAndUpdateThrownApples } from "../entities/apples.js"
 import { drawAndUpdateSledgehammers } from "../entities/sledgehammers.js"
 import { drawAndUpdateBombs } from "../entities/bombs.js"
+import { drawAndUpdateDeathEffects } from "../entities/death-effects.js"
 import { drawAndUpdateExplosions } from "../entities/explosions.js"
 import { drawPlayer } from "../entities/player.js"
 import { drawDayNightOverlay, updateDayNightCycle } from "./day-night-cycle.js"
@@ -20,6 +21,7 @@ import { drawMinimap } from "../ui/minimap.js"
 // Main game update loop
 export function update() {
   const { canvas, ctx, gameOver } = gameState
+  const isPlayerDying = Boolean(gameState.player?.isDying)
 
   // Clear canvas
   ctx.clearRect(0, 0, canvas.width, canvas.height)
@@ -35,17 +37,19 @@ export function update() {
     }
 
     // Update player direction based on mouse position
-    if (gameState.isMobile && gameState.joystickActive && gameState.joystickDistance > 0.1) {
-      gameState.player.direction = gameState.joystickAngle
-    } else {
-      gameState.player.direction = Math.atan2(
-        gameState.mousePosition.y - canvas.height / 2,
-        gameState.mousePosition.x - canvas.width / 2,
-      )
+    if (!isPlayerDying) {
+      if (gameState.isMobile && gameState.joystickActive && gameState.joystickDistance > 0.1) {
+        gameState.player.direction = gameState.joystickAngle
+      } else {
+        gameState.player.direction = Math.atan2(
+          gameState.mousePosition.y - canvas.height / 2,
+          gameState.mousePosition.x - canvas.width / 2,
+        )
+      }
     }
 
     // Update player position based on keyboard input (only if not in a car)
-    if (!gameState.isInCar) {
+    if (!gameState.isInCar && !isPlayerDying) {
       updatePlayerPosition()
     }
 
@@ -54,16 +58,24 @@ export function update() {
     gameState.camera.y = gameState.player.y - canvas.height / 2
 
     // Spawn new enemies
-    spawnEnemies()
+    if (!isPlayerDying) {
+      spawnEnemies()
+    }
 
     // Generate more apples as needed
-    maintainGameElements()
+    if (!isPlayerDying) {
+      maintainGameElements()
+    }
 
     // Check for collisions
-    checkCollisions()
+    if (!isPlayerDying) {
+      checkCollisions()
+    }
 
     // Regenerate health over time, faster when sheltered under a roof
-    updatePlayerHealing()
+    if (!isPlayerDying) {
+      updatePlayerHealing()
+    }
 
     // Update lighting state after camera and player state settle for the frame
     updateDayNightCycle()
@@ -71,6 +83,9 @@ export function update() {
 
   // Draw terrain
   drawTerrain()
+
+  // Draw blood pools and splatter before other world entities layer on top
+  drawAndUpdateDeathEffects()
 
   // Draw and update rocks
   drawAndUpdateRocks()

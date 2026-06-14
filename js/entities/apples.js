@@ -7,6 +7,7 @@ import { updateAppleCounter } from "../ui/ui-manager.js"
 import { damageWoodenBox } from "../entities/wooden-boxes.js"
 import { incrementKillCount } from "../ui/ui-manager.js"
 import { damageEnemy } from "./enemies.js"
+import { isSpawnPositionClear } from "../utils/spawn-utils.js"
 
 // Generate apples
 export function generateApples(count, options = {}) {
@@ -33,15 +34,11 @@ export function generateApples(count, options = {}) {
       apple.y = Math.random() * (terrain.length * TILE_SIZE)
     }
 
-    // Ensure apple is not on water
-    const tileX = Math.floor(apple.x / TILE_SIZE)
-    const tileY = Math.floor(apple.y / TILE_SIZE)
     if (
-      tileX >= 0 &&
-      tileX < terrain[0].length &&
-      tileY >= 0 &&
-      tileY < terrain.length &&
-      terrain[tileY][tileX] !== 0 // TERRAIN_TYPES.WATER
+      isSpawnPositionClear(apple.x, apple.y, apple.size, {
+        requireLand: true,
+        playerDistanceBuffer: spawnNearPlayer ? 0 : 90,
+      })
     ) {
       apples.push(apple)
     } else {

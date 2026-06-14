@@ -3,6 +3,7 @@ import { SLEDGEHAMMER_COUNT, SLEDGEHAMMER_SIZE, TILE_SIZE } from "../core/consta
 import { getDistance } from "../utils/math-utils.js"
 import { createShadow } from "../utils/rendering-utils.js"
 import { updateSledgehammerIndicator } from "../ui/ui-manager.js"
+import { isSpawnPositionClear } from "../utils/spawn-utils.js"
 
 export function generateSledgehammers(count = SLEDGEHAMMER_COUNT) {
   const { terrain, player, sledgehammers, rocks, woodenBoxes, bombs, cars } = gameState
@@ -25,33 +26,15 @@ export function generateSledgehammers(count = SLEDGEHAMMER_COUNT) {
       const tileY = Math.floor(hammer.y / TILE_SIZE)
 
       if (
-        tileX < 0 ||
-        tileX >= terrain[0].length ||
-        tileY < 0 ||
-        tileY >= terrain.length ||
-        terrain[tileY][tileX] === 0 ||
-        getDistance(hammer.x, hammer.y, player.x, player.y) < player.size + hammer.size + 180
+        !isSpawnPositionClear(hammer.x, hammer.y, hammer.size, {
+          requireLand: true,
+          playerDistanceBuffer: 180,
+        })
       ) {
         continue
       }
 
       if (sledgehammers.some((other) => getDistance(hammer.x, hammer.y, other.x, other.y) < hammer.size * 5)) {
-        continue
-      }
-
-      if (rocks.some((rock) => getDistance(hammer.x, hammer.y, rock.x, rock.y) < hammer.size + rock.size)) {
-        continue
-      }
-
-      if (woodenBoxes.some((box) => getDistance(hammer.x, hammer.y, box.x, box.y) < hammer.size + box.size)) {
-        continue
-      }
-
-      if (bombs.some((bomb) => getDistance(hammer.x, hammer.y, bomb.x, bomb.y) < hammer.size + bomb.size)) {
-        continue
-      }
-
-      if (cars.some((car) => getDistance(hammer.x, hammer.y, car.x, car.y) < hammer.size + car.size)) {
         continue
       }
 

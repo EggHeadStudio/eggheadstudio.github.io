@@ -11,6 +11,8 @@ export const gameState = {
   isStarted: false,
   isPaused: false,
   gameOver: false,
+  pendingGameOver: false,
+  gameOverTimeoutId: null,
   pauseStartedAt: 0,
   menuMode: "start",
   startTime: 0,
@@ -61,6 +63,7 @@ export const gameState = {
   sledgehammers: [],
   thrownApples: [],
   explosions: [],
+  deathEffects: [],
   rocks: [],
   woodenBoxes: [], // Added wooden boxes array
   boxDestructionEffects: [], // Added effects for box destruction

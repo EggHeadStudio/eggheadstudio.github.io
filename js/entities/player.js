@@ -5,6 +5,7 @@ import { getDistance } from "../utils/math-utils.js"
 import { createShadow } from "../utils/rendering-utils.js"
 import { applyKnockbackToEnemy, damageEnemy } from "../entities/enemies.js"
 import { damageWoodenBox, isUnderRoof } from "../entities/wooden-boxes.js"
+import { createDeathEffect, DEATH_EFFECT_DURATION } from "./death-effects.js"
 
 // Animation constants
 const HAND_SIZE = 11
@@ -19,10 +20,40 @@ const THROW_ANIMATION_DURATION = 200 // milliseconds
 // Add melee attack range
 const MELEE_ATTACK_RANGE = 60 // Distance from player center for melee attack
 
+export const PLAYER_DEATH_MENU_DELAY = DEATH_EFFECT_DURATION
+
+export function beginPlayerDeathSequence() {
+  const { player } = gameState
+
+  if (!player || player.isDying) {
+    return false
+  }
+
+  player.health = 0
+  player.isDying = true
+  player.deathStartedAt = Date.now()
+
+  createDeathEffect({
+    x: player.x,
+    y: player.y,
+    size: player.size * 1.15,
+  })
+
+  gameState.isGrabbing = false
+  gameState.grabbedBomb = null
+  gameState.grabbedRock = null
+  gameState.grabbedEnemy = null
+  gameState.grabbedWoodenBox = null
+  gameState.isInCar = false
+  gameState.drivingCar = null
+
+  return true
+}
+
 export function damagePlayer(amount = 1, options = {}) {
   const { player, gameOver } = gameState
 
-  if (!player || gameOver) {
+  if (!player || gameOver || player.isDying) {
     return false
   }
 
@@ -95,6 +126,10 @@ export function updatePlayerPosition() {
     joystickAngle,
     joystickDistance,
   } = gameState
+
+  if (!player || player.isDying) {
+    return
+  }
 
   let dx = 0
   let dy = 0
@@ -315,6 +350,13 @@ export function drawPlayer() {
   if (gameOver) {
     clearInterval(timerInterval) // Stop the timer when the game is over
     return // Don't draw player if game is over
+  }
+
+  if (player.isDying) {
+    if (gameState.hitEffects) {
+      drawHitEffects(ctx, camera)
+    }
+    return
   }
 
   // Calculate screen position
