@@ -275,7 +275,8 @@ function checkMeleeAttack() {
     const distance = getDistance(rightHandX, rightHandY, enemy.x, enemy.y)
 
     if (distance < HAND_SIZE + enemy.size) {
-      const didDamage = damageEnemy(enemy, 1)
+      const meleeDamage = Math.max(1, Math.round(player.strength || 1))
+      const didDamage = damageEnemy(enemy, meleeDamage)
 
       if (!didDamage) {
         return

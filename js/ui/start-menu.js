@@ -1,6 +1,11 @@
 import { createDefaultGameConfig, init, pauseCurrentGame, resumeCurrentGame } from "../core/game.js"
 import { gameState } from "../core/game-state.js"
-import { getCharacterTypeProperties, getSelectableCharacterTypes } from "../entities/character-factory.js"
+import {
+  CHARACTER_CUSTOMIZATION_RULES,
+  getCharacterTypeProperties,
+  getSelectableCharacterTypes,
+  normalizeCharacterCustomization,
+} from "../entities/character-factory.js"
 import { resetHud, setHudVisibility } from "./ui-manager.js"
 
 const TIME_OPTIONS = [
@@ -82,9 +87,14 @@ export function hideStartMenu() {
 }
 
 function syncMenuFromConfig(config) {
-  gameState.startupConfig = {
+  const mergedConfig = {
     ...createDefaultGameConfig(),
     ...config,
+  }
+
+  gameState.startupConfig = {
+    ...mergedConfig,
+    characterAttributes: normalizeCharacterCustomization(mergedConfig.characterAttributes, mergedConfig.characterType),
   }
 
   updateActiveOption("character", gameState.startupConfig.characterType)
@@ -192,6 +202,10 @@ function renderCharacterOptions() {
 
     button.addEventListener("click", () => {
       gameState.startupConfig.characterType = characterType
+      gameState.startupConfig.characterAttributes = normalizeCharacterCustomization(
+        gameState.startupConfig.characterAttributes,
+        characterType,
+      )
       updateActiveOption("character", characterType)
       renderCharacterPreview(characterType)
     })
@@ -226,31 +240,73 @@ function renderTimeOptions() {
 
 function renderCharacterPreview(characterType) {
   const preview = document.getElementById("characterPreview")
-  const properties = getCharacterTypeProperties(characterType)
+  const baseProperties = getCharacterTypeProperties(characterType)
+  const customProperties = normalizeCharacterCustomization(gameState.startupConfig.characterAttributes, characterType)
+  const properties = {
+    ...baseProperties,
+    ...customProperties,
+  }
+
+  gameState.startupConfig.characterAttributes = customProperties
 
   preview.innerHTML = `
     <div class="character-preview-figure">
       <div class="character-preview-avatar" style="background:${properties.color}"></div>
       <div>
         <strong>${formatLabel(characterType)}</strong>
-        <p>This panel is ready for more characters later. Right now it surfaces the existing default skin and its gameplay values.</p>
+        <p>Customize your character before starting. Values outside the allowed ranges are automatically corrected.</p>
       </div>
+    </div>
+    <div class="character-customization-controls">
+      <label class="customization-field color-field">
+        <span>Color</span>
+        <div class="color-control-group">
+          <input id="characterColorPicker" type="color" value="${toColorPickerValue(properties.color)}" aria-label="Character color picker">
+          <input id="characterColorInput" type="text" value="${escapeHtml(properties.color)}" placeholder="Any CSS color (name, hex, rgb)">
+        </div>
+      </label>
+
+      <label class="customization-field">
+        <span>Health (${CHARACTER_CUSTOMIZATION_RULES.health.min}-${CHARACTER_CUSTOMIZATION_RULES.health.max})</span>
+        <div class="stat-control-group">
+          <input id="characterHealthRange" type="range" min="${CHARACTER_CUSTOMIZATION_RULES.health.min}" max="${CHARACTER_CUSTOMIZATION_RULES.health.max}" step="1" value="${properties.health}">
+          <input id="characterHealthNumber" type="number" min="${CHARACTER_CUSTOMIZATION_RULES.health.min}" max="${CHARACTER_CUSTOMIZATION_RULES.health.max}" step="1" value="${properties.health}">
+        </div>
+      </label>
+
+      <label class="customization-field">
+        <span>Speed (${CHARACTER_CUSTOMIZATION_RULES.speed.min}-${CHARACTER_CUSTOMIZATION_RULES.speed.max})</span>
+        <div class="stat-control-group">
+          <input id="characterSpeedRange" type="range" min="${CHARACTER_CUSTOMIZATION_RULES.speed.min}" max="${CHARACTER_CUSTOMIZATION_RULES.speed.max}" step="1" value="${properties.speed}">
+          <input id="characterSpeedNumber" type="number" min="${CHARACTER_CUSTOMIZATION_RULES.speed.min}" max="${CHARACTER_CUSTOMIZATION_RULES.speed.max}" step="1" value="${properties.speed}">
+        </div>
+      </label>
+
+      <label class="customization-field">
+        <span>Strength (${CHARACTER_CUSTOMIZATION_RULES.strength.min}-${CHARACTER_CUSTOMIZATION_RULES.strength.max})</span>
+        <div class="stat-control-group">
+          <input id="characterStrengthRange" type="range" min="${CHARACTER_CUSTOMIZATION_RULES.strength.min}" max="${CHARACTER_CUSTOMIZATION_RULES.strength.max}" step="1" value="${properties.strength}">
+          <input id="characterStrengthNumber" type="number" min="${CHARACTER_CUSTOMIZATION_RULES.strength.min}" max="${CHARACTER_CUSTOMIZATION_RULES.strength.max}" step="1" value="${properties.strength}">
+        </div>
+      </label>
     </div>
     <div class="character-preview-stats">
       <div>
         <strong>Health</strong>
-        <span>${properties.health}</span>
+        <span id="characterHealthValue">${properties.health}</span>
       </div>
       <div>
         <strong>Speed</strong>
-        <span>${properties.speed.toFixed(1)}</span>
+        <span id="characterSpeedValue">${properties.speed.toFixed(1)}</span>
       </div>
       <div>
         <strong>Strength</strong>
-        <span>${properties.strength.toFixed(1)}</span>
+        <span id="characterStrengthValue">${properties.strength.toFixed(1)}</span>
       </div>
     </div>
   `
+
+  setupCharacterCustomizationControls(characterType)
 }
 
 function updateActiveOption(group, value) {
@@ -263,4 +319,113 @@ function updateActiveOption(group, value) {
 
 function formatLabel(value) {
   return value.charAt(0).toUpperCase() + value.slice(1)
+}
+
+function setupCharacterCustomizationControls(characterType) {
+  const colorPicker = document.getElementById("characterColorPicker")
+  const colorInput = document.getElementById("characterColorInput")
+
+  bindStatControl("health", "characterHealthRange", "characterHealthNumber", "characterHealthValue", characterType)
+  bindStatControl("speed", "characterSpeedRange", "characterSpeedNumber", "characterSpeedValue", characterType)
+  bindStatControl("strength", "characterStrengthRange", "characterStrengthNumber", "characterStrengthValue", characterType)
+
+  if (!colorPicker || !colorInput) {
+    return
+  }
+
+  colorPicker.addEventListener("input", () => {
+    updateCharacterAttributes({ color: colorPicker.value }, characterType)
+    colorInput.value = gameState.startupConfig.characterAttributes.color
+    updateCharacterPreviewVisuals()
+  })
+
+  const commitColorInput = () => {
+    updateCharacterAttributes({ color: colorInput.value }, characterType)
+    colorInput.value = gameState.startupConfig.characterAttributes.color
+    colorPicker.value = toColorPickerValue(gameState.startupConfig.characterAttributes.color)
+    updateCharacterPreviewVisuals()
+  }
+
+  colorInput.addEventListener("change", commitColorInput)
+  colorInput.addEventListener("blur", commitColorInput)
+}
+
+function bindStatControl(key, rangeId, numberId, valueId, characterType) {
+  const rangeInput = document.getElementById(rangeId)
+  const numberInput = document.getElementById(numberId)
+  const valueOutput = document.getElementById(valueId)
+
+  if (!rangeInput || !numberInput || !valueOutput) {
+    return
+  }
+
+  const updateStat = (nextValue) => {
+    updateCharacterAttributes({ [key]: nextValue }, characterType)
+    const resolvedValue = gameState.startupConfig.characterAttributes[key]
+    rangeInput.value = String(resolvedValue)
+    numberInput.value = String(resolvedValue)
+    valueOutput.textContent = key === "health" ? String(Math.round(resolvedValue)) : resolvedValue.toFixed(1)
+  }
+
+  rangeInput.addEventListener("input", () => {
+    updateStat(rangeInput.value)
+  })
+
+  numberInput.addEventListener("change", () => {
+    updateStat(numberInput.value)
+  })
+
+  numberInput.addEventListener("blur", () => {
+    updateStat(numberInput.value)
+  })
+}
+
+function updateCharacterAttributes(partialAttributes, characterType) {
+  const mergedAttributes = {
+    ...gameState.startupConfig.characterAttributes,
+    ...partialAttributes,
+  }
+
+  gameState.startupConfig.characterAttributes = normalizeCharacterCustomization(mergedAttributes, characterType)
+}
+
+function updateCharacterPreviewVisuals() {
+  const avatar = document.querySelector(".character-preview-avatar")
+  const attributes = gameState.startupConfig.characterAttributes
+
+  if (!avatar || !attributes) {
+    return
+  }
+
+  avatar.style.background = attributes.color
+}
+
+function toColorPickerValue(colorValue) {
+  const hexMatch = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(colorValue || "")
+
+  if (hexMatch) {
+    return normalizeHexColor(colorValue)
+  }
+
+  return "#3498db"
+}
+
+function normalizeHexColor(value) {
+  if (!value || value.length !== 4) {
+    return value
+  }
+
+  const r = value[1]
+  const g = value[2]
+  const b = value[3]
+  return `#${r}${r}${g}${g}${b}${b}`
+}
+
+function escapeHtml(value = "") {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;")
 }

@@ -25,7 +25,7 @@ import { generateBoats } from "../entities/boats.js"
 import { updateTimer } from "../ui/ui-manager.js"
 import { update } from "./game-loop.js"
 import { gameState } from "./game-state.js"
-import { createCharacter } from "../entities/character-factory.js"
+import { createCharacter, normalizeCharacterCustomization } from "../entities/character-factory.js"
 import { beginPlayerDeathSequence, PLAYER_DEATH_MENU_DELAY } from "../entities/player.js"
 import { initializeDayNightCycle } from "./day-night-cycle.js"
 import { resetHud, setHudVisibility, updateKillCounter } from "../ui/ui-manager.js"
@@ -49,15 +49,24 @@ const TIMESTAMP_KEYS = new Set([
 export function createDefaultGameConfig() {
   return {
     characterType: "default",
+    characterAttributes: normalizeCharacterCustomization(),
     startPhase: "day",
     mapSize: WORLD_MAP_SIZE,
   }
 }
 
 function normalizeGameConfig(config = {}) {
-  return {
+  const mergedConfig = {
     ...createDefaultGameConfig(),
     ...config,
+  }
+
+  return {
+    ...mergedConfig,
+    characterAttributes: normalizeCharacterCustomization(
+      mergedConfig.characterAttributes,
+      mergedConfig.characterType,
+    ),
   }
 }
 
@@ -138,6 +147,7 @@ export function init(config = gameState.startupConfig) {
 
   // Initialize player using character factory
   gameState.player = createCharacter(normalizedConfig.characterType, {
+    ...normalizedConfig.characterAttributes,
     x: gameState.canvas.width / 2,
     y: gameState.canvas.height / 2,
     apples: 0,

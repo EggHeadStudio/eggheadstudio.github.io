@@ -24,6 +24,12 @@ export const gameState = {
   // Startup configuration
   startupConfig: {
     characterType: "default",
+    characterAttributes: {
+      color: "#3498db",
+      health: 3,
+      speed: 4,
+      strength: 1,
+    },
     startPhase: "day",
     mapSize: WORLD_MAP_SIZE,
   },

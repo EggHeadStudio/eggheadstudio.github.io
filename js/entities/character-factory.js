@@ -44,6 +44,65 @@ const CHARACTER_TYPES = {
 
 const SELECTABLE_CHARACTER_TYPES = ["default"]
 
+export const CHARACTER_CUSTOMIZATION_RULES = {
+  health: { min: 2, max: 10 },
+  speed: { min: 3, max: 7 },
+  strength: { min: 1, max: 5 },
+}
+
+function clamp(value, min, max, fallback) {
+  const parsedValue = Number(value)
+
+  if (!Number.isFinite(parsedValue)) {
+    return fallback
+  }
+
+  return Math.min(max, Math.max(min, parsedValue))
+}
+
+function isValidColor(value) {
+  if (typeof value !== "string") {
+    return false
+  }
+
+  const trimmedValue = value.trim()
+  if (!trimmedValue) {
+    return false
+  }
+
+  if (typeof CSS === "undefined" || typeof CSS.supports !== "function") {
+    return true
+  }
+
+  return CSS.supports("color", trimmedValue)
+}
+
+export function normalizeCharacterCustomization(customization = {}, type = "default") {
+  const baseCharacter = CHARACTER_TYPES[type] || CHARACTER_TYPES.default
+
+  return {
+    color: isValidColor(customization.color) ? customization.color.trim() : baseCharacter.color,
+    health: clamp(
+      customization.health,
+      CHARACTER_CUSTOMIZATION_RULES.health.min,
+      CHARACTER_CUSTOMIZATION_RULES.health.max,
+      baseCharacter.health,
+    ),
+    speed: clamp(
+      customization.speed,
+      CHARACTER_CUSTOMIZATION_RULES.speed.min,
+      CHARACTER_CUSTOMIZATION_RULES.speed.max,
+      baseCharacter.speed,
+    ),
+    strength: clamp(
+      customization.strength,
+      CHARACTER_CUSTOMIZATION_RULES.strength.min,
+      CHARACTER_CUSTOMIZATION_RULES.strength.max,
+      baseCharacter.strength,
+    ),
+  }
+}
+
 /**
  * Creates a character with the specified type and custom properties
  * @param {string} type - The character type (default, strong, scout)
@@ -53,12 +112,14 @@ const SELECTABLE_CHARACTER_TYPES = ["default"]
 export function createCharacter(type = "default", customProps = {}) {
   // Get the base character type or default if not found
   const baseCharacter = CHARACTER_TYPES[type] || CHARACTER_TYPES.default
-  const resolvedHealth = customProps.health ?? baseCharacter.health
+  const normalizedCustomization = normalizeCharacterCustomization(customProps, type)
+  const resolvedHealth = normalizedCustomization.health
 
   // Merge base properties with custom properties
   return {
     ...baseCharacter,
     ...customProps,
+    ...normalizedCustomization,
     health: resolvedHealth,
     maxHealth: customProps.maxHealth ?? resolvedHealth,
     healChargeMs: 0,

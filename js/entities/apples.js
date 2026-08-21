@@ -309,7 +309,9 @@ export function drawAndUpdateThrownApples() {
         // Create apple splash effect
         createAppleSplash(apple.x, apple.y, apple.velocityX, apple.velocityY)
 
-        damageEnemy(enemy, 4)
+        const strengthMultiplier = Math.max(1, gameState.player?.strength || 1)
+        const appleDamage = Math.max(1, Math.round(4 * strengthMultiplier))
+        damageEnemy(enemy, appleDamage)
         thrownApples.splice(i, 1)
         i--
         hasCollided = true
