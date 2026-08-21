@@ -371,7 +371,7 @@ function getCharacterStyleDescription(characterType) {
   }
 
   if (characterType === "iida") {
-    return "Long hair with girly look"
+    return "Long hair and glasses girly look"
   }
 
   return "Clean bald look"

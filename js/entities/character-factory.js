@@ -43,6 +43,8 @@ const CHARACTER_TYPES = {
     backpackPocketColor: "#A0522D",
     hairStyle: "long",
     hairColor: "#b07910",
+    hasGlasses: true,
+    glassesColor: "#2b2b2b",
   },
 }
 

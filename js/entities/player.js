@@ -734,6 +734,77 @@ function drawPlayerFace(ctx, x, y, player) {
     Math.PI * 2,
   )
   ctx.fill()
+
+  if (player.hasGlasses) {
+    drawGlasses(ctx, x, y, player)
+  }
+}
+
+// Draw a pair of glasses over the player's eyes
+function drawGlasses(ctx, x, y, player) {
+  const eyeOffset = player.size / 3
+  const lensRadius = (player.size / 5) * 1.35
+  const leftAngle = player.direction - Math.PI / 4
+  const rightAngle = player.direction + Math.PI / 4
+  const leftX = x + eyeOffset * Math.cos(leftAngle)
+  const leftY = y + eyeOffset * Math.sin(leftAngle)
+  const rightX = x + eyeOffset * Math.cos(rightAngle)
+  const rightY = y + eyeOffset * Math.sin(rightAngle)
+
+  // Temples hinge outward and wrap around the sides of the head to the ears,
+  // which sit roughly 90 degrees off the facing direction.
+  const earAngleOffset = Math.PI / 2 + 0.12
+  const earRadius = player.size * 0.82
+  const hingeRadius = player.size * 0.62
+  const hingeAngleOffset = Math.PI / 2.6
+
+  const leftEarAngle = player.direction - earAngleOffset
+  const rightEarAngle = player.direction + earAngleOffset
+  const leftHingeAngle = player.direction - hingeAngleOffset
+  const rightHingeAngle = player.direction + hingeAngleOffset
+
+  ctx.save()
+  ctx.strokeStyle = player.glassesColor || "#2b2b2b"
+  ctx.lineWidth = Math.max(1.5, player.size * 0.07)
+  ctx.lineCap = "round"
+
+  // Bridge across the nose
+  ctx.beginPath()
+  ctx.moveTo(leftX, leftY)
+  ctx.lineTo(rightX, rightY)
+
+  // Left temple arm
+  ctx.moveTo(leftX, leftY)
+  ctx.quadraticCurveTo(
+    x + hingeRadius * Math.cos(leftHingeAngle),
+    y + hingeRadius * Math.sin(leftHingeAngle),
+    x + earRadius * Math.cos(leftEarAngle),
+    y + earRadius * Math.sin(leftEarAngle),
+  )
+
+  // Right temple arm
+  ctx.moveTo(rightX, rightY)
+  ctx.quadraticCurveTo(
+    x + hingeRadius * Math.cos(rightHingeAngle),
+    y + hingeRadius * Math.sin(rightHingeAngle),
+    x + earRadius * Math.cos(rightEarAngle),
+    y + earRadius * Math.sin(rightEarAngle),
+  )
+  ctx.stroke()
+
+  // Lenses drawn on top so the frame reads clearly
+  ctx.fillStyle = "rgba(186, 224, 247, 0.3)"
+  for (const lens of [
+    [leftX, leftY],
+    [rightX, rightY],
+  ]) {
+    ctx.beginPath()
+    ctx.arc(lens[0], lens[1], lensRadius, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.stroke()
+  }
+
+  ctx.restore()
 }
 
 // Draw the player's backpack
