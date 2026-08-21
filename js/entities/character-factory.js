@@ -13,36 +13,46 @@ const CHARACTER_TYPES = {
     footColor: "#444444",
     backpackColor: "#8B4513",
     backpackPocketColor: "#A0522D",
+    hairStyle: "none",
+    hairColor: "#2d2d2d",
   },
 
-  // Example of another character type
-  strong: {
-    size: PLAYER_SIZE * 1.2,
-    speed: PLAYER_SPEED * 0.8,
-    health: 4,
-    color: "#e74c3c",
-    strength: 1.5,
-    handColor: "#BBBBBB",
-    footColor: "#333333",
-    backpackColor: "#654321",
-    backpackPocketColor: "#8B4513",
+  rasse: {
+    size: PLAYER_SIZE,
+    speed: PLAYER_SPEED,
+    health: 3,
+    color: "#3498db",
+    strength: 1.0,
+    handColor: "#AAAAAA",
+    footColor: "#444444",
+    backpackColor: "#8B4513",
+    backpackPocketColor: "#A0522D",
+    hairStyle: "mohawk",
+    hairColor: "#c58c12",
   },
 
-  // Example of a fast character
-  scout: {
-    size: PLAYER_SIZE * 0.9,
-    speed: PLAYER_SPEED * 1.3,
-    health: 2,
-    color: "#2ecc71",
-    strength: 0.7,
-    handColor: "#CCCCCC",
-    footColor: "#555555",
-    backpackColor: "#556B2F",
-    backpackPocketColor: "#6B8E23",
+  iida: {
+    size: PLAYER_SIZE,
+    speed: PLAYER_SPEED,
+    health: 3,
+    color: "#3498db",
+    strength: 1.0,
+    handColor: "#AAAAAA",
+    footColor: "#444444",
+    backpackColor: "#8B4513",
+    backpackPocketColor: "#A0522D",
+    hairStyle: "long",
+    hairColor: "#b07910",
   },
 }
 
-const SELECTABLE_CHARACTER_TYPES = ["default"]
+const SELECTABLE_CHARACTER_TYPES = ["default", "rasse", "iida"]
+
+const CHARACTER_DISPLAY_LABELS = {
+  default: "Bold",
+  rasse: "Rasse",
+  iida: "Iida",
+}
 
 export const CHARACTER_CUSTOMIZATION_RULES = {
   health: { min: 2, max: 10 },
@@ -143,6 +153,10 @@ export function getAvailableCharacterTypes() {
 
 export function getSelectableCharacterTypes() {
   return SELECTABLE_CHARACTER_TYPES.slice()
+}
+
+export function getCharacterTypeLabel(type) {
+  return CHARACTER_DISPLAY_LABELS[type] || CHARACTER_DISPLAY_LABELS.default
 }
 
 /**

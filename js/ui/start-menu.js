@@ -2,11 +2,16 @@ import { createDefaultGameConfig, init, pauseCurrentGame, resumeCurrentGame } fr
 import { gameState } from "../core/game-state.js"
 import {
   CHARACTER_CUSTOMIZATION_RULES,
+  getCharacterTypeLabel,
   getCharacterTypeProperties,
   getSelectableCharacterTypes,
   normalizeCharacterCustomization,
 } from "../entities/character-factory.js"
+import { drawCharacterPreview } from "../entities/player.js"
 import { resetHud, setHudVisibility } from "./ui-manager.js"
+
+const PREVIEW_CANVAS_SIZE = 104
+const PREVIEW_SCALE = 0.6
 
 const TIME_OPTIONS = [
   { id: "dawn", label: "Dawn", description: "Warm light, low contrast" },
@@ -17,6 +22,8 @@ const TIME_OPTIONS = [
 
 let isInitialized = false
 let minimapLongPressTimer = null
+let previewAnimationFrame = null
+let previewAnimationTime = 0
 
 const MENU_COPY = {
   start: {
@@ -80,6 +87,7 @@ export function showStartMenu() {
 export function hideStartMenu() {
   const startMenu = document.getElementById("startMenu")
   startMenu.classList.remove("active")
+  stopCharacterPreviewAnimation()
 
   if (gameState.isStarted && !gameState.gameOver) {
     setHudVisibility(true)
@@ -189,15 +197,14 @@ function renderCharacterOptions() {
   optionsContainer.innerHTML = ""
 
   for (const characterType of getSelectableCharacterTypes()) {
-    const properties = getCharacterTypeProperties(characterType)
     const button = document.createElement("button")
     button.type = "button"
     button.className = "menu-option"
     button.dataset.optionGroup = "character"
     button.dataset.optionValue = characterType
     button.innerHTML = `
-      <strong>${formatLabel(characterType)}</strong>
-      <span>Skin color ${properties.color}</span>
+      <strong>${getCharacterTypeLabel(characterType)}</strong>
+      <span>${getCharacterStyleDescription(characterType)}</span>
     `
 
     button.addEventListener("click", () => {
@@ -251,9 +258,9 @@ function renderCharacterPreview(characterType) {
 
   preview.innerHTML = `
     <div class="character-preview-figure">
-      <div class="character-preview-avatar" style="background:${properties.color}"></div>
+      <canvas id="characterPreviewCanvas" class="character-preview-avatar" role="img" aria-label="${getCharacterTypeLabel(characterType)} preview"></canvas>
       <div>
-        <strong>${formatLabel(characterType)}</strong>
+        <strong>${getCharacterTypeLabel(characterType)}</strong>
         <p>Customize your character before starting. Values outside the allowed ranges are automatically corrected.</p>
       </div>
     </div>
@@ -307,6 +314,67 @@ function renderCharacterPreview(characterType) {
   `
 
   setupCharacterCustomizationControls(characterType)
+  startCharacterPreviewAnimation(characterType)
+}
+
+function startCharacterPreviewAnimation(characterType) {
+  stopCharacterPreviewAnimation()
+
+  const canvas = document.getElementById("characterPreviewCanvas")
+  if (!canvas) {
+    return
+  }
+
+  const ctx = canvas.getContext("2d")
+  const pixelRatio = Math.min(window.devicePixelRatio || 1, 2)
+  canvas.width = PREVIEW_CANVAS_SIZE * pixelRatio
+  canvas.height = PREVIEW_CANVAS_SIZE * pixelRatio
+
+  const renderFrame = () => {
+    const baseProperties = getCharacterTypeProperties(characterType)
+    const character = {
+      ...baseProperties,
+      ...gameState.startupConfig.characterAttributes,
+      characterType,
+    }
+
+    previewAnimationTime += 0.05
+
+    ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0)
+    ctx.clearRect(0, 0, PREVIEW_CANVAS_SIZE, PREVIEW_CANVAS_SIZE)
+
+    drawCharacterPreview(ctx, character, {
+      x: PREVIEW_CANVAS_SIZE / 2,
+      y: PREVIEW_CANVAS_SIZE / 2,
+      scale: PREVIEW_SCALE,
+      direction: -Math.PI / 2,
+      isMoving: true,
+      animationTime: previewAnimationTime,
+    })
+
+    previewAnimationFrame = window.requestAnimationFrame(renderFrame)
+  }
+
+  renderFrame()
+}
+
+function stopCharacterPreviewAnimation() {
+  if (previewAnimationFrame !== null) {
+    window.cancelAnimationFrame(previewAnimationFrame)
+    previewAnimationFrame = null
+  }
+}
+
+function getCharacterStyleDescription(characterType) {
+  if (characterType === "rasse") {
+    return "Mohawk badass look"
+  }
+
+  if (characterType === "iida") {
+    return "Long hair with girly look"
+  }
+
+  return "Clean bald look"
 }
 
 function updateActiveOption(group, value) {
@@ -315,10 +383,6 @@ function updateActiveOption(group, value) {
   for (const button of buttons) {
     button.classList.toggle("active", button.dataset.optionValue === value)
   }
-}
-
-function formatLabel(value) {
-  return value.charAt(0).toUpperCase() + value.slice(1)
 }
 
 function setupCharacterCustomizationControls(characterType) {
@@ -336,14 +400,12 @@ function setupCharacterCustomizationControls(characterType) {
   colorPicker.addEventListener("input", () => {
     updateCharacterAttributes({ color: colorPicker.value }, characterType)
     colorInput.value = gameState.startupConfig.characterAttributes.color
-    updateCharacterPreviewVisuals()
   })
 
   const commitColorInput = () => {
     updateCharacterAttributes({ color: colorInput.value }, characterType)
     colorInput.value = gameState.startupConfig.characterAttributes.color
     colorPicker.value = toColorPickerValue(gameState.startupConfig.characterAttributes.color)
-    updateCharacterPreviewVisuals()
   }
 
   colorInput.addEventListener("change", commitColorInput)
@@ -387,17 +449,6 @@ function updateCharacterAttributes(partialAttributes, characterType) {
   }
 
   gameState.startupConfig.characterAttributes = normalizeCharacterCustomization(mergedAttributes, characterType)
-}
-
-function updateCharacterPreviewVisuals() {
-  const avatar = document.querySelector(".character-preview-avatar")
-  const attributes = gameState.startupConfig.characterAttributes
-
-  if (!avatar || !attributes) {
-    return
-  }
-
-  avatar.style.background = attributes.color
 }
 
 function toColorPickerValue(colorValue) {

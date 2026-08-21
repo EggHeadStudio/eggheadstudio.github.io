@@ -414,6 +414,8 @@ export function drawPlayer() {
   ctx.arc(0, 0, player.size * 0.9, 0, Math.PI * 2)
   ctx.fill()
 
+  drawHair(ctx, 0, 0, player)
+
   // Draw direction indicator (nose)
   const indicatorLength = player.size * 0.8
   ctx.strokeStyle = "gray"
@@ -471,6 +473,168 @@ export function drawPlayer() {
     ctx.fill()
   }
 
+}
+
+// Draw a character using the exact same rendering pipeline as the in-game player
+export function drawCharacterPreview(ctx, character, options = {}) {
+  const {
+    x = 0,
+    y = 0,
+    scale = 1,
+    direction = -Math.PI / 2,
+    isMoving = true,
+    animationTime = 0,
+  } = options
+
+  const previewCharacter = {
+    ...character,
+    direction,
+    isMoving,
+    animationTime,
+    throwingApple: null,
+  }
+
+  const previousState = {
+    isGrabbing: gameState.isGrabbing,
+    isInCar: gameState.isInCar,
+    drivingCar: gameState.drivingCar,
+    joystickActive: gameState.joystickActive,
+    joystickDistance: gameState.joystickDistance,
+    keys: gameState.keys,
+  }
+
+  gameState.isGrabbing = false
+  gameState.isInCar = false
+  gameState.drivingCar = null
+  gameState.joystickActive = isMoving
+  gameState.joystickDistance = isMoving ? 1 : 0
+  gameState.keys = isMoving ? { w: true } : {}
+
+  try {
+    ctx.save()
+    ctx.translate(x, y)
+    ctx.scale(scale, scale)
+
+    drawFeet(ctx, 0, 0, previewCharacter)
+
+    ctx.fillStyle = previewCharacter.color
+    ctx.beginPath()
+    ctx.arc(0, 0, previewCharacter.size * 0.9, 0, Math.PI * 2)
+    ctx.fill()
+
+    drawHair(ctx, 0, 0, previewCharacter)
+
+    const indicatorLength = previewCharacter.size * 0.8
+    ctx.strokeStyle = "gray"
+    ctx.lineWidth = 9
+    ctx.beginPath()
+    ctx.moveTo(0, 0)
+    ctx.lineTo(Math.cos(direction) * indicatorLength, Math.sin(direction) * indicatorLength)
+    ctx.stroke()
+
+    drawBackpack(ctx, 0, 0, previewCharacter)
+    drawPlayerFace(ctx, 0, 0, previewCharacter)
+    drawHands(ctx, 0, 0, previewCharacter)
+
+    ctx.restore()
+  } finally {
+    Object.assign(gameState, previousState)
+  }
+}
+
+function drawHair(ctx, x, y, player) {
+  const hairStyle = player.hairStyle || "none"
+  const hairColor = player.hairColor || "#6b4f2a"
+
+  if (hairStyle === "mohawk") {
+    drawMohawkHair(ctx, x, y, player, hairColor)
+    return
+  }
+
+  if (hairStyle === "long") {
+    drawLongHair(ctx, x, y, player, hairColor)
+  }
+}
+
+function drawMohawkHair(ctx, x, y, player, hairColor) {
+  const dirX = Math.cos(player.direction)
+  const dirY = Math.sin(player.direction)
+  const backReach = player.size * 0.8
+  const frontReach = player.size * 0.18
+  const lineThickness = player.size * 0.52
+
+  const backX = x - dirX * backReach
+  const backY = y - dirY * backReach
+  const frontX = x + dirX * frontReach
+  const frontY = y + dirY * frontReach
+
+  ctx.save()
+  ctx.strokeStyle = hairColor
+  ctx.lineWidth = lineThickness
+  ctx.lineCap = "round"
+  ctx.beginPath()
+  ctx.moveTo(backX, backY)
+  ctx.lineTo(frontX, frontY)
+  ctx.stroke()
+
+  ctx.strokeStyle = "rgba(255, 226, 151, 0.25)"
+  ctx.lineWidth = lineThickness * 0.32
+  ctx.beginPath()
+  ctx.moveTo(backX, backY)
+  ctx.lineTo(frontX, frontY)
+  ctx.stroke()
+  ctx.restore()
+}
+
+function drawLongHair(ctx, x, y, player, hairColor) {
+  const isMoving = player.isMoving
+  const swayTime = player.animationTime * 0.9
+  const sway = Math.sin(swayTime) * (isMoving ? player.size * 0.2 : player.size * 0.09)
+  const travelBoost = isMoving ? player.size * 0.42 : player.size * 0.18
+
+  const dirX = Math.cos(player.direction)
+  const dirY = Math.sin(player.direction)
+  const rightX = -dirY
+  const rightY = dirX
+
+  const sideSpread = player.size * 0.78
+  const anchorBack = player.size * 0.14
+  const leftAnchorX = x + rightX * sideSpread - dirX * anchorBack
+  const leftAnchorY = y + rightY * sideSpread - dirY * anchorBack
+  const rightAnchorX = x - rightX * sideSpread - dirX * anchorBack
+  const rightAnchorY = y - rightY * sideSpread - dirY * anchorBack
+
+  const tipDistance = player.size * 1.7 + travelBoost
+  const tipX = x - dirX * tipDistance + rightX * sway
+  const tipY = y - dirY * tipDistance + rightY * sway
+
+  const leftControlX = leftAnchorX + rightX * player.size * 0.42 - dirX * player.size * 1.08 + rightX * sway * 0.3
+  const leftControlY = leftAnchorY + rightY * player.size * 0.42 - dirY * player.size * 1.08 + rightY * sway * 0.3
+  const rightControlX = rightAnchorX - rightX * player.size * 0.42 - dirX * player.size * 1.08 + rightX * sway * 0.3
+  const rightControlY = rightAnchorY - rightY * player.size * 0.42 - dirY * player.size * 1.08 + rightY * sway * 0.3
+
+  ctx.save()
+  ctx.fillStyle = hairColor
+  ctx.beginPath()
+  ctx.moveTo(leftAnchorX, leftAnchorY)
+  ctx.quadraticCurveTo(leftControlX, leftControlY, tipX, tipY)
+  ctx.quadraticCurveTo(rightControlX, rightControlY, rightAnchorX, rightAnchorY)
+  ctx.quadraticCurveTo(x, y - player.size * 0.3, leftAnchorX, leftAnchorY)
+  ctx.closePath()
+  ctx.fill()
+
+  ctx.strokeStyle = "rgba(255, 226, 168, 0.22)"
+  ctx.lineWidth = Math.max(1.5, player.size * 0.08)
+  ctx.beginPath()
+  ctx.moveTo(x - dirX * player.size * 0.22 + rightX * player.size * 0.25, y - dirY * player.size * 0.22 + rightY * player.size * 0.25)
+  ctx.quadraticCurveTo(
+    x - dirX * player.size * 0.95 + rightX * sway * 0.4,
+    y - dirY * player.size * 0.95 + rightY * sway * 0.4,
+    tipX,
+    tipY,
+  )
+  ctx.stroke()
+  ctx.restore()
 }
 
 // Draw hit effects
@@ -584,7 +748,7 @@ function drawBackpack(ctx, x, y, player) {
   const backpackY = y + Math.sin(backpackAngle) * (backpackDistance + breathingOffset)
 
   // Draw backpack
-  ctx.fillStyle = "#8B4513" // Brown color for backpack
+  ctx.fillStyle = player.backpackColor || "#8B4513"
   ctx.beginPath()
 
   // Draw a rounded rectangle for the backpack
@@ -594,12 +758,13 @@ function drawBackpack(ctx, x, y, player) {
   ctx.save()
   ctx.translate(backpackX, backpackY)
   ctx.rotate(backpackAngle)
+  ctx.globalAlpha = player.hairStyle === "long" ? 0.34 : 0.88
 
   // Draw main backpack body
   roundRect(ctx, -backpackWidth / 2, -backpackHeight / 2, backpackWidth, backpackHeight, 4)
 
   // Draw backpack pocket
-  ctx.fillStyle = "#A0522D" // Slightly lighter brown
+  ctx.fillStyle = player.backpackPocketColor || "#A0522D"
   roundRect(ctx, -backpackWidth / 2 + 2, -backpackHeight / 2 + 2, backpackWidth - 15, backpackHeight - 4, 2)
 
   ctx.restore()
