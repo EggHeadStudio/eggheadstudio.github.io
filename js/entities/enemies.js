@@ -604,6 +604,19 @@ function canEnemyMoveToPosition(enemy, x, y, options = {}) {
     }
   }
 
+  if (gameState.trees) {
+    for (const tree of gameState.trees) {
+      const distance = getDistance(x, y, tree.x, tree.y)
+      if (distance < enemy.size + tree.size * 0.3) {
+        return {
+          canMove: false,
+          collisionType: "tree",
+          collisionAngle: Math.atan2(enemy.y - tree.y, enemy.x - tree.x),
+        }
+      }
+    }
+  }
+
   return { canMove: true, collisionType: null, collisionAngle: 0 }
 }
 
@@ -1022,8 +1035,10 @@ export function updateEnemyMovement(enemy, canSeePlayer) {
     let canMove = true
     let collidedWithRock = false
     let collidedWithBox = false
+    let collidedWithTree = false
     let rockCollisionAngle = 0
     let boxCollisionAngle = 0
+    let treeCollisionAngle = 0
 
     // Check terrain
     if (
@@ -1059,6 +1074,18 @@ export function updateEnemyMovement(enemy, canSeePlayer) {
           }
         }
       }
+
+      if (canMove && gameState.trees) {
+        for (const tree of gameState.trees) {
+          const distance = getDistance(newX, newY, tree.x, tree.y)
+          if (distance < enemy.size + tree.size * 0.3) {
+            canMove = false
+            collidedWithTree = true
+            treeCollisionAngle = Math.atan2(enemy.y - tree.y, enemy.x - tree.x)
+            break
+          }
+        }
+      }
     } else {
       canMove = false
     }
@@ -1079,6 +1106,14 @@ export function updateEnemyMovement(enemy, canSeePlayer) {
       const bumpDistance = 2
       enemy.x += Math.cos(boxCollisionAngle) * bumpDistance
       enemy.y += Math.sin(boxCollisionAngle) * bumpDistance
+
+      // Change direction if hitting obstacle
+      enemy.direction = (enemy.direction + Math.PI + ((Math.random() * Math.PI) / 2 - Math.PI / 4)) % (Math.PI * 2)
+    } else if (collidedWithTree) {
+      // Bump away from tree trunk
+      const bumpDistance = 2
+      enemy.x += Math.cos(treeCollisionAngle) * bumpDistance
+      enemy.y += Math.sin(treeCollisionAngle) * bumpDistance
 
       // Change direction if hitting obstacle
       enemy.direction = (enemy.direction + Math.PI + ((Math.random() * Math.PI) / 2 - Math.PI / 4)) % (Math.PI * 2)

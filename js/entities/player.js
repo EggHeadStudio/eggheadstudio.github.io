@@ -5,6 +5,7 @@ import { getDistance } from "../utils/math-utils.js"
 import { createShadow } from "../utils/rendering-utils.js"
 import { applyKnockbackToEnemy, damageEnemy } from "../entities/enemies.js"
 import { damageWoodenBox, isUnderRoof } from "../entities/wooden-boxes.js"
+import { damageTree, isTreeBlocking } from "../entities/trees.js"
 import { createDeathEffect, DEATH_EFFECT_DURATION } from "./death-effects.js"
 
 // Animation constants
@@ -205,6 +206,11 @@ export function updatePlayerPosition() {
     }
   }
 
+  // Standing trees block movement (collision is on the trunk, not the canopy)
+  if (canMove && isTreeBlocking(newX, newY, player.size)) {
+    canMove = false
+  }
+
   // Move if possible
   if (canMove) {
     player.x = newX
@@ -337,6 +343,32 @@ function checkMeleeAttack() {
         })
 
         // Only hit one box per swing
+        return
+      }
+    }
+  }
+
+  // Check for collision with trees
+  if (gameState.trees) {
+    for (const tree of gameState.trees) {
+      const distance = getDistance(rightHandX, rightHandY, tree.x, tree.y)
+
+      if (distance < HAND_SIZE + tree.size * 0.6) {
+        damageTree(tree, 1)
+
+        if (!gameState.hitEffects) {
+          gameState.hitEffects = []
+        }
+
+        gameState.hitEffects.push({
+          x: tree.x,
+          y: tree.y,
+          size: tree.size * 1.1,
+          createdAt: Date.now(),
+          duration: 200,
+        })
+
+        // Only hit one tree per swing
         return
       }
     }
@@ -553,6 +585,31 @@ function drawHair(ctx, x, y, player) {
 
   if (hairStyle === "long") {
     drawLongHair(ctx, x, y, player, hairColor)
+    return
+  }
+
+  if (hairStyle === "ultraLong") {
+    drawUltraLongHair(ctx, x, y, player, hairColor)
+    return
+  }
+
+  if (hairStyle === "short") {
+    drawShortHair(ctx, x, y, player, hairColor)
+    return
+  }
+
+  if (hairStyle === "bob") {
+    drawBobHair(ctx, x, y, player, hairColor)
+    return
+  }
+
+  if (hairStyle === "curly") {
+    drawCurlyHair(ctx, x, y, player, hairColor)
+    return
+  }
+
+  if (hairStyle === "bun") {
+    drawBunHair(ctx, x, y, player, hairColor)
   }
 }
 
@@ -634,6 +691,193 @@ function drawLongHair(ctx, x, y, player, hairColor) {
     tipY,
   )
   ctx.stroke()
+  ctx.restore()
+}
+
+function drawUltraLongHair(ctx, x, y, player, hairColor) {
+  const isMoving = player.isMoving
+  const swayTime = player.animationTime * 1.0
+  const sway = Math.sin(swayTime) * (isMoving ? player.size * 0.26 : player.size * 0.12)
+  const travelBoost = isMoving ? player.size * 0.58 : player.size * 0.24
+
+  const dirX = Math.cos(player.direction)
+  const dirY = Math.sin(player.direction)
+  const rightX = -dirY
+  const rightY = dirX
+
+  const sideSpread = player.size * 0.84
+  const anchorBack = player.size * 0.12
+  const leftAnchorX = x + rightX * sideSpread - dirX * anchorBack
+  const leftAnchorY = y + rightY * sideSpread - dirY * anchorBack
+  const rightAnchorX = x - rightX * sideSpread - dirX * anchorBack
+  const rightAnchorY = y - rightY * sideSpread - dirY * anchorBack
+
+  const tipDistance = player.size * 2.25 + travelBoost
+  const tipX = x - dirX * tipDistance + rightX * sway
+  const tipY = y - dirY * tipDistance + rightY * sway
+
+  const leftControlX = leftAnchorX + rightX * player.size * 0.52 - dirX * player.size * 1.36 + rightX * sway * 0.34
+  const leftControlY = leftAnchorY + rightY * player.size * 0.52 - dirY * player.size * 1.36 + rightY * sway * 0.34
+  const rightControlX = rightAnchorX - rightX * player.size * 0.52 - dirX * player.size * 1.36 + rightX * sway * 0.34
+  const rightControlY = rightAnchorY - rightY * player.size * 0.52 - dirY * player.size * 1.36 + rightY * sway * 0.34
+
+  ctx.save()
+  ctx.fillStyle = hairColor
+  ctx.beginPath()
+  ctx.moveTo(leftAnchorX, leftAnchorY)
+  ctx.quadraticCurveTo(leftControlX, leftControlY, tipX, tipY)
+  ctx.quadraticCurveTo(rightControlX, rightControlY, rightAnchorX, rightAnchorY)
+  ctx.quadraticCurveTo(x, y - player.size * 0.36, leftAnchorX, leftAnchorY)
+  ctx.closePath()
+  ctx.fill()
+
+  ctx.strokeStyle = "rgba(255, 226, 168, 0.18)"
+  ctx.lineWidth = Math.max(1.5, player.size * 0.08)
+  ctx.beginPath()
+  ctx.moveTo(x - dirX * player.size * 0.24 + rightX * player.size * 0.28, y - dirY * player.size * 0.24 + rightY * player.size * 0.28)
+  ctx.quadraticCurveTo(
+    x - dirX * player.size * 1.25 + rightX * sway * 0.38,
+    y - dirY * player.size * 1.25 + rightY * sway * 0.38,
+    tipX,
+    tipY,
+  )
+  ctx.stroke()
+  ctx.restore()
+}
+
+function drawRearHeadCap(ctx, x, y, player, hairColor, options = {}) {
+  const sideScale = options.sideScale ?? 0.8
+  const topScale = options.topScale ?? 1
+  const frontScale = options.frontScale ?? 0.15
+  const backScale = options.backScale ?? 0.95
+
+  const side = player.size * sideScale
+  const front = player.size * frontScale
+  const back = player.size * backScale
+
+  ctx.save()
+  ctx.fillStyle = hairColor
+  ctx.translate(x, y)
+  ctx.rotate(player.direction)
+
+  // A back-skewed cap so hair stays behind the face direction.
+  ctx.beginPath()
+  ctx.moveTo(front, -side * 0.76)
+  ctx.quadraticCurveTo(player.size * 0.04, -side * topScale, -back, -side * 0.72)
+  ctx.quadraticCurveTo(-back - player.size * 0.18, 0, -back, side * 0.72)
+  ctx.quadraticCurveTo(player.size * 0.04, side * topScale, front, side * 0.76)
+  ctx.quadraticCurveTo(-player.size * 0.1, 0, front, -side * 0.76)
+  ctx.closePath()
+  ctx.fill()
+
+  if (options.highlightAlpha) {
+    ctx.fillStyle = `rgba(255, 255, 255, ${options.highlightAlpha})`
+    ctx.beginPath()
+    ctx.ellipse(-player.size * 0.28, -side * 0.54, player.size * 0.24, player.size * 0.14, 0, 0, Math.PI * 2)
+    ctx.fill()
+  }
+
+  ctx.restore()
+}
+
+function drawShortHair(ctx, x, y, player, hairColor) {
+  drawRearHeadCap(ctx, x, y, player, hairColor, {
+    sideScale: 0.72,
+    topScale: 0.94,
+    frontScale: 0.08,
+    backScale: 0.88,
+    highlightAlpha: 0.14,
+  })
+}
+
+function drawBobHair(ctx, x, y, player, hairColor) {
+  const dirX = Math.cos(player.direction)
+  const dirY = Math.sin(player.direction)
+  const rightX = -dirY
+  const rightY = dirX
+
+  drawRearHeadCap(ctx, x, y, player, hairColor, {
+    sideScale: 0.86,
+    topScale: 1.02,
+    frontScale: 0.14,
+    backScale: 0.92,
+    highlightAlpha: 0.1,
+  })
+
+  // Side locks hanging slightly behind jawline
+  ctx.save()
+  ctx.fillStyle = hairColor
+
+  const leftLockX = x + rightX * player.size * 0.78 - dirX * player.size * 0.36
+  const leftLockY = y + rightY * player.size * 0.78 - dirY * player.size * 0.36
+  const rightLockX = x - rightX * player.size * 0.78 - dirX * player.size * 0.36
+  const rightLockY = y - rightY * player.size * 0.78 - dirY * player.size * 0.36
+
+  for (const [lockX, lockY] of [
+    [leftLockX, leftLockY],
+    [rightLockX, rightLockY],
+  ]) {
+    ctx.beginPath()
+    ctx.ellipse(lockX, lockY, player.size * 0.2, player.size * 0.34, player.direction + Math.PI / 2, 0, Math.PI * 2)
+    ctx.fill()
+  }
+
+  ctx.restore()
+}
+
+function drawCurlyHair(ctx, x, y, player, hairColor) {
+  drawRearHeadCap(ctx, x, y, player, hairColor, {
+    sideScale: 0.74,
+    topScale: 0.96,
+    frontScale: 0.1,
+    backScale: 0.9,
+  })
+
+  const curlCount = 9
+  const radius = player.size * 0.19
+  const dirX = Math.cos(player.direction)
+  const dirY = Math.sin(player.direction)
+  const rightX = -dirY
+  const rightY = dirX
+
+  ctx.save()
+  ctx.fillStyle = hairColor
+  for (let i = 0; i < curlCount; i++) {
+    const t = i / (curlCount - 1)
+    const yOffset = (t - 0.5) * player.size * 1.25
+    const backOffset = player.size * (0.44 + (i % 2) * 0.1)
+    const jitter = ((i % 3) - 1) * player.size * 0.05
+    const curlX = x - dirX * backOffset + rightX * yOffset + rightX * jitter
+    const curlY = y - dirY * backOffset + rightY * yOffset + rightY * jitter
+    ctx.beginPath()
+    ctx.arc(curlX, curlY, radius, 0, Math.PI * 2)
+    ctx.fill()
+  }
+  ctx.restore()
+}
+
+function drawBunHair(ctx, x, y, player, hairColor) {
+  drawRearHeadCap(ctx, x, y, player, hairColor, {
+    sideScale: 0.73,
+    topScale: 0.92,
+    frontScale: 0.15,
+    backScale: 0.86,
+    highlightAlpha: 0.08,
+  })
+
+  const backX = x - Math.cos(player.direction) * player.size * 0.95
+  const backY = y - Math.sin(player.direction) * player.size * 0.95
+
+  ctx.save()
+  ctx.fillStyle = hairColor
+  ctx.beginPath()
+  ctx.arc(backX, backY, player.size * 0.3, 0, Math.PI * 2)
+  ctx.fill()
+
+  ctx.fillStyle = "rgba(255, 255, 255, 0.1)"
+  ctx.beginPath()
+  ctx.arc(backX - player.size * 0.08, backY - player.size * 0.08, player.size * 0.1, 0, Math.PI * 2)
+  ctx.fill()
   ctx.restore()
 }
 
@@ -735,9 +979,102 @@ function drawPlayerFace(ctx, x, y, player) {
   )
   ctx.fill()
 
-  if (player.hasGlasses) {
+  if (player.hasLashes) {
+    drawEyelashes(ctx, x, y, player)
+  }
+
+  if (player.hasBeard) {
+    drawBeard(ctx, x, y, player)
+  }
+
+  if (player.hasGlasses || player.hasSunglasses) {
     drawGlasses(ctx, x, y, player)
   }
+}
+
+function drawBeard(ctx, x, y, player) {
+  const beardColor = player.beardColor || "#2b2018"
+  const dirX = Math.cos(player.direction)
+  const dirY = Math.sin(player.direction)
+  const rightX = -dirY
+  const rightY = dirX
+
+  ctx.save()
+  ctx.fillStyle = beardColor
+
+  // Chin patch toward the facing direction.
+  const chinX = x + dirX * player.size * 0.48
+  const chinY = y + dirY * player.size * 0.48
+  ctx.beginPath()
+  ctx.ellipse(chinX, chinY, player.size * 0.21, player.size * 0.16, player.direction, 0, Math.PI * 2)
+  ctx.fill()
+
+  // Side beard near each jaw corner.
+  for (const side of [-1, 1]) {
+    const jawX = x + dirX * player.size * 0.28 + rightX * side * player.size * 0.43
+    const jawY = y + dirY * player.size * 0.28 + rightY * side * player.size * 0.43
+    ctx.beginPath()
+    ctx.ellipse(jawX, jawY, player.size * 0.12, player.size * 0.09, player.direction + side * 0.45, 0, Math.PI * 2)
+    ctx.fill()
+  }
+
+  // Light moustache stripe.
+  ctx.beginPath()
+  ctx.ellipse(
+    x + dirX * player.size * 0.2,
+    y + dirY * player.size * 0.2,
+    player.size * 0.11,
+    player.size * 0.05,
+    player.direction,
+    0,
+    Math.PI * 2,
+  )
+  ctx.fill()
+
+  ctx.restore()
+}
+
+function drawEyelashes(ctx, x, y, player) {
+  const eyeOffset = player.size / 3
+  const eyeSize = player.size / 5
+
+  const leftEyeX = x + eyeOffset * Math.cos(player.direction - Math.PI / 4)
+  const leftEyeY = y + eyeOffset * Math.sin(player.direction - Math.PI / 4)
+  const rightEyeX = x + eyeOffset * Math.cos(player.direction + Math.PI / 4)
+  const rightEyeY = y + eyeOffset * Math.sin(player.direction + Math.PI / 4)
+
+  const lashLength = eyeSize * 0.75
+  const lashSpread = eyeSize * 0.44
+
+  ctx.save()
+  ctx.strokeStyle = "#2f241d"
+  ctx.lineWidth = Math.max(1, player.size * 0.055)
+  ctx.lineCap = "round"
+
+  for (const [eyeX, eyeY] of [
+    [leftEyeX, leftEyeY],
+    [rightEyeX, rightEyeY],
+  ]) {
+    const radialAngle = Math.atan2(eyeY - y, eyeX - x)
+    const radialX = Math.cos(radialAngle)
+    const radialY = Math.sin(radialAngle)
+    const tangentX = -Math.sin(radialAngle)
+    const tangentY = Math.cos(radialAngle)
+
+    for (const offset of [-1, 0, 1]) {
+      const startX = eyeX + tangentX * lashSpread * offset * 0.55 + radialX * eyeSize * 0.18
+      const startY = eyeY + tangentY * lashSpread * offset * 0.55 + radialY * eyeSize * 0.18
+      const endX = startX + radialX * lashLength + tangentX * offset * eyeSize * 0.08
+      const endY = startY + radialY * lashLength + tangentY * offset * eyeSize * 0.08
+
+      ctx.beginPath()
+      ctx.moveTo(startX, startY)
+      ctx.lineTo(endX, endY)
+      ctx.stroke()
+    }
+  }
+
+  ctx.restore()
 }
 
 // Draw a pair of glasses over the player's eyes
@@ -764,17 +1101,21 @@ function drawGlasses(ctx, x, y, player) {
   const rightHingeAngle = player.direction + hingeAngleOffset
 
   ctx.save()
+  const lensTint = player.hasSunglasses ? "rgba(32, 32, 32, 0.82)" : "rgba(186, 224, 247, 0.3)"
+
   ctx.strokeStyle = player.glassesColor || "#2b2b2b"
-  ctx.lineWidth = Math.max(1.5, player.size * 0.07)
+  ctx.lineWidth = player.hasSunglasses ? Math.max(2.2, player.size * 0.09) : Math.max(1.5, player.size * 0.07)
   ctx.lineCap = "round"
 
-  // Bridge across the nose
+  const leftTempleStartX = leftX + Math.cos(leftAngle) * lensRadius * 0.95
+  const leftTempleStartY = leftY + Math.sin(leftAngle) * lensRadius * 0.95
+  const rightTempleStartX = rightX + Math.cos(rightAngle) * lensRadius * 0.95
+  const rightTempleStartY = rightY + Math.sin(rightAngle) * lensRadius * 0.95
+
   ctx.beginPath()
-  ctx.moveTo(leftX, leftY)
-  ctx.lineTo(rightX, rightY)
 
   // Left temple arm
-  ctx.moveTo(leftX, leftY)
+  ctx.moveTo(leftTempleStartX, leftTempleStartY)
   ctx.quadraticCurveTo(
     x + hingeRadius * Math.cos(leftHingeAngle),
     y + hingeRadius * Math.sin(leftHingeAngle),
@@ -783,7 +1124,7 @@ function drawGlasses(ctx, x, y, player) {
   )
 
   // Right temple arm
-  ctx.moveTo(rightX, rightY)
+  ctx.moveTo(rightTempleStartX, rightTempleStartY)
   ctx.quadraticCurveTo(
     x + hingeRadius * Math.cos(rightHingeAngle),
     y + hingeRadius * Math.sin(rightHingeAngle),
@@ -793,7 +1134,7 @@ function drawGlasses(ctx, x, y, player) {
   ctx.stroke()
 
   // Lenses drawn on top so the frame reads clearly
-  ctx.fillStyle = "rgba(186, 224, 247, 0.3)"
+  ctx.fillStyle = lensTint
   for (const lens of [
     [leftX, leftY],
     [rightX, rightY],
@@ -823,20 +1164,28 @@ function drawBackpack(ctx, x, y, player) {
   ctx.beginPath()
 
   // Draw a rounded rectangle for the backpack
-  const backpackWidth = player.size * 0.9
-  const backpackHeight = player.size * 1.6
+  const backpackWidth = player.size * 0.9 * (player.backpackWidthScale || 1)
+  const backpackHeight = player.size * 1.6 * (player.backpackHeightScale || 1)
+  const backpackCornerRadius = Math.max(2, 4 * (player.backpackRoundness || 1))
 
   ctx.save()
   ctx.translate(backpackX, backpackY)
   ctx.rotate(backpackAngle)
-  ctx.globalAlpha = player.hairStyle === "long" ? 0.34 : 0.88
+  ctx.globalAlpha = player.hairStyle === "long" || player.hairStyle === "ultraLong" ? 0.34 : 0.88
 
   // Draw main backpack body
-  roundRect(ctx, -backpackWidth / 2, -backpackHeight / 2, backpackWidth, backpackHeight, 4)
+  roundRect(ctx, -backpackWidth / 2, -backpackHeight / 2, backpackWidth, backpackHeight, backpackCornerRadius)
 
   // Draw backpack pocket
   ctx.fillStyle = player.backpackPocketColor || "#A0522D"
-  roundRect(ctx, -backpackWidth / 2 + 2, -backpackHeight / 2 + 2, backpackWidth - 15, backpackHeight - 4, 2)
+  roundRect(
+    ctx,
+    -backpackWidth / 2 + 2,
+    -backpackHeight / 2 + 2,
+    Math.max(6, backpackWidth - 15),
+    backpackHeight - 4,
+    Math.max(1.5, backpackCornerRadius * 0.5),
+  )
 
   ctx.restore()
 }

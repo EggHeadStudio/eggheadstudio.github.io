@@ -1,136 +1,329 @@
-SMALL_GAME
-Vorking version 11 from 2'nd branch
+# Small Game
 
-Quick mobile server:
+Current project tuning and variable reference.
 
-Run `npm run serve:mobile` in the project root.
-The server prints the exact `http://<LAN-IP>:5500` address to open on your phone.
-If port 5500 is busy, run `PORT=5501 npm run serve:mobile`.
-To stop the server, go to the terminal where it is running and press `Ctrl+C`.
+This file lists the variables you can change right now, and where each one is defined.
 
-World density and minimap tuning:
+## Run locally
 
-Main file for easy amount tweaks:
-`js/core/constants.js`
+- Desktop: open `index.html`
+- Mobile test server:
+  - `npm run serve:mobile`
+  - If port is busy: `PORT=5501 npm run serve:mobile`
 
-Change these values there:
+## 1) Core gameplay constants
 
+Main file: `js/core/constants.js`
+
+### World and camera
+
+- `TILE_SIZE`
 - `WORLD_SIZE_MULTIPLIER`
-	Controls how much wider the generated world is.
+- `WORLD_MAP_SIZE`
+- `MINIMAP_VISIBLE_TILES_MOBILE`
+- `MINIMAP_VISIBLE_TILES_DESKTOP`
+- `MOBILE_VIEWPORT_SCALE`
 
-- `ROCK_COUNT`
-	Initial number of rocks placed when a new game starts.
+### Player
 
-- `WOODEN_BOX_COUNT`
-	Initial number of wooden boxes placed when a new game starts.
+- `PLAYER_SIZE`
+- `PLAYER_SPEED`
+- `PLAYER_HEAL_DELAY_MS`
+- `PLAYER_HEAL_UNDER_ROOF_MULTIPLIER`
 
-- `CAR_COUNT`
-	Total number of cars in the world. This is kept separate from the other items.
+### Character stat budget
 
-- `SLEDGEHAMMER_COUNT`
-	Total number of sledgehammers in the world.
+- `CHARACTER_ATTRIBUTE_BUDGET`
+  - Shared cap for `health + speed + strength` during character customization.
+  - Default is `12`.
 
-- `INITIAL_BOMB_COUNT`
-	Initial number of bombs placed when a new game starts.
+### Basic entity sizes and speeds
 
-- `INITIAL_ENEMY_COUNT`
-	Initial number of enemies placed when a new game starts.
+- `BOMB_SIZE`
+- `APPLE_SIZE`
+- `SLEDGEHAMMER_SIZE`
+- `ROCK_SIZE`
+- `CAR_SIZE`
+- `BOAT_SIZE`
+- `APPLE_THROW_SPEED`
 
-- `INITIAL_APPLE_COUNT`
-	Initial number of apples placed when a new game starts.
+### Enemy defaults and variants
 
+- `ENEMY_SIZE`
+- `ENEMY_SPEED`
+- `ENEMY_CHASE_SPEED`
+- `ENEMY_SWIM_SPEED`
 - `ENEMY_SPAWN_INTERVAL`
-	How often new enemies spawn during gameplay, in milliseconds.
 
+Per-color enemy tuning:
+
+- `ENEMY_RED_COLOR`
+- `ENEMY_RED_SIZE`
+- `ENEMY_RED_HEALTH`
+- `ENEMY_RED_SPEED`
+- `ENEMY_RED_CHASE_SPEED`
+- `ENEMY_RED_SWIM_SPEED`
+
+- `ENEMY_YELLOW_COLOR`
+- `ENEMY_YELLOW_SIZE`
+- `ENEMY_YELLOW_HEALTH`
+- `ENEMY_YELLOW_SPEED`
+- `ENEMY_YELLOW_CHASE_SPEED`
+- `ENEMY_YELLOW_SWIM_SPEED`
+
+- `ENEMY_BLACK_COLOR`
+- `ENEMY_BLACK_SIZE`
+- `ENEMY_BLACK_HEALTH`
+- `ENEMY_BLACK_SPEED`
+- `ENEMY_BLACK_CHASE_SPEED`
+- `ENEMY_BLACK_SWIM_SPEED`
+
+### Initial world amounts
+
+- `INITIAL_RED_ENEMY_COUNT`
+- `INITIAL_YELLOW_ENEMY_COUNT`
+- `INITIAL_BLACK_ENEMY_COUNT`
+- `INITIAL_ENEMY_COUNT`
+- `INITIAL_APPLE_COUNT`
+- `INITIAL_BOMB_COUNT`
+- `ROCK_COUNT`
+- `WOODEN_BOX_COUNT`
+- `CAR_COUNT`
+- `BOAT_COUNT`
+- `SLEDGEHAMMER_COUNT`
+
+### Ongoing spawn/respawn tuning
+
+- `ENEMY_SPAWN_BATCH_RED`
+- `ENEMY_SPAWN_BATCH_YELLOW`
+- `ENEMY_SPAWN_BATCH_BLACK`
 - `ENEMY_SPAWN_BATCH`
-	How many enemies are added each enemy spawn cycle.
 
 - `APPLE_RESPAWN_THRESHOLD`
-	If apples drop below this amount, the game adds more.
-
 - `APPLE_RESPAWN_BATCH`
-	How many apples are added when the apple refill triggers.
 
 - `BOMB_RESPAWN_THRESHOLD`
-	If bombs drop below this amount, the game adds more.
-
 - `BOMB_RESPAWN_BATCH`
-	How many bombs are added when the bomb refill triggers.
 
 - `WOODEN_BOX_RESPAWN_THRESHOLD`
-	If wooden boxes drop below this amount, the game adds more.
-
 - `WOODEN_BOX_RESPAWN_BATCH`
-	How many wooden boxes are added when the wooden box refill triggers.
 
-- `MINIMAP_VISIBLE_TILES_MOBILE`
-	Higher number = minimap zooms farther out on mobile.
+### Wooden box behavior
 
-- `MINIMAP_VISIBLE_TILES_DESKTOP`
-	Higher number = minimap zooms farther out on desktop.
+- `WOODEN_BOX_SIZE`
+- `WOODEN_BOX_THROW_MULTIPLIER`
+- `WOODEN_BOX_FLOAT_SPEED`
+- `WOODEN_BOX_SNAP_DISTANCE`
 
-Files that use those tuning values:
+### Tree system
 
-- `js/core/game.js`
-	Uses the initial world counts when a new game starts.
+- `TREE_SIZE`
+- `TREE_HIT_POINTS`
+- `TREE_MIN_SPACING`
+- `TREE_TILE_FILL_CHANCE`
+- `TREE_MAX_APPLES`
+- `TREE_APPLE_VALUE`
 
-- `js/core/game-maintenance.js`
-	Uses the apple, bomb, and wooden box refill values during play.
+### Vehicle handling
 
-- `js/entities/enemies.js`
-	Uses the enemy respawn interval and enemy spawn batch values during play.
+- `CAR_SPEED`
+- `CAR_INTERACTION_RANGE`
+- `CAR_MAX_HEALTH`
+- `CAR_MAX_SPEED`
+- `CAR_ACCELERATION`
+- `CAR_DECELERATION`
+- `CAR_DRIFT_FACTOR`
 
-- `js/ui/minimap.js`
-	Uses the minimap visible-tile values for zoom level.
+### Terrain enum mapping
 
-Day/night tuning guide:
+- `TERRAIN_TYPES`
 
-Main file:
-`js/core/day-night-cycle.js`
+## 2) Day/night cycle variables
 
-Exact rows to tweak right now:
+Main file: `js/core/day-night-cycle.js`
 
-- Timings for day, dusk transition, dusk hold, night, dawn transition, and dawn hold:
-	rows `3-13` in `js/core/day-night-cycle.js` (`TRANSITION_DURATION` and `PHASE_SEGMENTS`).
+### Time durations
 
-- Start-at-phase offsets used when the game begins directly in day, dusk, night, or dawn:
-	rows `59-74` in `js/core/day-night-cycle.js` (`START_OFFSETS`).
+- `TRANSITION_DURATION`
+- `PHASE_SEGMENTS`:
+  - `day`
+  - `dayToDusk`
+  - `dusk`
+  - `duskToNight`
+  - `night`
+  - `nightToDawn`
+  - `dawn`
+  - `dawnToDay`
 
-- Dusk overlay color, strength, halo color, and halo strength:
-	rows `27-36` in `js/core/day-night-cycle.js` (`LIGHTING_PRESETS.dusk`).
+### Visual lighting presets
 
-- Night darkness amount, surrounding light radius, cone length, and cone width:
-	rows `37-46` in `js/core/day-night-cycle.js` (`LIGHTING_PRESETS.night`).
+- `LIGHTING_PRESETS.day`
+- `LIGHTING_PRESETS.dusk`
+- `LIGHTING_PRESETS.night`
+- `LIGHTING_PRESETS.dawn`
 
-- Dawn overlay color, strength, halo color, and halo strength:
-	rows `47-56` in `js/core/day-night-cycle.js` (`LIGHTING_PRESETS.dawn`).
+Each preset supports:
 
-- Exact 30-second overlap time for every phase change:
-	row `3` in `js/core/day-night-cycle.js` (`TRANSITION_DURATION`).
+- `overlayColor`
+- `overlayAlpha`
+- `vignetteAlpha`
+- `haloColor`
+- `haloAlpha`
+- `lightRadius`
+- `beamLength`
+- `beamWidth`
 
-- Dusk/dawn foggy halo rendering and the general overlay draw logic:
-	rows `119-158` in `js/core/day-night-cycle.js` (`drawDayNightOverlay`).
+### Start offsets
 
-- Night surrounding player light radius gradient:
-	rows `179-187` in `js/core/day-night-cycle.js`.
+- `START_OFFSETS.day`
+- `START_OFFSETS.dusk`
+- `START_OFFSETS.night`
+- `START_OFFSETS.dawn`
 
-- Night forward cone beam shape and expansion:
-	rows `193-209` in `js/core/day-night-cycle.js`.
+### Mobile night override
 
-- Mobile-specific night radius, cone length, and cone width overrides:
-	rows `244-250` in `js/core/day-night-cycle.js` (`getNightLighting`).
+Function `getNightLighting()` in the same file sets mobile values:
 
-- Soft overlap logic that fades the current state out while bringing the next state in:
-	rows `215-233` and `253-263` in `js/core/day-night-cycle.js` (`getLightingState` and `interpolateLighting`).
+- `lightRadius` (mobile)
+- `beamLength` (mobile)
+- `beamWidth` (mobile)
 
-last edits:
+## 3) Character and menu tuning
 
-upcoming edits:
-1.
-ive made this to work, and now i want to add in the game a night mode that the game appears as night so that around the player is a vignette that kind of lights up the near roundings of the player and then fades in to total darkness We could in the black have a very slight transparency but jus a little lets say 97%. I want you to add this property in the game and I want this firstly to start to fade in present after 10s than the game has started (20s of fade in) keep this night mode on for 30s and then fade it out (20s of fade out) and make in the code a separate file that handles this night mode that i could set the variables by my self. This then needs to come in loops in the game and for this loop time i also need a variable to adjust. So can you add this and then i could try this out? the variables that i need are (fade_in_time, fade_out_time, duration_time(how long does the total darkness last) and a start_loop_time (how long after daylight this night loop starts)), So can you do this for me, please?
+### Character archetypes and limits
 
-2.
-Also in the game I would like to have a car where the character could "jump on"(use) by pressing the spacebar (A button in mobile), this car should be attatched beneath the character and the character animation should set the hands foreward, like it is holding the wheel. Also the car should have somekind of animation when moving (spinning the wheels and throwing some particles from the wheels as dirt) and animation when it is in stational mode. The car should give the player more speed as we move along with the car, like in real life. When player wants to exit the wehicle we just press the spacebar (A button in mobile). The car should have collision
+Main file: `js/entities/character-factory.js`
 
-3.
-thanks and now i would like to have also a starting menu where i can choose a player that has a different kind of look (color, face, maeby a backpack) and stats, so we should read
+- `CHARACTER_TYPES` (per character base values)
+  - `default`
+  - `rasse`
+  - `iida`
+  - `andrus`
+  - `lidia`
+  - `elli`
+  - `niko`
+  - `mara`
+  - `taro`
+
+Per-type fields currently used:
+
+- `size`
+- `speed`
+- `health`
+- `color`
+- `strength`
+- `handColor`
+- `footColor`
+- `backpackColor`
+- `backpackPocketColor`
+- `hairStyle`
+- `hairColor`
+- `hasGlasses`
+- `hasSunglasses`
+- `hasLashes`
+- `hasBeard`
+- `glassesColor`
+- `beardColor`
+- `backpackWidthScale`
+- `backpackHeightScale`
+- `backpackRoundness`
+
+Other related variables in this file:
+
+- `SELECTABLE_CHARACTER_TYPES`
+- `CHARACTER_DISPLAY_LABELS`
+- `CHARACTER_CUSTOMIZATION_RULES.health.min`
+- `CHARACTER_CUSTOMIZATION_RULES.health.max`
+- `CHARACTER_CUSTOMIZATION_RULES.speed.min`
+- `CHARACTER_CUSTOMIZATION_RULES.speed.max`
+- `CHARACTER_CUSTOMIZATION_RULES.strength.min`
+- `CHARACTER_CUSTOMIZATION_RULES.strength.max`
+
+Budget enforcement for these stats is implemented in:
+
+- `normalizeCharacterCustomization(...)` in `js/entities/character-factory.js`
+- `updateCharacterAttributes(...)` in `js/ui/start-menu.js`
+
+### Start menu options and preview tuning
+
+Main file: `js/ui/start-menu.js`
+
+- `PREVIEW_CANVAS_SIZE`
+- `PREVIEW_SCALE`
+- `TIME_OPTIONS`
+- `MENU_COPY.start`
+- `MENU_COPY.pause`
+- `MENU_COPY.gameover`
+
+## 4) Terrain animation and look tuning
+
+Main file: `js/terrain/terrain-renderer.js`
+
+Global animation variables:
+
+- `windPhase` (inside `drawTerrain`)
+- `gustStrength` (inside `drawTerrain`)
+
+Terrain style values are currently set inline in this file, including:
+
+- Water wave speed/amplitude multipliers
+- Grass blade count, height range, and bend strength
+- Forest sway strength
+- Dirt crack counts, branch chance, and segment lengths
+
+If you want slower/faster grass or different crack density, edit these numbers directly in this file.
+
+## 5) Tree behavior details (non-constant file-level tunables)
+
+Main file: `js/entities/trees.js`
+
+- `TRUNK_COLLISION_FACTOR`
+
+Tree look/behavior values currently hardcoded in this file:
+
+- Canopy blob count and radius ranges
+- Apple placement radius on canopy
+- Trunk width/height ratios
+- Tree sway amount
+- Tree destruction particle counts/colors/speeds
+
+## 6) Wooden box + trunk details (non-constant file-level tunables)
+
+Main file: `js/entities/wooden-boxes.js`
+
+Main variables are in constants, but these are also editable in-place:
+
+- Trunk size multiplier in `createTrunk` (`WOODEN_BOX_SIZE * 0.85` currently)
+- Trunk spawn protection duration in `createTrunk` (`invulnerableUntil` currently `+ 350ms`)
+- Trunk visual style in `drawTrunkShape`
+- Box/trunk shadow shape choice in `drawAndUpdateWoodenBoxes` and `drawGrabbedWoodenBox`
+
+## 7) Apple pickup amount logic
+
+Main file: `js/entities/apples.js`
+
+Pickup logic uses:
+
+- `player.apples += apple.value || 1`
+
+So:
+
+- Normal apples (no `value`) give 1.
+- Special apples (for example tree-dropped apples with `value`) give that custom amount.
+
+Tree apple value is set by:
+
+- `TREE_APPLE_VALUE` in `js/core/constants.js`
+
+## 8) Where major systems are initialized/used
+
+- New-game initial spawn wiring: `js/core/game.js`
+- Ongoing refill logic: `js/core/game-maintenance.js`
+- Main update/draw order: `js/core/game-loop.js`
+
+If you change any counts or spawn thresholds, these three files are where behavior is applied.
+
+## Notes
+
+- Most numeric tuning is centralized in `js/core/constants.js`.
+- Variables listed in other files are still safe to tune; they are just currently not exported to constants.

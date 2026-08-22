@@ -16,6 +16,7 @@ import { detectMobile, setupMobileControls } from "../input/mobile-controls.js"
 import { generateTerrain } from "../terrain/terrain-generator.js"
 import { generateBombs } from "../entities/bombs.js"
 import { generateRocks } from "../entities/rocks.js"
+import { generateTrees } from "../entities/trees.js"
 import { generateEnemies, getInitialEnemySpawnPlan } from "../entities/enemies.js"
 import { generateApples } from "../entities/apples.js"
 import { generateSledgehammers } from "../entities/sledgehammers.js"
@@ -102,6 +103,8 @@ export function init(config = gameState.startupConfig) {
   gameState.explosions = []
   gameState.deathEffects = []
   gameState.rocks = []
+  gameState.trees = []
+  gameState.treeDestructionEffects = []
   gameState.woodenBoxes = [] // Initialize wooden boxes array
   gameState.cars = [] // Initialize cars array
   gameState.boats = []
@@ -159,6 +162,9 @@ export function init(config = gameState.startupConfig) {
 
   // Generate initial terrain
   generateTerrain(normalizedConfig.mapSize)
+
+  // Grow trees across the forest tiles before other props claim the space
+  generateTrees()
 
   // Generate initial wooden boxes
   generateWoodenBoxes(WOODEN_BOX_COUNT)

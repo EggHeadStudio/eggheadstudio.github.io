@@ -1,5 +1,5 @@
 // Character factory for creating different character types
-import { PLAYER_SIZE, PLAYER_SPEED } from "../core/constants.js"
+import { PLAYER_SIZE, PLAYER_SPEED, CHARACTER_ATTRIBUTE_BUDGET } from "../core/constants.js"
 
 // Character types with their default properties
 const CHARACTER_TYPES = {
@@ -46,14 +46,131 @@ const CHARACTER_TYPES = {
     hasGlasses: true,
     glassesColor: "#2b2b2b",
   },
+
+  andrus: {
+    size: PLAYER_SIZE * 1.2,
+    speed: PLAYER_SPEED,
+    health: 4,
+    color: "#4c93df",
+    strength: 2.0,
+    handColor: "#AAAAAA",
+    footColor: "#444444",
+    backpackColor: "#4a5f3c",
+    backpackPocketColor: "#708d5d",
+    backpackWidthScale: 1.18,
+    backpackHeightScale: 1.08,
+    hairStyle: "short",
+    hairColor: "#3a2a1d",
+    hasSunglasses: true,
+    glassesColor: "#101010",
+  },
+
+  lidia: {
+    size: PLAYER_SIZE,
+    speed: PLAYER_SPEED,
+    health: 3,
+    color: "#4f9bd8",
+    strength: 1.0,
+    handColor: "#AAAAAA",
+    footColor: "#444444",
+    backpackColor: "#8a4f7f",
+    backpackPocketColor: "#b06ca4",
+    backpackWidthScale: 0.95,
+    backpackHeightScale: 1.0,
+    hairStyle: "long",
+    hairColor: "#d7b14d",
+    hasLashes: true,
+  },
+
+  elli: {
+    size: PLAYER_SIZE,
+    speed: PLAYER_SPEED,
+    health: 3,
+    color: "#3b80c8",
+    strength: 1.0,
+    handColor: "#AAAAAA",
+    footColor: "#444444",
+    backpackColor: "#2f4256",
+    backpackPocketColor: "#4f6a85",
+    backpackWidthScale: 1.02,
+    backpackHeightScale: 1.12,
+    hairStyle: "ultraLong",
+    hairColor: "#3b281d",
+    hasLashes: true,
+    hasGlasses: true,
+    glassesColor: "#2a2a2a",
+  },
+
+  niko: {
+    size: PLAYER_SIZE,
+    speed: PLAYER_SPEED,
+    health: 3,
+    color: "#2d86b3",
+    strength: 1.0,
+    handColor: "#AAAAAA",
+    footColor: "#444444",
+    backpackColor: "#265f63",
+    backpackPocketColor: "#3f8b90",
+    backpackWidthScale: 0.96,
+    backpackHeightScale: 0.95,
+    hairStyle: "curly",
+    hairColor: "#2b2b2b",
+    hasBeard: true,
+    beardColor: "#1f1f1f",
+  },
+
+  mara: {
+    size: PLAYER_SIZE,
+    speed: PLAYER_SPEED,
+    health: 3,
+    color: "#497fd6",
+    strength: 1.0,
+    handColor: "#AAAAAA",
+    footColor: "#444444",
+    backpackColor: "#5a3b72",
+    backpackPocketColor: "#7a59a2",
+    backpackWidthScale: 0.9,
+    backpackHeightScale: 1.02,
+    hairStyle: "bun",
+    hairColor: "#201611",
+    hasLashes: true,
+    hasGlasses: true,
+    glassesColor: "#2f2238",
+    hasBeard: true,
+    beardColor: "#2b1d16",
+  },
+
+  taro: {
+    size: PLAYER_SIZE,
+    speed: PLAYER_SPEED,
+    health: 3,
+    color: "#3c8b95",
+    strength: 1.0,
+    handColor: "#AAAAAA",
+    footColor: "#444444",
+    backpackColor: "#4e4e34",
+    backpackPocketColor: "#767652",
+    backpackWidthScale: 1.08,
+    backpackHeightScale: 1.2,
+    hairStyle: "short",
+    hairColor: "#5c3d28",
+    hasSunglasses: true,
+    glassesColor: "#151515",
+  },
 }
 
-const SELECTABLE_CHARACTER_TYPES = ["default", "rasse", "iida"]
+const SELECTABLE_CHARACTER_TYPES = ["default", "rasse", "iida", "andrus", "lidia", "elli", "niko", "mara", "taro"]
 
 const CHARACTER_DISPLAY_LABELS = {
   default: "Bold",
   rasse: "Rasse",
   iida: "Iida",
+  andrus: "Andrus",
+  lidia: "Lidia",
+  elli: "Elli",
+  niko: "Niko",
+  mara: "Mara",
+  taro: "Taro",
 }
 
 export const CHARACTER_CUSTOMIZATION_RULES = {
@@ -61,6 +178,8 @@ export const CHARACTER_CUSTOMIZATION_RULES = {
   speed: { min: 3, max: 7 },
   strength: { min: 1, max: 5 },
 }
+
+const BUDGETED_STAT_KEYS = ["health", "speed", "strength"]
 
 function clamp(value, min, max, fallback) {
   const parsedValue = Number(value)
@@ -89,10 +208,42 @@ function isValidColor(value) {
   return CSS.supports("color", trimmedValue)
 }
 
-export function normalizeCharacterCustomization(customization = {}, type = "default") {
+function applyCharacterStatBudget(stats, preferredKey = null) {
+  const normalizedStats = { ...stats }
+  const preferred = BUDGETED_STAT_KEYS.includes(preferredKey) ? preferredKey : null
+  const reductionOrder = preferred
+    ? [...BUDGETED_STAT_KEYS.filter((key) => key !== preferred), preferred]
+    : BUDGETED_STAT_KEYS.slice()
+
+  let total = BUDGETED_STAT_KEYS.reduce((sum, key) => sum + normalizedStats[key], 0)
+
+  while (total > CHARACTER_ATTRIBUTE_BUDGET) {
+    let candidateKey = null
+    let candidateSlack = -1
+
+    for (const key of reductionOrder) {
+      const slack = normalizedStats[key] - CHARACTER_CUSTOMIZATION_RULES[key].min
+      if (slack > candidateSlack && slack > 0) {
+        candidateKey = key
+        candidateSlack = slack
+      }
+    }
+
+    if (!candidateKey) {
+      break
+    }
+
+    normalizedStats[candidateKey] -= 1
+    total -= 1
+  }
+
+  return normalizedStats
+}
+
+export function normalizeCharacterCustomization(customization = {}, type = "default", preferredStatKey = null) {
   const baseCharacter = CHARACTER_TYPES[type] || CHARACTER_TYPES.default
 
-  return {
+  const clampedStats = {
     color: isValidColor(customization.color) ? customization.color.trim() : baseCharacter.color,
     health: clamp(
       customization.health,
@@ -113,6 +264,8 @@ export function normalizeCharacterCustomization(customization = {}, type = "defa
       baseCharacter.strength,
     ),
   }
+
+  return applyCharacterStatBudget(clampedStats, preferredStatKey)
 }
 
 /**

@@ -70,6 +70,26 @@ function createWoodenBox(x, y) {
   }
 }
 
+// Create a trunk left behind by a chopped tree. Trunks live in the wooden box
+// array so they inherit all box behaviour (grab, throw, float, damage, snap).
+export function createTrunk(x, y) {
+  const trunk = createWoodenBox(x, y)
+
+  trunk.isTrunk = true
+  trunk.type = "trunk"
+  trunk.size = WOODEN_BOX_SIZE * 0.85
+  trunk.rotation = Math.random() * Math.PI * 2
+  trunk.invulnerableUntil = Date.now() + 350
+
+  if (isWaterPosition(x, y)) {
+    trunk.isFloating = true
+    trunk.floatAngle = Math.random() * Math.PI * 2
+  }
+
+  gameState.woodenBoxes.push(trunk)
+  return trunk
+}
+
 // Try to grab a wooden box
 export function tryGrabWoodenBox() {
   const { player, woodenBoxes } = gameState
@@ -82,6 +102,19 @@ export function tryGrabWoodenBox() {
       // If box was snapped to another box, unsnap it
       if (box.snappedTo) {
         box.snappedTo = null
+      }
+
+      // Sledgehammer reforges carried structures:
+      // - trunks become compact solid cubes
+      // - wooden boxes become metallic spiked crates
+      if (gameState.hasSledgehammer) {
+        if (box.isTrunk) {
+          box.isSledgeCube = true
+          box.isSledgeSpiked = false
+        } else {
+          box.isSledgeSpiked = true
+          box.isSledgeCube = false
+        }
       }
 
       gameState.isGrabbing = true
@@ -296,6 +329,12 @@ export function damageWoodenBox(box, amount = 1) {
   // Skip if box doesn't exist
   if (!box) return false
 
+  // Newly spawned trunks should not be destroyed by the same swing that felled
+  // the tree. This keeps trunks reliably left behind after chopping.
+  if (box.invulnerableUntil && Date.now() < box.invulnerableUntil) {
+    return false
+  }
+
   box.hitPoints -= amount
   box.lastHitTime = Date.now()
 
@@ -311,13 +350,16 @@ export function damageWoodenBox(box, amount = 1) {
     if (boxIndex !== -1) {
       gameState.woodenBoxes.splice(boxIndex, 1)
 
-      // Spawn a new box elsewhere (delayed to prevent instant respawning)
-      setTimeout(() => {
-        if (gameState.woodenBoxes) {
-          // Check if game still exists
-          generateWoodenBoxes(1)
-        }
-      }, 1000)
+      // Trunks come from chopped trees, so they are not restocked like crates
+      if (!box.isTrunk) {
+        // Spawn a new box elsewhere (delayed to prevent instant respawning)
+        setTimeout(() => {
+          if (gameState.woodenBoxes) {
+            // Check if game still exists
+            generateWoodenBoxes(1)
+          }
+        }, 1000)
+      }
     }
     return true // Box was destroyed
   }
@@ -846,19 +888,29 @@ export function drawAndUpdateWoodenBoxes(options = {}) {
       }
 
       // Draw shadow
-      createShadow(
-        ctx,
-        screenX,
-        screenY + (box.isFloating ? box.floatOffset : 0), // Adjust shadow position when floating
-        box.size,
-        "rectangle",
-        {
-          width: box.size,
-          height: box.size,
-          radius: 4,
-        },
-        box.rotation,
-      )
+      if (box.isTrunk && !box.isSledgeCube && !box.isSledgeSpiked) {
+        createShadow(
+          ctx,
+          screenX,
+          screenY + (box.isFloating ? box.floatOffset : 0), // Adjust shadow position when floating
+          box.size * 0.82,
+          "circle",
+        )
+      } else {
+        createShadow(
+          ctx,
+          screenX,
+          screenY + (box.isFloating ? box.floatOffset : 0), // Adjust shadow position when floating
+          box.size,
+          "rectangle",
+          {
+            width: box.size,
+            height: box.size,
+            radius: 4,
+          },
+          box.rotation,
+        )
+      }
 
       // Draw wooden box
       ctx.save()
@@ -1421,6 +1473,21 @@ function drawAndUpdateSplashEffects() {
 
 // Draw the wooden box base
 function drawWoodenBox(ctx, box) {
+  if (box.isSledgeCube) {
+    drawSolidBrownCube(ctx, box)
+    return
+  }
+
+  if (box.isSledgeSpiked) {
+    drawSpikedMetalBox(ctx, box)
+    return
+  }
+
+  if (box.isTrunk) {
+    drawTrunkShape(ctx, box)
+    return
+  }
+
   const halfSize = box.size / 2
 
   // Base box
@@ -1459,6 +1526,109 @@ function drawWoodenBox(ctx, box) {
   drawRoundedRectLocal(ctx, halfSize - cornerSize, -halfSize, cornerSize, cornerSize, 1)
   drawRoundedRectLocal(ctx, -halfSize, halfSize - cornerSize, cornerSize, cornerSize, 1)
   drawRoundedRectLocal(ctx, halfSize - cornerSize, halfSize - cornerSize, cornerSize, cornerSize, 1)
+}
+
+// Draw a chopped log left behind by a felled tree
+function drawTrunkShape(ctx, box) {
+  const radius = box.size * 0.47
+
+  // Dark bark ring (outer)
+  ctx.fillStyle = "#5a3719"
+  ctx.beginPath()
+  ctx.arc(0, 0, radius, 0, Math.PI * 2)
+  ctx.fill()
+
+  // Inner cut wood
+  ctx.fillStyle = "#c8a06a"
+  ctx.beginPath()
+  ctx.arc(0, 0, radius * 0.74, 0, Math.PI * 2)
+  ctx.fill()
+
+  // Growth rings
+  ctx.strokeStyle = "#a8814f"
+  ctx.lineWidth = 1.2
+  for (const ringScale of [0.26, 0.46, 0.64]) {
+    ctx.beginPath()
+    ctx.arc(0, 0, radius * ringScale, 0, Math.PI * 2)
+    ctx.stroke()
+  }
+
+  // Slight off-center pith detail for organic look
+  ctx.fillStyle = "#9b7242"
+  ctx.beginPath()
+  ctx.arc(-radius * 0.1, radius * 0.06, radius * 0.1, 0, Math.PI * 2)
+  ctx.fill()
+}
+
+function drawSolidBrownCube(ctx, box) {
+  const halfSize = box.size * 0.44
+
+  // Base block
+  ctx.fillStyle = "#6b4423"
+  drawRoundedRectLocal(ctx, -halfSize, -halfSize, halfSize * 2, halfSize * 2, 3)
+
+  // Top highlight face
+  ctx.fillStyle = "#845330"
+  drawRoundedRectLocal(ctx, -halfSize * 0.9, -halfSize * 0.9, halfSize * 1.8, halfSize * 0.62, 2)
+
+  // Side shade for depth
+  ctx.fillStyle = "#4f331a"
+  drawRoundedRectLocal(ctx, halfSize * 0.15, -halfSize * 0.88, halfSize * 0.72, halfSize * 1.76, 2)
+
+  // Wood knot accents
+  ctx.fillStyle = "#3f2612"
+  ctx.beginPath()
+  ctx.arc(-halfSize * 0.24, -halfSize * 0.08, halfSize * 0.14, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.beginPath()
+  ctx.arc(halfSize * 0.2, halfSize * 0.22, halfSize * 0.12, 0, Math.PI * 2)
+  ctx.fill()
+}
+
+function drawSpikedMetalBox(ctx, box) {
+  const halfSize = box.size * 0.48
+
+  // Metallic body
+  ctx.fillStyle = "#3f4a54"
+  drawRoundedRectLocal(ctx, -halfSize, -halfSize, halfSize * 2, halfSize * 2, 3)
+
+  // Brighter center plate
+  ctx.fillStyle = "#63707b"
+  drawRoundedRectLocal(ctx, -halfSize * 0.78, -halfSize * 0.78, halfSize * 1.56, halfSize * 1.56, 2)
+
+  // Metal seams
+  ctx.strokeStyle = "#2a323a"
+  ctx.lineWidth = 2
+  ctx.beginPath()
+  ctx.moveTo(-halfSize * 0.72, 0)
+  ctx.lineTo(halfSize * 0.72, 0)
+  ctx.moveTo(0, -halfSize * 0.72)
+  ctx.lineTo(0, halfSize * 0.72)
+  ctx.stroke()
+
+  // Spikes around edges
+  const spikeLength = box.size * 0.22
+  const spikeWidth = box.size * 0.12
+  const spikePositions = [
+    [0, -halfSize, 0],
+    [halfSize, 0, Math.PI / 2],
+    [0, halfSize, Math.PI],
+    [-halfSize, 0, -Math.PI / 2],
+  ]
+
+  ctx.fillStyle = "#9ca7b1"
+  for (const [sx, sy, angle] of spikePositions) {
+    ctx.save()
+    ctx.translate(sx, sy)
+    ctx.rotate(angle)
+    ctx.beginPath()
+    ctx.moveTo(0, -spikeWidth / 2)
+    ctx.lineTo(spikeLength, 0)
+    ctx.lineTo(0, spikeWidth / 2)
+    ctx.closePath()
+    ctx.fill()
+    ctx.restore()
+  }
 }
 
 // Draw damage overlay based on damage state
@@ -1660,20 +1830,24 @@ function drawGrabbedWoodenBox(ctx, camera) {
   const screenY = boxY - camera.y
 
   // Draw shadow with reduced size for held objects
-  createShadow(
-    ctx,
-    screenX,
-    screenY,
-    box.size,
-    "rectangle",
-    {
-      width: box.size,
-      height: box.size,
-      radius: 4,
-    },
-    angle,
-    0.95,
-  )
+  if (box.isTrunk && !box.isSledgeCube && !box.isSledgeSpiked) {
+    createShadow(ctx, screenX, screenY, box.size * 0.82, "circle", null, 0, 0.95)
+  } else {
+    createShadow(
+      ctx,
+      screenX,
+      screenY,
+      box.size,
+      "rectangle",
+      {
+        width: box.size,
+        height: box.size,
+        radius: 4,
+      },
+      angle,
+      0.95,
+    )
+  }
 
   // Draw box
   ctx.save()

@@ -5,6 +5,7 @@ import { spawnEnemies, drawAndUpdateEnemies, drawBrokenRaftEnemies } from "../en
 import { checkCollisions } from "./collision-detection.js"
 import { drawTerrain } from "../terrain/terrain-renderer.js"
 import { drawAndUpdateRocks } from "../entities/rocks.js"
+import { drawAndUpdateTrees } from "../entities/trees.js"
 import { drawAndUpdateWoodenBoxes, drawWoodenBoxRoofs } from "../entities/wooden-boxes.js" // Import wooden boxes update
 import { drawAndUpdateCars } from "../entities/cars.js" // Import cars update
 import { drawAndUpdateBoats } from "../entities/boats.js"
@@ -89,6 +90,9 @@ export function update() {
 
   // Draw and update rocks
   drawAndUpdateRocks()
+
+  // Draw trees above ground props so canopies layer correctly
+  drawAndUpdateTrees()
 
   // Draw and update apples
   drawAndUpdateApples()

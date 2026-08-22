@@ -247,7 +247,8 @@ export function drawAndUpdateApples() {
     // Check if player collects apple
     const distance = getDistance(player.x, player.y, apple.x, apple.y)
     if (distance < player.size + apple.size) {
-      player.apples++
+      // Apples harvested from trees are worth more than loose ones
+      player.apples += apple.value || 1
       apples.splice(i, 1)
       i--
       updateAppleCounter()

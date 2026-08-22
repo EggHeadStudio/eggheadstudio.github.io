@@ -374,6 +374,30 @@ function getCharacterStyleDescription(characterType) {
     return "Long hair and glasses girly look"
   }
 
+  if (characterType === "andrus") {
+    return "Bulky body, short hair, sunglasses"
+  }
+
+  if (characterType === "lidia") {
+    return "Long blond hair, lashes, stylish backpack"
+  }
+
+  if (characterType === "elli") {
+    return "Ultra-long dark hair, lashes, glasses"
+  }
+
+  if (characterType === "niko") {
+    return "Curly hair, beard, compact daypack"
+  }
+
+  if (characterType === "mara") {
+    return "Hair bun, beard, and round glasses"
+  }
+
+  if (characterType === "taro") {
+    return "Short hair, sunglasses, hiking pack"
+  }
+
   return "Clean bald look"
 }
 
@@ -422,11 +446,8 @@ function bindStatControl(key, rangeId, numberId, valueId, characterType) {
   }
 
   const updateStat = (nextValue) => {
-    updateCharacterAttributes({ [key]: nextValue }, characterType)
-    const resolvedValue = gameState.startupConfig.characterAttributes[key]
-    rangeInput.value = String(resolvedValue)
-    numberInput.value = String(resolvedValue)
-    valueOutput.textContent = key === "health" ? String(Math.round(resolvedValue)) : resolvedValue.toFixed(1)
+    updateCharacterAttributes({ [key]: nextValue }, characterType, key)
+    syncCharacterStatControls()
   }
 
   rangeInput.addEventListener("input", () => {
@@ -442,13 +463,45 @@ function bindStatControl(key, rangeId, numberId, valueId, characterType) {
   })
 }
 
-function updateCharacterAttributes(partialAttributes, characterType) {
+function updateCharacterAttributes(partialAttributes, characterType, preferredStatKey = null) {
   const mergedAttributes = {
     ...gameState.startupConfig.characterAttributes,
     ...partialAttributes,
   }
 
-  gameState.startupConfig.characterAttributes = normalizeCharacterCustomization(mergedAttributes, characterType)
+  gameState.startupConfig.characterAttributes = normalizeCharacterCustomization(
+    mergedAttributes,
+    characterType,
+    preferredStatKey || Object.keys(partialAttributes)[0] || null,
+  )
+}
+
+function syncCharacterStatControls() {
+  const stats = gameState.startupConfig.characterAttributes
+  const statBindings = [
+    { key: "health", rangeId: "characterHealthRange", numberId: "characterHealthNumber", valueId: "characterHealthValue" },
+    { key: "speed", rangeId: "characterSpeedRange", numberId: "characterSpeedNumber", valueId: "characterSpeedValue" },
+    { key: "strength", rangeId: "characterStrengthRange", numberId: "characterStrengthNumber", valueId: "characterStrengthValue" },
+  ]
+
+  for (const binding of statBindings) {
+    const rangeInput = document.getElementById(binding.rangeId)
+    const numberInput = document.getElementById(binding.numberId)
+    const valueOutput = document.getElementById(binding.valueId)
+    const value = stats[binding.key]
+
+    if (rangeInput) {
+      rangeInput.value = String(value)
+    }
+
+    if (numberInput) {
+      numberInput.value = String(value)
+    }
+
+    if (valueOutput) {
+      valueOutput.textContent = binding.key === "health" ? String(Math.round(value)) : value.toFixed(1)
+    }
+  }
 }
 
 function toColorPickerValue(colorValue) {

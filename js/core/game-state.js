@@ -71,6 +71,7 @@ export const gameState = {
   explosions: [],
   deathEffects: [],
   rocks: [],
+  trees: [],
   woodenBoxes: [], // Added wooden boxes array
   boxDestructionEffects: [], // Added effects for box destruction
   waterDrips: [], // Water drip effects for floating boxes

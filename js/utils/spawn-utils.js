@@ -39,6 +39,7 @@ export function isSpawnPositionClear(x, y, size, options = {}) {
     includeApples = true,
     includeBombs = true,
     includeRocks = true,
+    includeTrees = true,
     includeWoodenBoxes = true,
     includeEnemies = true,
     includeCars = true,
@@ -80,6 +81,14 @@ export function isSpawnPositionClear(x, y, size, options = {}) {
   if (includeRocks) {
     for (const rock of gameState.rocks) {
       if (getDistance(x, y, rock.x, rock.y) < size + rock.size) {
+        return false
+      }
+    }
+  }
+
+  if (includeTrees && gameState.trees) {
+    for (const tree of gameState.trees) {
+      if (getDistance(x, y, tree.x, tree.y) < size + tree.size * 0.6) {
         return false
       }
     }

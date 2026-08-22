@@ -4,6 +4,7 @@ import { generateApples } from "../entities/apples.js"
 import { generateBombs } from "../entities/bombs.js"
 import { generateWoodenBoxes } from "../entities/wooden-boxes.js" // Import wooden boxes generator
 import { generateRocks } from "../entities/rocks.js"
+import { generateTrees } from "../entities/trees.js"
 import { generateCars } from "../entities/cars.js"
 import { generateBoats } from "../entities/boats.js"
 import { generateSledgehammers } from "../entities/sledgehammers.js"
@@ -47,6 +48,7 @@ export function maintainGameElements() {
 
 export function refreshWorldForNewDay() {
   clearAllEnemies({ spawnCleanupEffects: true })
+  generateTrees()
   generateRocks(ROCK_COUNT)
   generateWoodenBoxes(WOODEN_BOX_COUNT)
   generateBombs(INITIAL_BOMB_COUNT)

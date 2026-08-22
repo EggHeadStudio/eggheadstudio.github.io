@@ -31,6 +31,14 @@ export function isPlayerPositionClear(x, y, options = {}) {
     }
   }
 
+  if (gameState.trees) {
+    for (const tree of gameState.trees) {
+      if (getDistance(x, y, tree.x, tree.y) < player.size + tree.size * 0.3) {
+        return false
+      }
+    }
+  }
+
   if (woodenBoxes) {
     for (const box of woodenBoxes) {
       if (box === ignoreWoodenBox) continue
