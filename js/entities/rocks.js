@@ -214,17 +214,26 @@ function drawRockShape(ctx, rock) {
 
   ctx.fill()
 
-  ctx.fillStyle = "#6c7a7a"
-  for (let j = 0; j < 5; j++) {
-    const detailX = (Math.random() - 0.5) * rock.size
-    const detailY = (Math.random() - 0.5) * rock.size
-    const detailSize = 2 + Math.random() * 5
+  // Speckles are generated once per rock and cached, otherwise they would be
+  // re-randomized every frame and appear to boil/flicker.
+  if (!rock.speckles) {
+    rock.speckles = []
+    for (let j = 0; j < 5; j++) {
+      const detailX = (Math.random() - 0.5) * rock.size
+      const detailY = (Math.random() - 0.5) * rock.size
+      const detailSize = 2 + Math.random() * 5
 
-    if (detailX * detailX + detailY * detailY < rock.size * 0.7 * (rock.size * 0.7)) {
-      ctx.beginPath()
-      ctx.arc(detailX, detailY, detailSize, 0, Math.PI * 2)
-      ctx.fill()
+      if (detailX * detailX + detailY * detailY < rock.size * 0.7 * (rock.size * 0.7)) {
+        rock.speckles.push({ x: detailX, y: detailY, size: detailSize })
+      }
     }
+  }
+
+  ctx.fillStyle = "#6c7a7a"
+  for (const speckle of rock.speckles) {
+    ctx.beginPath()
+    ctx.arc(speckle.x, speckle.y, speckle.size, 0, Math.PI * 2)
+    ctx.fill()
   }
 
   ctx.fillStyle = "#95a5a6"

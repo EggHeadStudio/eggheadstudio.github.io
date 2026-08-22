@@ -1209,17 +1209,26 @@ function drawGrabbedObjects(ctx, screenX, screenY, player, camera, grabbedBomb, 
       if (!grabbedRock.isHammerShaped) {
         ctx.fill()
 
-        ctx.fillStyle = "#6c7a7a"
-        for (let j = 0; j < 5; j++) {
-          const detailX = (Math.random() - 0.5) * grabbedRock.size
-          const detailY = (Math.random() - 0.5) * grabbedRock.size
-          const detailSize = 2 + Math.random() * 5
+        // Reuse the rock's cached speckles so a carried rock keeps the same
+        // markings instead of flickering every frame.
+        if (!grabbedRock.speckles) {
+          grabbedRock.speckles = []
+          for (let j = 0; j < 5; j++) {
+            const detailX = (Math.random() - 0.5) * grabbedRock.size
+            const detailY = (Math.random() - 0.5) * grabbedRock.size
+            const detailSize = 2 + Math.random() * 5
 
-          if (detailX * detailX + detailY * detailY < grabbedRock.size * 0.7 * (grabbedRock.size * 0.7)) {
-            ctx.beginPath()
-            ctx.arc(detailX, detailY, detailSize, 0, Math.PI * 2)
-            ctx.fill()
+            if (detailX * detailX + detailY * detailY < grabbedRock.size * 0.7 * (grabbedRock.size * 0.7)) {
+              grabbedRock.speckles.push({ x: detailX, y: detailY, size: detailSize })
+            }
           }
+        }
+
+        ctx.fillStyle = "#6c7a7a"
+        for (const speckle of grabbedRock.speckles) {
+          ctx.beginPath()
+          ctx.arc(speckle.x, speckle.y, speckle.size, 0, Math.PI * 2)
+          ctx.fill()
         }
 
         ctx.fillStyle = "#95a5a6"

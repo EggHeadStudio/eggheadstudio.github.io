@@ -3,6 +3,14 @@ import { gameState } from "../core/game-state.js"
 import { TILE_SIZE } from "../core/constants.js"
 import { getTerrainColor, adjustColorBrightness } from "../utils/color-utils.js"
 
+// Deterministic pseudo-random value for a tile detail.
+// Using a hash instead of Math.random() keeps every blade, tuft and pebble
+// anchored to the same spot each frame instead of flickering around.
+function tileNoise(x, y, index) {
+  const value = Math.sin(x * 127.1 + y * 311.7 + index * 74.7) * 43758.5453
+  return value - Math.floor(value)
+}
+
 // Draw terrain
 export function drawTerrain() {
   const { terrain, camera, ctx } = gameState
@@ -12,6 +20,12 @@ export function drawTerrain() {
   const endX = startX + Math.ceil(ctx.canvas.width / TILE_SIZE) + 1
   const endY = startY + Math.ceil(ctx.canvas.height / TILE_SIZE) + 1
   const time = Date.now() / 1000 // For animations
+
+  // Slow travelling wind field shared by grass and trees so the whole world
+  // breathes together instead of each tile jittering on its own.
+  // ~5s per sway cycle: fluid and clearly visible without being frantic.
+  const windPhase = time * 1.25
+  const gustStrength = 0.75 + 0.25 * Math.sin(time * 0.35)
 
   for (let y = startY; y < endY; y++) {
     for (let x = startX; x < endX; x++) {
@@ -49,31 +63,28 @@ export function drawTerrain() {
           ctx.stroke()
         } else if (terrainType === 1) {
           // TERRAIN_TYPES.GRASS
-          // Grass details - small dots and lines
-          for (let i = 0; i < 3; i++) {
-            const grassX = screenX + Math.random() * TILE_SIZE
-            const grassY = screenY + Math.random() * TILE_SIZE
-            const grassSize = 3 + Math.random() * 2
+          // Grass is drawn purely as blades that lean side to side in the wind.
+          ctx.strokeStyle = adjustColorBrightness(getTerrainColor(terrainType), -18)
+          ctx.lineWidth = 1.5
+          ctx.lineCap = "round"
 
-            ctx.beginPath()
-            ctx.arc(grassX, grassY, grassSize, 0, Math.PI * 2)
-            ctx.fill()
-          }
+          for (let i = 0; i < 5; i++) {
+            const baseX = screenX + 3 + tileNoise(x, y, i + 30) * (TILE_SIZE - 6)
+            const baseY = screenY + TILE_SIZE - 2 - tileNoise(x, y, i + 35) * (TILE_SIZE - 6)
+            const height = 9 + tileNoise(x, y, i + 40) * 7
 
-          // Add some grass blades
-          ctx.strokeStyle = adjustColorBrightness(getTerrainColor(terrainType), -15)
-          ctx.lineWidth = 1
-          for (let i = 0; i < 2; i++) {
-            const baseX = screenX + 5 + Math.random() * (TILE_SIZE - 10)
-            const baseY = screenY + TILE_SIZE - 5
-            const height = 5 + Math.random() * 8
-            const bend = Math.sin(time * (0.5 + Math.random() * 0.5)) * 2
+            // Phase shifts with world position so the wind visibly rolls
+            // across the field rather than every blade moving in lockstep.
+            const bladePhase = windPhase + x * 0.32 + y * 0.16 + tileNoise(x, y, i + 50) * 1.4
+            const bend = Math.sin(bladePhase) * gustStrength * 7
 
             ctx.beginPath()
             ctx.moveTo(baseX, baseY)
-            ctx.quadraticCurveTo(baseX + bend, baseY - height / 2, baseX, baseY - height)
+            ctx.quadraticCurveTo(baseX + bend * 0.35, baseY - height * 0.55, baseX + bend, baseY - height)
             ctx.stroke()
           }
+
+          ctx.lineCap = "butt"
         } else if (terrainType === 2) {
           // TERRAIN_TYPES.FOREST
           // Forest details - tree-like shapes
@@ -90,39 +101,50 @@ export function drawTerrain() {
           ctx.fillStyle = "#795548"
           ctx.fillRect(centerX - 2, centerY, 4, TILE_SIZE / 4)
 
-          // Add some movement to trees
-          const sway = Math.sin(time + x * 0.1 + y * 0.1) * 1
+          // Tree canopy drifts with the same slow breeze as the grass
+          const sway = Math.sin(windPhase + x * 0.32 + y * 0.16) * gustStrength * 1.6
           ctx.fillStyle = adjustColorBrightness(getTerrainColor(terrainType), 5)
           ctx.beginPath()
           ctx.arc(centerX + sway, centerY - radius / 2 - 2, radius * 0.7, 0, Math.PI * 2)
           ctx.fill()
         } else if (terrainType === 3) {
           // TERRAIN_TYPES.DIRT
-          // Dirt details - small rocks and texture
-          for (let i = 0; i < 5; i++) {
-            const dirtX = screenX + Math.random() * TILE_SIZE
-            const dirtY = screenY + Math.random() * TILE_SIZE
-            const dirtSize = 2 + Math.random() * 3
+          // Cracked ground - static jagged fissures, never animated.
+          ctx.strokeStyle = adjustColorBrightness(getTerrainColor(terrainType), -22)
+          ctx.lineWidth = 1
+          ctx.lineCap = "round"
+
+          for (let i = 0; i < 3; i++) {
+            let crackX = screenX + 4 + tileNoise(x, y, i + 60) * (TILE_SIZE - 8)
+            let crackY = screenY + 4 + tileNoise(x, y, i + 70) * (TILE_SIZE - 8)
+            let angle = tileNoise(x, y, i + 80) * Math.PI * 2
 
             ctx.beginPath()
-            ctx.arc(dirtX, dirtY, dirtSize, 0, Math.PI * 2)
-            ctx.fill()
-          }
+            ctx.moveTo(crackX, crackY)
 
-          // Add some lines for texture
-          ctx.strokeStyle = adjustColorBrightness(getTerrainColor(terrainType), -5)
-          ctx.lineWidth = 0.5
-          for (let i = 0; i < 2; i++) {
-            const startX = screenX + Math.random() * TILE_SIZE
-            const startY = screenY + Math.random() * TILE_SIZE
-            const length = 3 + Math.random() * 5
-            const angle = Math.random() * Math.PI * 2
-
-            ctx.beginPath()
-            ctx.moveTo(startX, startY)
-            ctx.lineTo(startX + Math.cos(angle) * length, startY + Math.sin(angle) * length)
+            // Walk a few short segments, kinking the direction each step so the
+            // line reads as a fracture rather than a straight scratch.
+            for (let segment = 0; segment < 3; segment++) {
+              const segmentLength = 3 + tileNoise(x, y, i * 10 + segment + 90) * 5
+              angle += (tileNoise(x, y, i * 10 + segment + 120) - 0.5) * 1.6
+              crackX += Math.cos(angle) * segmentLength
+              crackY += Math.sin(angle) * segmentLength
+              ctx.lineTo(crackX, crackY)
+            }
             ctx.stroke()
+
+            // Small offshoot branch, like a real crack splitting
+            if (tileNoise(x, y, i + 150) > 0.45) {
+              const branchAngle = angle + (tileNoise(x, y, i + 160) - 0.5) * 2.2
+              const branchLength = 2 + tileNoise(x, y, i + 170) * 4
+              ctx.beginPath()
+              ctx.moveTo(crackX, crackY)
+              ctx.lineTo(crackX + Math.cos(branchAngle) * branchLength, crackY + Math.sin(branchAngle) * branchLength)
+              ctx.stroke()
+            }
           }
+
+          ctx.lineCap = "butt"
         }
       }
     }
