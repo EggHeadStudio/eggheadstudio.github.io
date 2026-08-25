@@ -68,7 +68,7 @@ export function drawTerrain() {
           ctx.lineWidth = 1.5
           ctx.lineCap = "round"
 
-          for (let i = 0; i < 5; i++) {
+          for (let i = 0; i < 9; i++) {
             const baseX = screenX + 3 + tileNoise(x, y, i + 30) * (TILE_SIZE - 6)
             const baseY = screenY + TILE_SIZE - 2 - tileNoise(x, y, i + 35) * (TILE_SIZE - 6)
             const height = 9 + tileNoise(x, y, i + 40) * 7
@@ -76,7 +76,7 @@ export function drawTerrain() {
             // Phase shifts with world position so the wind visibly rolls
             // across the field rather than every blade moving in lockstep.
             const bladePhase = windPhase + x * 0.32 + y * 0.16 + tileNoise(x, y, i + 50) * 1.4
-            const bend = Math.sin(bladePhase) * gustStrength * 7
+            const bend = Math.sin(bladePhase) * gustStrength * 10
 
             ctx.beginPath()
             ctx.moveTo(baseX, baseY)

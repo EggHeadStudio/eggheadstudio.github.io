@@ -15,6 +15,8 @@ const CHARACTER_TYPES = {
     backpackPocketColor: "#A0522D",
     hairStyle: "none",
     hairColor: "#2d2d2d",
+    noseColor: "#7d858d",
+    noseSizeScale: 0.2,
   },
 
   rasse: {
@@ -29,6 +31,8 @@ const CHARACTER_TYPES = {
     backpackPocketColor: "#A0522D",
     hairStyle: "mohawk",
     hairColor: "#c58c12",
+    noseColor: "#7d858d",
+    noseSizeScale: 0.2,
   },
 
   iida: {
@@ -43,12 +47,14 @@ const CHARACTER_TYPES = {
     backpackPocketColor: "#A0522D",
     hairStyle: "long",
     hairColor: "#b07910",
+    noseColor: "#74808a",
+    noseSizeScale: 0.2,
     hasGlasses: true,
     glassesColor: "#2b2b2b",
   },
 
   andrus: {
-    size: PLAYER_SIZE * 1.2,
+    size: PLAYER_SIZE,
     speed: PLAYER_SPEED,
     health: 4,
     color: "#4c93df",
@@ -60,9 +66,12 @@ const CHARACTER_TYPES = {
     backpackWidthScale: 1.18,
     backpackHeightScale: 1.08,
     hairStyle: "short",
-    hairColor: "#3a2a1d",
-    hasSunglasses: true,
-    glassesColor: "#101010",
+    hairColor: "#9b784f",
+    noseColor: "#6f7b86",
+    noseSizeScale: 0.2,
+    hairSideScale: 1.06,
+    hairTopScale: 1.02,
+    hairBackScale: 0.94,
   },
 
   lidia: {
@@ -79,6 +88,8 @@ const CHARACTER_TYPES = {
     backpackHeightScale: 1.0,
     hairStyle: "long",
     hairColor: "#d7b14d",
+    noseColor: "#7a8791",
+    noseSizeScale: 0.2,
     hasLashes: true,
   },
 
@@ -96,6 +107,8 @@ const CHARACTER_TYPES = {
     backpackHeightScale: 1.12,
     hairStyle: "ultraLong",
     hairColor: "#3b281d",
+    noseColor: "#6b7782",
+    noseSizeScale: 0.2,
     hasLashes: true,
     hasGlasses: true,
     glassesColor: "#2a2a2a",
@@ -115,8 +128,10 @@ const CHARACTER_TYPES = {
     backpackHeightScale: 0.95,
     hairStyle: "curly",
     hairColor: "#2b2b2b",
+    noseColor: "#3581b8",
+    noseSizeScale: 0.2,
     hasBeard: true,
-    beardColor: "#1f1f1f",
+    beardColor: "#554535",
   },
 
   mara: {
@@ -133,6 +148,8 @@ const CHARACTER_TYPES = {
     backpackHeightScale: 1.02,
     hairStyle: "bun",
     hairColor: "#201611",
+    noseColor: "#71819a",
+    noseSizeScale: 0.2,
     hasLashes: true,
     hasGlasses: true,
     glassesColor: "#2f2238",
@@ -154,6 +171,8 @@ const CHARACTER_TYPES = {
     backpackHeightScale: 1.2,
     hairStyle: "short",
     hairColor: "#5c3d28",
+    noseColor: "#667a7d",
+    noseSizeScale: 0.2,
     hasSunglasses: true,
     glassesColor: "#151515",
   },

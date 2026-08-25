@@ -448,18 +448,6 @@ export function drawPlayer() {
 
   drawHair(ctx, 0, 0, player)
 
-  // Draw direction indicator (nose)
-  const indicatorLength = player.size * 0.8
-  ctx.strokeStyle = "gray"
-  ctx.lineWidth = 9
-  ctx.beginPath()
-  ctx.moveTo(0, 0)
-  ctx.lineTo(
-    Math.cos(player.direction) * indicatorLength,
-    Math.sin(player.direction) * indicatorLength
-  )
-  ctx.stroke()
-
   // Backpack
   drawBackpack(ctx, 0, 0, player)
 
@@ -555,14 +543,6 @@ export function drawCharacterPreview(ctx, character, options = {}) {
     ctx.fill()
 
     drawHair(ctx, 0, 0, previewCharacter)
-
-    const indicatorLength = previewCharacter.size * 0.8
-    ctx.strokeStyle = "gray"
-    ctx.lineWidth = 9
-    ctx.beginPath()
-    ctx.moveTo(0, 0)
-    ctx.lineTo(Math.cos(direction) * indicatorLength, Math.sin(direction) * indicatorLength)
-    ctx.stroke()
 
     drawBackpack(ctx, 0, 0, previewCharacter)
     drawPlayerFace(ctx, 0, 0, previewCharacter)
@@ -781,11 +761,15 @@ function drawRearHeadCap(ctx, x, y, player, hairColor, options = {}) {
 }
 
 function drawShortHair(ctx, x, y, player, hairColor) {
+  const sideScale = Number.isFinite(player.hairSideScale) ? player.hairSideScale : 0.72
+  const topScale = Number.isFinite(player.hairTopScale) ? player.hairTopScale : 0.94
+  const backScale = Number.isFinite(player.hairBackScale) ? player.hairBackScale : 0.88
+
   drawRearHeadCap(ctx, x, y, player, hairColor, {
-    sideScale: 0.72,
-    topScale: 0.94,
+    sideScale,
+    topScale,
     frontScale: 0.08,
-    backScale: 0.88,
+    backScale,
     highlightAlpha: 0.14,
   })
 }
@@ -987,49 +971,92 @@ function drawPlayerFace(ctx, x, y, player) {
     drawBeard(ctx, x, y, player)
   }
 
+  // Nose is drawn after beard so it always appears on top.
+  drawNoseIndicator(ctx, x, y, player)
+
   if (player.hasGlasses || player.hasSunglasses) {
     drawGlasses(ctx, x, y, player)
   }
 }
 
-function drawBeard(ctx, x, y, player) {
-  const beardColor = player.beardColor || "#2b2018"
+function drawNoseIndicator(ctx, x, y, player) {
   const dirX = Math.cos(player.direction)
   const dirY = Math.sin(player.direction)
-  const rightX = -dirY
-  const rightY = dirX
+  const noseSizeScale = Number.isFinite(player.noseSizeScale) ? player.noseSizeScale : 0.2
+  const startOffset = player.size * 0.27
+  const indicatorLength = player.size * noseSizeScale
+  const startX = x + dirX * startOffset
+  const startY = y + dirY * startOffset
+  const tipX = startX + dirX * indicatorLength
+  const tipY = startY + dirY * indicatorLength
 
   ctx.save()
+  ctx.strokeStyle = player.noseColor || "#7a838a"
+  ctx.lineWidth = Math.max(4, player.size * 0.16)
+  ctx.lineCap = "round"
+  ctx.beginPath()
+  ctx.moveTo(startX, startY)
+  ctx.lineTo(tipX, tipY)
+  ctx.stroke()
+
+  // Explicit round tip so the nose end reads as soft/rounded.
+  ctx.fillStyle = player.noseColor || "#7a838a"
+  ctx.beginPath()
+  ctx.arc(tipX, tipY, Math.max(2, player.size * noseSizeScale), 0, Math.PI * 2)
+  ctx.fill()
+
+  ctx.restore()
+}
+
+function drawBeard(ctx, x, y, player) {
+  const beardColor = player.beardColor || "#2b2018"
+
+  ctx.save()
+  ctx.translate(x, y)
+  ctx.rotate(player.direction)
+
+  // Hair-like front cap: follows the front half of the head and extends slightly out.
+  const side = player.size * 0.76
+  const innerSide = player.size * 0.5
+  const front = player.size * 0.44
+  const sway = Math.sin(player.animationTime * 0.9) * (player.isMoving ? player.size * 0.08 : 0)
+  const tip = player.size * 1.28
+
   ctx.fillStyle = beardColor
+  const innerTip = player.size * 0.58
 
-  // Chin patch toward the facing direction.
-  const chinX = x + dirX * player.size * 0.48
-  const chinY = y + dirY * player.size * 0.48
-  ctx.beginPath()
-  ctx.ellipse(chinX, chinY, player.size * 0.21, player.size * 0.16, player.direction, 0, Math.PI * 2)
-  ctx.fill()
+  const beardPath = new Path2D()
+  beardPath.moveTo(front, -side)
+  beardPath.quadraticCurveTo(tip, -side * 0.62 + sway, tip, sway)
+  beardPath.quadraticCurveTo(tip, side * 0.62 + sway, front, side)
 
-  // Side beard near each jaw corner.
-  for (const side of [-1, 1]) {
-    const jawX = x + dirX * player.size * 0.28 + rightX * side * player.size * 0.43
-    const jawY = y + dirY * player.size * 0.28 + rightY * side * player.size * 0.43
+  // Inner carve keeps it as a curved band, not a face blob.
+  beardPath.lineTo(front * 0.9, innerSide)
+  beardPath.quadraticCurveTo(innerTip, innerSide * 0.5, innerTip, 0)
+  beardPath.quadraticCurveTo(innerTip, -innerSide * 0.5, front * 0.9, -innerSide)
+  beardPath.closePath()
+  ctx.fill(beardPath)
+
+  // Beard fibers: subtle curved streaks like the hair highlights.
+  ctx.save()
+  ctx.clip(beardPath)
+  ctx.strokeStyle = "rgba(255, 228, 190, 0.08)"
+  ctx.lineWidth = Math.max(1, player.size * 0.05)
+  ctx.lineCap = "round"
+
+  for (let i = -1; i <= 1; i++) {
+    const yOffset = (i / 2) * side * 0.96 + sway * 0.8
     ctx.beginPath()
-    ctx.ellipse(jawX, jawY, player.size * 0.12, player.size * 0.09, player.direction + side * 0.45, 0, Math.PI * 2)
-    ctx.fill()
+    ctx.moveTo(front + player.size * 0.05, yOffset)
+    ctx.quadraticCurveTo(
+      tip - player.size * 0.2,
+      yOffset + i * side * 0.07,
+      tip - player.size * 0.03,
+      yOffset + i * side * 0.03,
+    )
+    ctx.stroke()
   }
-
-  // Light moustache stripe.
-  ctx.beginPath()
-  ctx.ellipse(
-    x + dirX * player.size * 0.2,
-    y + dirY * player.size * 0.2,
-    player.size * 0.11,
-    player.size * 0.05,
-    player.direction,
-    0,
-    Math.PI * 2,
-  )
-  ctx.fill()
+  ctx.restore()
 
   ctx.restore()
 }
