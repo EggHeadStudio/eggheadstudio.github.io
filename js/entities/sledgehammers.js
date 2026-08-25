@@ -8,7 +8,14 @@ import { isSpawnPositionClear } from "../utils/spawn-utils.js"
 export function generateSledgehammers(count = SLEDGEHAMMER_COUNT) {
   const { terrain, player, sledgehammers, rocks, woodenBoxes, bombs, cars } = gameState
 
-  for (let i = 0; i < count; i++) {
+  if (count > 0) {
+    const nearbyHammer = createNearbySledgehammer(player, sledgehammers)
+    if (nearbyHammer) {
+      sledgehammers.push(nearbyHammer)
+    }
+  }
+
+  for (let i = sledgehammers.length; i < count; i++) {
     let placed = false
     let attempts = 0
 
@@ -42,6 +49,39 @@ export function generateSledgehammers(count = SLEDGEHAMMER_COUNT) {
       placed = true
     }
   }
+}
+
+function createNearbySledgehammer(player, existingHammers) {
+  for (let attempt = 0; attempt < 50; attempt++) {
+    const angle = Math.random() * Math.PI * 2
+    const distance = 110 + Math.random() * 90
+    const x = player.x + Math.cos(angle) * distance
+    const y = player.y + Math.sin(angle) * distance
+
+    const hammer = {
+      x,
+      y,
+      size: SLEDGEHAMMER_SIZE,
+      rotation: (Math.random() - 0.5) * 0.5,
+    }
+
+    if (
+      !isSpawnPositionClear(hammer.x, hammer.y, hammer.size, {
+        requireLand: true,
+        playerDistanceBuffer: 0,
+      })
+    ) {
+      continue
+    }
+
+    if (existingHammers.some((other) => getDistance(hammer.x, hammer.y, other.x, other.y) < hammer.size * 4)) {
+      continue
+    }
+
+    return hammer
+  }
+
+  return null
 }
 
 export function drawAndUpdateSledgehammers() {

@@ -181,6 +181,11 @@ export function throwApple() {
   // Set the throwing animation state regardless of apple count
   player.throwingApple = Date.now()
 
+  // Wrist/other weapon selected: do not throw apples.
+  if (gameState.selectedWeapon !== "apple") {
+    return false
+  }
+
   // Only create and throw an apple if the player has apples
   if (player.apples > 0) {
     let angle
@@ -248,7 +253,13 @@ export function drawAndUpdateApples() {
     const distance = getDistance(player.x, player.y, apple.x, apple.y)
     if (distance < player.size + apple.size) {
       // Apples harvested from trees are worth more than loose ones
+      const previousAppleCount = player.apples
       player.apples += apple.value || 1
+
+      if (previousAppleCount <= 0 && player.apples > 0) {
+        gameState.selectedWeapon = "apple"
+      }
+
       apples.splice(i, 1)
       i--
       updateAppleCounter()

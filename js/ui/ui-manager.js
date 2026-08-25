@@ -1,6 +1,8 @@
 // UI management
 import { gameState } from "../core/game-state.js"
 
+let hudSelectorsBound = false
+
 function getGameContainer() {
   return document.querySelector(".game-container")
 }
@@ -16,19 +18,124 @@ export function resetHud() {
   document.getElementById("appleCount").textContent = "0"
   document.getElementById("timer").textContent = "00:00"
   document.getElementById("killCount").textContent = "0"
+  bindHudSelectors()
   updateSledgehammerIndicator()
+  updateWeaponSelectionUi()
 }
 
 // Update apple counter in UI
 export function updateAppleCounter() {
-  document.getElementById("appleCount").textContent = gameState.player.apples.toString()
+  const apples = gameState.player?.apples ?? 0
+  document.getElementById("appleCount").textContent = apples.toString()
+
+  if (apples <= 0 && gameState.selectedWeapon === "apple") {
+    gameState.selectedWeapon = "wrist"
+  }
+
+  updateWeaponSelectionUi()
 }
 
 export function updateSledgehammerIndicator() {
   const indicator = document.getElementById("sledgehammerIndicator")
   if (!indicator) return
 
-  indicator.classList.toggle("active", Boolean(gameState.hasSledgehammer))
+  const hasSledgehammer = Boolean(gameState.hasSledgehammer)
+
+  if (!hasSledgehammer && gameState.selectedTool === "sledgehammer") {
+    gameState.selectedTool = "none"
+  }
+
+  indicator.classList.toggle("active", hasSledgehammer)
+  indicator.classList.toggle("has-tool", hasSledgehammer)
+  updateWeaponSelectionUi()
+}
+
+function getAppleWeaponButton() {
+  return document.getElementById("appleWeaponButton") || document.querySelector(".apple-icon")
+}
+
+function bindHudSelectors() {
+  if (hudSelectorsBound) return
+
+  const appleButton = getAppleWeaponButton()
+  const hammerButton = document.getElementById("sledgehammerIndicator")
+
+  if (appleButton) {
+    appleButton.setAttribute("role", "button")
+    appleButton.setAttribute("tabindex", "0")
+    appleButton.setAttribute("aria-label", "Select apples")
+
+    appleButton.addEventListener("click", () => {
+      toggleAppleWeaponSelection()
+    })
+
+    appleButton.addEventListener("touchstart", (event) => {
+      event.preventDefault()
+      toggleAppleWeaponSelection()
+    })
+  }
+
+  if (hammerButton) {
+    hammerButton.setAttribute("role", "button")
+    hammerButton.setAttribute("tabindex", "0")
+    hammerButton.setAttribute("aria-label", "Select sledgehammer")
+
+    hammerButton.addEventListener("click", () => {
+      toggleSledgehammerToolSelection()
+    })
+
+    hammerButton.addEventListener("touchstart", (event) => {
+      event.preventDefault()
+      toggleSledgehammerToolSelection()
+    })
+  }
+
+  hudSelectorsBound = true
+}
+
+export function toggleAppleWeaponSelection() {
+  const apples = gameState.player?.apples ?? 0
+
+  if (gameState.selectedWeapon === "apple") {
+    gameState.selectedWeapon = "wrist"
+  } else if (apples > 0) {
+    gameState.selectedWeapon = "apple"
+  } else {
+    gameState.selectedWeapon = "wrist"
+  }
+
+  updateWeaponSelectionUi()
+}
+
+export function toggleSledgehammerToolSelection() {
+  if (!gameState.hasSledgehammer) {
+    gameState.selectedTool = "none"
+  } else if (gameState.selectedTool === "sledgehammer") {
+    gameState.selectedTool = "none"
+  } else {
+    gameState.selectedTool = "sledgehammer"
+  }
+
+  updateWeaponSelectionUi()
+}
+
+export function updateWeaponSelectionUi() {
+  const appleButton = getAppleWeaponButton()
+  const hammerButton = document.getElementById("sledgehammerIndicator")
+  const apples = gameState.player?.apples ?? 0
+  const appleSelected = gameState.selectedWeapon === "apple" && apples > 0
+  const hammerSelected = gameState.selectedTool === "sledgehammer" && Boolean(gameState.hasSledgehammer)
+
+  if (appleButton) {
+    appleButton.classList.toggle("selected", appleSelected)
+    appleButton.classList.toggle("disabled", apples <= 0)
+  }
+
+  if (hammerButton) {
+    hammerButton.classList.toggle("selected", hammerSelected)
+    hammerButton.classList.toggle("disabled", !gameState.hasSledgehammer)
+    hammerButton.classList.toggle("has-tool", Boolean(gameState.hasSledgehammer))
+  }
 }
 
 // Update health display in UI

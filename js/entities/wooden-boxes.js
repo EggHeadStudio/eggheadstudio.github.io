@@ -107,7 +107,7 @@ export function tryGrabWoodenBox() {
       // Sledgehammer reforges carried structures:
       // - trunks become compact solid cubes
       // - wooden boxes become metallic spiked crates
-      if (gameState.hasSledgehammer) {
+      if (gameState.hasSledgehammer && gameState.selectedTool === "sledgehammer") {
         if (box.isTrunk) {
           box.isSledgeCube = true
           box.isSledgeSpiked = false

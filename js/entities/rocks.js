@@ -51,7 +51,7 @@ export function tryGrabRock() {
         rock.snappedTo = null
       }
 
-      if (gameState.hasSledgehammer) {
+      if (gameState.hasSledgehammer && gameState.selectedTool === "sledgehammer") {
         rock.isHammerShaped = true
         rock.rotation = 0
       }

@@ -1278,6 +1278,11 @@ function drawHands(ctx, x, y, player) {
       ctx.arc(rightHandX, rightHandY, HAND_SIZE, 0, Math.PI * 2)
       ctx.fill()
 
+      drawEquippedHandItems(ctx, player, rightHandX, rightHandY, leftHandX, leftHandY, {
+        isInCar,
+        isGrabbing,
+      })
+
       // Draw a trail effect for the melee attack during the forward swing
       // Always show the trail effect regardless of apple count to make melee attack more visible
       if (throwProgress >= 0.5 && throwProgress <= 0.9) {
@@ -1330,6 +1335,11 @@ function drawHands(ctx, x, y, player) {
       ctx.beginPath();
       ctx.arc(rightHandX, rightHandY, HAND_SIZE, 0, Math.PI * 2);
       ctx.fill();
+
+      drawEquippedHandItems(ctx, player, rightHandX, rightHandY, leftHandX, leftHandY, {
+        isInCar,
+        isGrabbing,
+      })
     }
     // Check if player is carrying something
     else if (isGrabbing) {
@@ -1360,6 +1370,11 @@ function drawHands(ctx, x, y, player) {
       ctx.beginPath()
       ctx.arc(leftHandX, leftHandY, HAND_SIZE, 0, Math.PI * 2)
       ctx.fill()
+
+      drawEquippedHandItems(ctx, player, rightHandX, rightHandY, leftHandX, leftHandY, {
+        isInCar,
+        isGrabbing,
+      })
     } else {
       // Normal hand animation when not carrying
       const isMovingForward = player.isMoving && 
@@ -1406,9 +1421,63 @@ function drawHands(ctx, x, y, player) {
       ctx.beginPath();
       ctx.arc(leftHandX, leftHandY, HAND_SIZE, 0, Math.PI * 2);
       ctx.fill();
+
+      drawEquippedHandItems(ctx, player, rightHandX, rightHandY, leftHandX, leftHandY, {
+        isInCar,
+        isGrabbing,
+      })
     }
   } catch (error) {
     console.error("Error in drawHands:", error);
+  }
+}
+
+function drawEquippedHandItems(ctx, player, rightHandX, rightHandY, leftHandX, leftHandY, state = {}) {
+  if (state.isInCar || state.isGrabbing) {
+    return
+  }
+
+  const showAppleInHand = gameState.selectedWeapon === "apple" && (player.apples || 0) > 0
+  if (showAppleInHand) {
+    const heldAppleSize = HAND_SIZE * 0.62
+
+    ctx.fillStyle = "#e74c3c"
+    ctx.beginPath()
+    ctx.arc(rightHandX, rightHandY, heldAppleSize, 0, Math.PI * 2)
+    ctx.fill()
+
+    ctx.fillStyle = "#27ae60"
+    ctx.fillRect(rightHandX - 1, rightHandY - heldAppleSize - 3, 2, 4)
+  }
+
+  const showSledgehammerInHand = gameState.selectedTool === "sledgehammer" && Boolean(gameState.hasSledgehammer)
+  if (showSledgehammerInHand) {
+    const handleLength = HAND_SIZE * 1.95
+    const handleWidth = Math.max(2.4, HAND_SIZE * 0.54)
+    const headWidth = HAND_SIZE * 2.62
+    const headHeight = HAND_SIZE * 1.62
+
+    ctx.save()
+    ctx.translate(leftHandX, leftHandY)
+    ctx.rotate(player.direction - Math.PI / 2)
+
+    // Subtle dropped shadow so the held hammer reads above the hand.
+    ctx.save()
+    ctx.translate(1.8, 2)
+    ctx.fillStyle = "rgba(0, 0, 0, 0.24)"
+    ctx.fillRect(-handleWidth / 2, -handleLength * 0.2, handleWidth, handleLength)
+    ctx.fillRect(-headWidth / 2, -handleLength * 0.28, headWidth, headHeight)
+    ctx.restore()
+
+    ctx.fillStyle = "#66513a"
+    ctx.fillRect(-handleWidth / 2, -handleLength * 0.2, handleWidth, handleLength)
+
+    ctx.fillStyle = "#aab2b8"
+    ctx.fillRect(-headWidth / 2, -handleLength * 0.28, headWidth, headHeight)
+    ctx.fillStyle = "#c8d0d4"
+    ctx.fillRect(-headWidth * 0.2, -handleLength * 0.26, headWidth * 0.4, headHeight * 0.65)
+
+    ctx.restore()
   }
 }
 

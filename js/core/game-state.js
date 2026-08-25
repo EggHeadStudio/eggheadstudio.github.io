@@ -85,6 +85,8 @@ export const gameState = {
   grabbedEnemy: null,
   grabbedWoodenBox: null, // Added for wooden box grabbing
   hasSledgehammer: false,
+  selectedWeapon: "wrist",
+  selectedTool: "none",
   
   // Car state
   isInCar: false,

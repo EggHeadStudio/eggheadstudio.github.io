@@ -459,7 +459,7 @@ body {
 }
 
 .sledgehammer-indicator {
-  display: none;
+  display: flex;
   align-items: center;
   justify-content: center;
   width: 22px;
@@ -467,10 +467,23 @@ body {
   border-radius: 6px;
   background: rgba(12, 18, 22, 0.55);
   border: 1px solid rgba(255, 255, 255, 0.28);
+  opacity: 0.45;
+  pointer-events: auto;
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.16s ease, box-shadow 0.16s ease, opacity 0.16s ease;
 }
 
 .sledgehammer-indicator.active {
-  display: flex;
+  opacity: 0.95;
+}
+
+.sledgehammer-indicator.selected {
+  border-color: #ffd166;
+  box-shadow: 0 0 0 2px rgba(255, 209, 102, 0.35);
+}
+
+.sledgehammer-indicator.disabled {
+  opacity: 0.35;
 }
 
 .sledgehammer-icon {
@@ -510,6 +523,18 @@ body {
   background-color: #e74c3c;
   border-radius: 50%;
   position: relative;
+  pointer-events: auto;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.16s ease, opacity 0.16s ease;
+}
+
+.apple-icon.selected {
+  box-shadow: 0 0 0 2px rgba(255, 209, 102, 0.45);
+  transform: scale(1.08);
+}
+
+.apple-icon.disabled {
+  opacity: 0.45;
 }
 
 .apple-icon::after {
