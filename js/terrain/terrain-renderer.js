@@ -42,9 +42,6 @@ export function drawTerrain() {
         // Add texture/detail to terrain
         ctx.fillStyle = adjustColorBrightness(getTerrainColor(terrainType), -10)
         ctx.save()
-        ctx.beginPath()
-        ctx.rect(screenX, screenY, TILE_SIZE, TILE_SIZE)
-        ctx.clip()
 
         if (terrainType === 0) {
           // TERRAIN_TYPES.WATER
@@ -153,10 +150,17 @@ export function drawTerrain() {
         }
 
         ctx.restore()
+      }
+    }
+  }
 
-        if (isHoleTile(x, y)) {
-          drawHoleTile(ctx, screenX, screenY, isHoleFlooded(x, y), x, y, time)
-        }
+  // Second pass: holes are painted after every terrain tile, so grass detail
+  // from neighbouring tiles can never stick out over a dug hole. This replaces
+  // a per-tile clip() which was far too expensive to run on mobile GPUs.
+  for (let y = startY; y < endY; y++) {
+    for (let x = startX; x < endX; x++) {
+      if (y >= 0 && y < terrain.length && x >= 0 && x < terrain[0].length && isHoleTile(x, y)) {
+        drawHoleTile(ctx, x * TILE_SIZE - camera.x, y * TILE_SIZE - camera.y, isHoleFlooded(x, y), x, y, time)
       }
     }
   }
