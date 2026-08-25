@@ -7,7 +7,7 @@ import { tryGrabWoodenBox, releaseWoodenBox } from "../entities/wooden-boxes.js"
 import { tryGrabEnemy, releaseEnemy } from "../entities/enemies.js"
 import { checkCarInteraction, enterCar, exitCar } from "../entities/cars.js" // Import car interaction functions
 import { checkBoatInteraction, enterBoat, exitBoat } from "../entities/boats.js"
-import { tryDigHoleInFrontOfPlayer } from "../entities/shovels.js"
+import { tryDigHoleAtScreenPosition } from "../entities/shovels.js"
 
 export function setupMobileControls() {
   if (!detectMobile()) return
@@ -36,6 +36,7 @@ export function setupMobileControls() {
   const joystickKnob = document.querySelector(".joystick-knob")
   const buttonA = document.querySelector(".button-a")
   const buttonB = document.querySelector(".button-b")
+  const canvas = gameState.canvas
 
   // Get joystick container position
   const joystickRect = joystickContainer.getBoundingClientRect()
@@ -64,6 +65,7 @@ export function setupMobileControls() {
   buttonB.removeEventListener("touchstart", handleButtonBStart)
   buttonB.removeEventListener("touchend", handleButtonBEnd)
   buttonB.removeEventListener("touchcancel", handleButtonBEnd)
+  canvas.removeEventListener("touchstart", handleCanvasTouchStart)
 
   // Joystick touch events
   joystickContainer.addEventListener("touchstart", handleJoystickStart)
@@ -80,6 +82,10 @@ export function setupMobileControls() {
   buttonB.addEventListener("touchstart", handleButtonBStart)
   buttonB.addEventListener("touchend", handleButtonBEnd)
   buttonB.addEventListener("touchcancel", handleButtonBEnd)
+
+  // Canvas tap mirrors the desktop mouse click: shovel digs the tapped tile,
+  // everything else throws an apple.
+  canvas.addEventListener("touchstart", handleCanvasTouchStart, { passive: false })
 }
 
 // In the handleButtonAStart function, include car interactions
@@ -185,17 +191,44 @@ export function handleButtonBStart(e) {
   gameState.buttonBActive = true
   e.target.classList.add("button-active")
 
-  // Button B is for throwing apples - only if not in a car
+  // Button B is for throwing apples - only if not in a car.
+  // Shovel digging happens from a tap on the game canvas instead, matching
+  // desktop mouse clicks.
   if (!gameState.isInCar) {
-    if (gameState.selectedTool === "shovel") {
-      const didDig = tryDigHoleInFrontOfPlayer()
-      if (didDig) {
-        return
-      }
-    }
-
     throwApple()
   }
+}
+
+export function handleCanvasTouchStart(e) {
+  if (gameState.isPaused || !gameState.canvas) {
+    return
+  }
+
+  if (e.target !== gameState.canvas) {
+    return
+  }
+
+  if (gameState.isInCar) {
+    return
+  }
+
+  const touch = e.changedTouches[0]
+  const rect = gameState.canvas.getBoundingClientRect()
+  const pointerX = touch.clientX - rect.left
+  const pointerY = touch.clientY - rect.top
+
+  if (gameState.selectedTool === "shovel") {
+    const didDig = tryDigHoleAtScreenPosition(pointerX, pointerY)
+    if (didDig) {
+      e.preventDefault()
+      e.stopPropagation()
+      return
+    }
+  }
+
+  throwApple()
+  e.preventDefault()
+  e.stopPropagation()
 }
 
 export function handleButtonBEnd(e) {

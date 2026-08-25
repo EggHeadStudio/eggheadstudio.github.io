@@ -17,7 +17,9 @@ export const PLAYER_SPEED = 4
 export const ENEMY_SPEED = 2
 export const ENEMY_CHASE_SPEED = 3
 export const ENEMY_SWIM_SPEED = 2
-export const ENEMY_SPAWN_INTERVAL = 2000
+// Enemy pacing knobs. Lower the counts or raise the interval here to make the
+// game calmer.
+export const ENEMY_SPAWN_INTERVAL = 3500
 export const ENEMY_RED_COLOR = "#e74c3c"
 export const ENEMY_RED_SIZE = ENEMY_SIZE
 export const ENEMY_RED_HEALTH = 5
@@ -36,12 +38,12 @@ export const ENEMY_BLACK_HEALTH = 12
 export const ENEMY_BLACK_SPEED = 1.45
 export const ENEMY_BLACK_CHASE_SPEED = 2.2
 export const ENEMY_BLACK_SWIM_SPEED = 1.5
-export const INITIAL_RED_ENEMY_COUNT = 4
-export const INITIAL_YELLOW_ENEMY_COUNT = 2
+export const INITIAL_RED_ENEMY_COUNT = 3
+export const INITIAL_YELLOW_ENEMY_COUNT = 1
 export const INITIAL_BLACK_ENEMY_COUNT = 1
-export const ENEMY_SPAWN_BATCH_RED = 2
+export const ENEMY_SPAWN_BATCH_RED = 1
 export const ENEMY_SPAWN_BATCH_YELLOW = 1
-export const ENEMY_SPAWN_BATCH_BLACK = 1
+export const ENEMY_SPAWN_BATCH_BLACK = 0
 export const ENEMY_SPAWN_BATCH = ENEMY_SPAWN_BATCH_RED + ENEMY_SPAWN_BATCH_YELLOW
 export const APPLE_THROW_SPEED = 8
 export const ROCK_SIZE = 50 // Slightly larger than bombs
