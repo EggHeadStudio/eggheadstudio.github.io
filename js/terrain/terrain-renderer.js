@@ -2,6 +2,7 @@
 import { gameState } from "../core/game-state.js"
 import { TILE_SIZE } from "../core/constants.js"
 import { getTerrainColor, adjustColorBrightness } from "../utils/color-utils.js"
+import { isHoleTile, isHoleFlooded } from "../entities/shovels.js"
 
 // Deterministic pseudo-random value for a tile detail.
 // Using a hash instead of Math.random() keeps every blade, tuft and pebble
@@ -40,6 +41,10 @@ export function drawTerrain() {
 
         // Add texture/detail to terrain
         ctx.fillStyle = adjustColorBrightness(getTerrainColor(terrainType), -10)
+        ctx.save()
+        ctx.beginPath()
+        ctx.rect(screenX, screenY, TILE_SIZE, TILE_SIZE)
+        ctx.clip()
 
         if (terrainType === 0) {
           // TERRAIN_TYPES.WATER
@@ -146,7 +151,49 @@ export function drawTerrain() {
 
           ctx.lineCap = "butt"
         }
+
+        ctx.restore()
+
+        if (isHoleTile(x, y)) {
+          drawHoleTile(ctx, screenX, screenY, isHoleFlooded(x, y), x, y, time)
+        }
       }
     }
   }
+}
+
+function drawHoleTile(ctx, screenX, screenY, flooded, tileX, tileY, time) {
+  if (flooded) {
+    // Flooded holes look exactly like water tiles.
+    ctx.fillStyle = getTerrainColor(0)
+    ctx.fillRect(screenX, screenY, TILE_SIZE, TILE_SIZE)
+
+    const waveOffset = Math.sin(time + tileX * 0.3 + tileY * 0.2) * 3
+    ctx.beginPath()
+    ctx.moveTo(screenX, screenY + TILE_SIZE / 2 + waveOffset)
+    ctx.lineTo(screenX + TILE_SIZE, screenY + TILE_SIZE / 2 - waveOffset)
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.3)"
+    ctx.lineWidth = 2
+    ctx.stroke()
+
+    const waveOffset2 = Math.sin(time * 1.5 + tileX * 0.4 + tileY * 0.3) * 2
+    ctx.beginPath()
+    ctx.moveTo(screenX, screenY + TILE_SIZE / 3 + waveOffset2)
+    ctx.lineTo(screenX + TILE_SIZE, screenY + TILE_SIZE / 3 - waveOffset2)
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.2)"
+    ctx.lineWidth = 1
+    ctx.stroke()
+    return
+  }
+
+  // Dry holes fill the full tile in dark gray tones.
+  ctx.fillStyle = "#444a50"
+  ctx.fillRect(screenX, screenY, TILE_SIZE, TILE_SIZE)
+
+  ctx.fillStyle = "#353b41"
+  ctx.fillRect(screenX + 2, screenY + 2, TILE_SIZE - 4, TILE_SIZE - 4)
+
+  // Front inner wall for depth, still covering full tile footprint.
+  ctx.fillStyle = "#2a2f34"
+  ctx.fillRect(screenX + 2, screenY + TILE_SIZE * 0.68, TILE_SIZE - 4, TILE_SIZE * 0.28)
 }

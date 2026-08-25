@@ -5,12 +5,13 @@ import { spawnEnemies, drawAndUpdateEnemies, drawBrokenRaftEnemies } from "../en
 import { checkCollisions } from "./collision-detection.js"
 import { drawTerrain } from "../terrain/terrain-renderer.js"
 import { drawAndUpdateRocks } from "../entities/rocks.js"
-import { drawAndUpdateTrees } from "../entities/trees.js"
+import { drawAndUpdateTrees, drawTreeCanopyOverlay } from "../entities/trees.js"
 import { drawAndUpdateWoodenBoxes, drawWoodenBoxRoofs } from "../entities/wooden-boxes.js" // Import wooden boxes update
 import { drawAndUpdateCars } from "../entities/cars.js" // Import cars update
 import { drawAndUpdateBoats } from "../entities/boats.js"
 import { drawAndUpdateApples, drawAndUpdateThrownApples } from "../entities/apples.js"
 import { drawAndUpdateSledgehammers } from "../entities/sledgehammers.js"
+import { drawAndUpdateShovels } from "../entities/shovels.js"
 import { drawAndUpdateBombs } from "../entities/bombs.js"
 import { drawAndUpdateDeathEffects } from "../entities/death-effects.js"
 import { drawAndUpdateExplosions } from "../entities/explosions.js"
@@ -100,6 +101,9 @@ export function update() {
   // Draw and update sledgehammers
   drawAndUpdateSledgehammers()
 
+  // Draw and update shovels
+  drawAndUpdateShovels()
+
   // Draw and update bombs
   drawAndUpdateBombs()
 
@@ -129,6 +133,9 @@ export function update() {
     drawAndUpdateBoats()
     drawBrokenRaftEnemies()
   }
+
+  // Canopies render late so cars and other entities appear under tree leaves.
+  drawTreeCanopyOverlay()
 
   // Draw roof overlays last so roofed structures still cover entities
   drawWoodenBoxRoofs()

@@ -20,6 +20,7 @@ import { generateTrees } from "../entities/trees.js"
 import { generateEnemies, getInitialEnemySpawnPlan } from "../entities/enemies.js"
 import { generateApples } from "../entities/apples.js"
 import { generateSledgehammers } from "../entities/sledgehammers.js"
+import { generateShovels } from "../entities/shovels.js"
 import { generateWoodenBoxes } from "../entities/wooden-boxes.js" // Import wooden boxes generator
 import { generateCars } from "../entities/cars.js" // Import cars generator
 import { generateBoats } from "../entities/boats.js"
@@ -93,14 +94,17 @@ export function init(config = gameState.startupConfig) {
   gameState.grabbedEnemy = null
   gameState.grabbedWoodenBox = null // Reset grabbed wooden box
   gameState.hasSledgehammer = false
+  gameState.hasShovel = false
   gameState.selectedWeapon = "wrist"
   gameState.selectedTool = "none"
+  gameState.dugHoles = {}
   gameState.isInCar = false // Reset car state
   gameState.drivingCar = null // Reset driving car
   gameState.bombs = []
   gameState.enemies = []
   gameState.apples = []
   gameState.sledgehammers = []
+  gameState.shovels = []
   gameState.thrownApples = []
   gameState.explosions = []
   gameState.deathEffects = []
@@ -156,6 +160,7 @@ export function init(config = gameState.startupConfig) {
     x: gameState.canvas.width / 2,
     y: gameState.canvas.height / 2,
     apples: 0,
+    bombs: 0,
     lastHit: 0,
     direction: 0, // Angle in radians
     isMoving: false,
@@ -185,6 +190,9 @@ export function init(config = gameState.startupConfig) {
 
   // Generate sledgehammers
   generateSledgehammers()
+
+  // Generate shovels
+  generateShovels()
   
   // Generate initial cars - one near player, the rest randomly distributed
   generateCars(CAR_COUNT - 1, true); // First parameter is number of cars to place randomly, second parameter true = spawn one near player

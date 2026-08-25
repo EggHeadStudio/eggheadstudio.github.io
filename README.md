@@ -4,6 +4,37 @@ Current project tuning and variable reference.
 
 This file lists the variables you can change right now, and where each one is defined.
 
+## Recent gameplay updates
+
+- Tools:
+  - Sledgehammer and shovel are collectible tools.
+  - Tool selection is a single cycle control in the top-left HUD:
+    - none -> sledgehammer -> shovel
+
+- Digging and holes:
+  - Shovel can dig nearby land tiles into holes.
+  - Hole groups flood when connected to water.
+  - Flooded holes render and behave like water.
+  - Dry holes can trap enemies when the hole area is large enough.
+
+- Water behavior consistency:
+  - Player and enemies use water-like checks so flooded holes are treated as water.
+  - Player is nudged to nearest safe land if standing on a flooded tile.
+
+- Weapon selection:
+  - Weapon selection is a single cycle control:
+    - wrist -> apple -> bomb
+  - The HUD shows count for the currently selected weapon (or '-' for wrist).
+
+- Bomb inventory flow:
+  - Idle bombs on ground are collectible into bomb inventory.
+  - With bomb selected, Space (desktop) or A (mobile) places a timed bomb in front of the player.
+  - Held-bomb visual appears in the right hand when bomb is selected.
+
+- Tree and vehicle interactions:
+  - Cars now collide with tree trunks.
+  - Tree canopies render as an overlay so cars and entities appear under leaves.
+
 ## Run locally
 
 - Desktop: open `index.html`

@@ -7,6 +7,7 @@ import { isPlayerPositionClear, movePlayerToNearestSafePosition } from "../utils
 import { createExplosion } from "./explosions.js"
 import { getRandomColor } from "../utils/color-utils.js"
 import { isSpawnPositionClear } from "../utils/spawn-utils.js"
+import { updateBombCounter } from "../ui/ui-manager.js"
 
 // Generate bombs
 export function generateBombs(count) {
@@ -164,14 +165,53 @@ export function releaseBomb() {
   return false
 }
 
+export function placeSelectedBomb() {
+  const { player, bombs } = gameState
+
+  if (!player || gameState.isInCar || gameState.isGrabbing) {
+    return false
+  }
+
+  if (gameState.selectedWeapon !== "bomb" || (player.bombs ?? 0) <= 0) {
+    return false
+  }
+
+  const placeDistance = player.size + BOMB_SIZE * 1.35
+  const bomb = {
+    x: player.x + Math.cos(player.direction) * placeDistance,
+    y: player.y + Math.sin(player.direction) * placeDistance,
+    size: BOMB_SIZE,
+    color: getRandomColor(),
+    countdown: Date.now() + 3000,
+    exploding: false,
+  }
+
+  bombs.push(bomb)
+  player.bombs = Math.max(0, (player.bombs ?? 0) - 1)
+  updateBombCounter()
+
+  if (!isPlayerPositionClear(player.x, player.y)) {
+    movePlayerToNearestSafePosition(player.x, player.y, bomb.x, bomb.y)
+  }
+
+  return true
+}
+
 // Modify the drawAndUpdateBombs function to use normal shadow scale
 export function drawAndUpdateBombs() {
   try {
-    const { bombs, camera, ctx } = gameState
+    const { bombs, camera, ctx, player } = gameState
 
     for (let i = bombs.length - 1; i >= 0; i--) {
       const bomb = bombs[i]
       if (!bomb) continue // Skip if bomb is undefined
+
+      if (bomb.countdown === null && player && getDistance(player.x, player.y, bomb.x, bomb.y) < player.size + bomb.size) {
+        player.bombs = (player.bombs ?? 0) + 1
+        bombs.splice(i, 1)
+        updateBombCounter()
+        continue
+      }
 
       const screenX = bomb.x - camera.x
       const screenY = bomb.y - camera.y

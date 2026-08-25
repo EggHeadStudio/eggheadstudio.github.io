@@ -248,7 +248,7 @@ function createTreeDestructionEffect(tree) {
   gameState.treeDestructionEffects.push(effect)
 }
 
-// Draw all visible trees and their falling-leaf effects
+// Draw tree bases (shadow + trunk) and destruction effects.
 export function drawAndUpdateTrees() {
   const { trees, camera, ctx, canvas } = gameState
 
@@ -276,8 +276,6 @@ export function drawAndUpdateTrees() {
     createShadow(ctx, screenX, screenY, tree.size * 0.75, "circle")
 
     drawTrunk(ctx, screenX, screenY, tree)
-    drawCanopy(ctx, screenX + sway, screenY - tree.size * 0.1, tree)
-    drawTreeApples(ctx, screenX + sway, screenY - tree.size * 0.1, tree)
 
     if (Date.now() - tree.lastHitTime < 250) {
       drawTreeHitEffect(ctx, screenX, screenY, tree)
@@ -285,6 +283,34 @@ export function drawAndUpdateTrees() {
   }
 
   drawAndUpdateTreeDestructionEffects()
+}
+
+// Draw tree canopies as an overlay so entities (such as cars) can pass under leaves.
+export function drawTreeCanopyOverlay() {
+  const { trees, camera, ctx, canvas } = gameState
+
+  if (!trees) return
+
+  const time = Date.now() / 1000
+
+  for (const tree of trees) {
+    const screenX = tree.x - camera.x
+    const screenY = tree.y - camera.y
+    const margin = tree.size * 2
+
+    if (
+      screenX < -margin ||
+      screenX > canvas.width + margin ||
+      screenY < -margin ||
+      screenY > canvas.height + margin
+    ) {
+      continue
+    }
+
+    const sway = Math.sin(time * 1.25 + tree.swayOffset) * 2
+    drawCanopy(ctx, screenX + sway, screenY - tree.size * 0.1, tree)
+    drawTreeApples(ctx, screenX + sway, screenY - tree.size * 0.1, tree)
+  }
 }
 
 function drawTrunk(ctx, screenX, screenY, tree) {
@@ -328,6 +354,13 @@ function drawCanopy(ctx, screenX, screenY, tree) {
   const damageFade = tree.damageState * 0.12
 
   for (const blob of tree.canopy) {
+    // Slight canopy shadow to separate leaves from entities below.
+    ctx.fillStyle = "rgba(0, 0, 0, 0.14)"
+    ctx.globalAlpha = 1 - damageFade
+    ctx.beginPath()
+    ctx.arc(screenX + blob.offsetX + 1.6, screenY + blob.offsetY + 2.2, blob.radius * 0.98, 0, Math.PI * 2)
+    ctx.fill()
+
     ctx.fillStyle = shades[blob.shade] || shades[1]
     ctx.globalAlpha = 1 - damageFade
     ctx.beginPath()

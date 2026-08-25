@@ -1,12 +1,13 @@
 // Mobile controls handling
 import { gameState } from "../core/game-state.js"
 import { throwApple } from "../entities/apples.js"
-import { tryGrabBomb, releaseBomb, detonateAnyBombWithCountdown } from "../entities/bombs.js"
+import { tryGrabBomb, releaseBomb, detonateAnyBombWithCountdown, placeSelectedBomb } from "../entities/bombs.js"
 import { tryGrabRock, releaseRock } from "../entities/rocks.js"
 import { tryGrabWoodenBox, releaseWoodenBox } from "../entities/wooden-boxes.js" // Import wooden box functions
 import { tryGrabEnemy, releaseEnemy } from "../entities/enemies.js"
 import { checkCarInteraction, enterCar, exitCar } from "../entities/cars.js" // Import car interaction functions
 import { checkBoatInteraction, enterBoat, exitBoat } from "../entities/boats.js"
+import { tryDigHoleInFrontOfPlayer } from "../entities/shovels.js"
 
 export function setupMobileControls() {
   if (!detectMobile()) return
@@ -117,6 +118,10 @@ export function handleButtonAStart(e) {
         return
       }
 
+      if (!gameState.isGrabbing && placeSelectedBomb()) {
+        return
+      }
+
       // First try to detonate any bomb with countdown
       if (!detonateAnyBombWithCountdown()) {
         // If no bomb to detonate, then try grab/release actions
@@ -182,6 +187,13 @@ export function handleButtonBStart(e) {
 
   // Button B is for throwing apples - only if not in a car
   if (!gameState.isInCar) {
+    if (gameState.selectedTool === "shovel") {
+      const didDig = tryDigHoleInFrontOfPlayer()
+      if (didDig) {
+        return
+      }
+    }
+
     throwApple()
   }
 }

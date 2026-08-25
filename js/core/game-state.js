@@ -67,6 +67,7 @@ export const gameState = {
   enemies: [],
   apples: [],
   sledgehammers: [],
+  shovels: [],
   thrownApples: [],
   explosions: [],
   deathEffects: [],
@@ -85,8 +86,10 @@ export const gameState = {
   grabbedEnemy: null,
   grabbedWoodenBox: null, // Added for wooden box grabbing
   hasSledgehammer: false,
+  hasShovel: false,
   selectedWeapon: "wrist",
   selectedTool: "none",
+  dugHoles: {},
   
   // Car state
   isInCar: false,

@@ -458,7 +458,94 @@ body {
   gap: 10px;
 }
 
-.sledgehammer-indicator {
+.weapon-selector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: rgba(12, 18, 22, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  opacity: 0.95;
+  pointer-events: auto;
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.16s ease, box-shadow 0.16s ease, opacity 0.16s ease;
+}
+
+.weapon-selector.selected {
+  border-color: #ffd166;
+  box-shadow: 0 0 0 2px rgba(255, 209, 102, 0.35);
+}
+
+.weapon-selector-icon {
+  position: relative;
+  width: 14px;
+  height: 14px;
+}
+
+.weapon-selector-icon::before,
+.weapon-selector-icon::after {
+  content: "";
+  position: absolute;
+  display: block;
+}
+
+.weapon-selector-icon.wrist::before {
+  left: 4px;
+  top: 3px;
+  width: 7px;
+  height: 8px;
+  border-radius: 3px;
+  background: #aeb6bc;
+}
+
+.weapon-selector-icon.wrist::after {
+  left: 5px;
+  top: 1px;
+  width: 5px;
+  height: 4px;
+  border-radius: 2px;
+  background: #cdd4d9;
+}
+
+.weapon-selector-icon.apple::before {
+  left: 2px;
+  top: 2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #e74c3c;
+}
+
+.weapon-selector-icon.apple::after {
+  left: 6px;
+  top: -1px;
+  width: 3px;
+  height: 5px;
+  border-radius: 2px;
+  background: #27ae60;
+}
+
+.weapon-selector-icon.bomb::before {
+  left: 2px;
+  top: 2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: #2f3134;
+}
+
+.weapon-selector-icon.bomb::after {
+  left: 6px;
+  top: -1px;
+  width: 3px;
+  height: 5px;
+  border-radius: 2px;
+  background: #111111;
+}
+
+.tool-selector {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -473,33 +560,46 @@ body {
   transition: transform 0.12s ease, border-color 0.16s ease, box-shadow 0.16s ease, opacity 0.16s ease;
 }
 
-.sledgehammer-indicator.active {
+.tool-selector.active {
   opacity: 0.95;
 }
 
-.sledgehammer-indicator.selected {
+.tool-selector.selected {
   border-color: #ffd166;
   box-shadow: 0 0 0 2px rgba(255, 209, 102, 0.35);
 }
 
-.sledgehammer-indicator.disabled {
+.tool-selector.disabled {
   opacity: 0.35;
 }
 
-.sledgehammer-icon {
+.tool-selector-icon {
   position: relative;
   width: 14px;
   height: 14px;
 }
 
-.sledgehammer-icon::before,
-.sledgehammer-icon::after {
+.tool-selector-icon::before,
+.tool-selector-icon::after {
   content: "";
   position: absolute;
   display: block;
 }
 
-.sledgehammer-icon::before {
+.tool-selector-icon.none::before {
+  left: 3px;
+  top: 3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: #8d9398;
+}
+
+.tool-selector-icon.none::after {
+  display: none;
+}
+
+.tool-selector-icon.sledgehammer::before {
   left: 6px;
   top: 2px;
   width: 3px;
@@ -508,13 +608,31 @@ body {
   background: #8b5a2b;
 }
 
-.sledgehammer-icon::after {
+.tool-selector-icon.sledgehammer::after {
   left: 1px;
   top: 0;
   width: 12px;
   height: 4px;
   border-radius: 2px;
   background: #b4bcc1;
+}
+
+.tool-selector-icon.shovel::before {
+  left: 6px;
+  top: 2px;
+  width: 3px;
+  height: 11px;
+  border-radius: 2px;
+  background: #8b5a2b;
+}
+
+.tool-selector-icon.shovel::after {
+  left: 2px;
+  top: -1px;
+  width: 10px;
+  height: 7px;
+  border-radius: 0 0 8px 8px;
+  background: #bcc5cb;
 }
 
 .apple-icon {
@@ -548,11 +666,69 @@ body {
   border-radius: 2px;
 }
 
+.bomb-icon {
+  width: 20px;
+  height: 20px;
+  background-color: #2f3134;
+  border-radius: 5px;
+  position: relative;
+  pointer-events: auto;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.16s ease, opacity 0.16s ease;
+}
+
+.bomb-icon.selected {
+  box-shadow: 0 0 0 2px rgba(255, 209, 102, 0.45);
+  transform: scale(1.08);
+}
+
+.bomb-icon.disabled {
+  opacity: 0.45;
+}
+
+.bomb-icon::before {
+  content: "";
+  position: absolute;
+  top: -6px;
+  left: 8px;
+  width: 4px;
+  height: 8px;
+  border-radius: 2px;
+  background-color: #111111;
+}
+
+.bomb-icon::after {
+  content: "";
+  position: absolute;
+  top: -8px;
+  left: 9px;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background-color: #ffcc00;
+}
+
 #appleCount {
   color: white;
   font-weight: bold;
   font-size: 18px;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+#bombCount {
+  color: white;
+  font-weight: bold;
+  font-size: 18px;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+#weaponCount {
+  color: white;
+  font-weight: bold;
+  font-size: 18px;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  min-width: 14px;
+  text-align: center;
 }
 
 /* Mobile Controls */

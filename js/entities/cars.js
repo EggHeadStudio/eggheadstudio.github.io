@@ -4,6 +4,8 @@ import { getDistance } from "../utils/math-utils.js"
 import { TILE_SIZE, TERRAIN_TYPES, CAR_COUNT } from "../core/constants.js"
 import { findNearestSafePlayerPosition } from "../utils/player-position-utils.js"
 import { isSpawnPositionClear } from "../utils/spawn-utils.js"
+import { isHoleBlockingCarPosition } from "./shovels.js"
+import { isTreeBlocking } from "./trees.js"
 
 // Car constants
 export const CAR_SIZE = 65
@@ -350,6 +352,15 @@ function isValidPositionForMovingCar(x, y, tileX, tileY, car) {
   
   // Check terrain (must not be water)
   if (terrain[tileY][tileX] === TERRAIN_TYPES.WATER) {
+    return false;
+  }
+
+  if (isHoleBlockingCarPosition(x, y, car.size)) {
+    return false;
+  }
+
+  // Trees block cars by trunk collision so vehicles cannot pass through forests.
+  if (isTreeBlocking(x, y, car.size * 0.22)) {
     return false;
   }
   

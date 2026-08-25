@@ -7,6 +7,8 @@ import { applyKnockbackToEnemy, damageEnemy } from "../entities/enemies.js"
 import { damageWoodenBox, isUnderRoof } from "../entities/wooden-boxes.js"
 import { damageTree, isTreeBlocking } from "../entities/trees.js"
 import { createDeathEffect, DEATH_EFFECT_DURATION } from "./death-effects.js"
+import { isWaterLikeTile } from "./shovels.js"
+import { movePlayerToNearestSafePosition } from "../utils/player-position-utils.js"
 
 // Animation constants
 const HAND_SIZE = 11
@@ -173,10 +175,40 @@ export function updatePlayerPosition() {
 
   let canMove = true
 
+  const updateGrabbedObjectPosition = () => {
+    const angle = player.direction
+
+    if (grabbedBomb) {
+      grabbedBomb.x = player.x + Math.cos(angle) * (player.size + grabbedBomb.size) * 0.8
+      grabbedBomb.y = player.y + Math.sin(angle) * (player.size + grabbedBomb.size) * 0.8
+    } else if (grabbedRock) {
+      grabbedRock.x = player.x + Math.cos(angle) * (player.size + grabbedRock.size) * 0.8
+      grabbedRock.y = player.y + Math.sin(angle) * (player.size + grabbedRock.size) * 0.8
+    } else if (grabbedEnemy) {
+      grabbedEnemy.x = player.x + Math.cos(angle) * (player.size + grabbedEnemy.size) * 0.8
+      grabbedEnemy.y = player.y + Math.sin(angle) * (player.size + grabbedEnemy.size) * 0.8
+    } else if (grabbedWoodenBox) {
+      grabbedWoodenBox.x = player.x + Math.cos(angle) * (player.size + grabbedWoodenBox.size) * 0.8
+      grabbedWoodenBox.y = player.y + Math.sin(angle) * (player.size + grabbedWoodenBox.size) * 0.8
+    }
+  }
+
+  const currentTileX = Math.floor(player.x / TILE_SIZE)
+  const currentTileY = Math.floor(player.y / TILE_SIZE)
+  if (isWaterLikeTile(currentTileX, currentTileY)) {
+    const obstacleX = player.x - Math.cos(player.direction) * TILE_SIZE
+    const obstacleY = player.y - Math.sin(player.direction) * TILE_SIZE
+    const wasRepositioned = movePlayerToNearestSafePosition(player.x, player.y, obstacleX, obstacleY)
+
+    if (wasRepositioned) {
+      updateGrabbedObjectPosition()
+    }
+  }
+
   // Check terrain
   if (tileX >= 0 && tileX < terrain[0].length && tileY >= 0 && tileY < terrain.length) {
-    if (terrain[tileY][tileX] === 0) {
-      // TERRAIN_TYPES.WATER
+    if (isWaterLikeTile(tileX, tileY)) {
+      // Water terrain or flooded hole
       canMove = false
     }
   } else {
@@ -215,29 +247,7 @@ export function updatePlayerPosition() {
   if (canMove) {
     player.x = newX
     player.y = newY
-
-    // Update grabbed object position if holding one
-    if (grabbedBomb) {
-      // Position the bomb in front of the player in the direction of movement
-      const angle = player.direction
-      grabbedBomb.x = player.x + Math.cos(angle) * (player.size + grabbedBomb.size) * 0.8
-      grabbedBomb.y = player.y + Math.sin(angle) * (player.size + grabbedBomb.size) * 0.8
-    } else if (grabbedRock) {
-      // Position the rock in front of the player in the direction of movement
-      const angle = player.direction
-      grabbedRock.x = player.x + Math.cos(angle) * (player.size + grabbedRock.size) * 0.8
-      grabbedRock.y = player.y + Math.sin(angle) * (player.size + grabbedRock.size) * 0.8
-    } else if (grabbedEnemy) {
-      // Position the enemy in front of the player in the direction of movement
-      const angle = player.direction
-      grabbedEnemy.x = player.x + Math.cos(angle) * (player.size + grabbedEnemy.size) * 0.8
-      grabbedEnemy.y = player.y + Math.sin(angle) * (player.size + grabbedEnemy.size) * 0.8
-    } else if (grabbedWoodenBox) {
-      // Position the wooden box in front of the player in the direction of movement
-      const angle = player.direction
-      grabbedWoodenBox.x = player.x + Math.cos(angle) * (player.size + grabbedWoodenBox.size) * 0.8
-      grabbedWoodenBox.y = player.y + Math.sin(angle) * (player.size + grabbedWoodenBox.size) * 0.8
-    }
+    updateGrabbedObjectPosition()
   }
 
   // Check for melee attack collision with enemies
@@ -1450,6 +1460,40 @@ function drawEquippedHandItems(ctx, player, rightHandX, rightHandY, leftHandX, l
     ctx.fillRect(rightHandX - 1, rightHandY - heldAppleSize - 3, 2, 4)
   }
 
+  const showBombInHand = gameState.selectedWeapon === "bomb" && (player.bombs || 0) > 0
+  if (showBombInHand) {
+    const heldBombSize = HAND_SIZE * 2.9
+    const bombX = rightHandX - heldBombSize / 2
+    const bombY = rightHandY - heldBombSize / 2
+    const bombRadius = Math.max(2, heldBombSize * 0.2)
+
+    ctx.fillStyle = "#686359"
+    ctx.beginPath()
+    ctx.moveTo(bombX + bombRadius, bombY)
+    ctx.lineTo(bombX + heldBombSize - bombRadius, bombY)
+    ctx.quadraticCurveTo(bombX + heldBombSize, bombY, bombX + heldBombSize, bombY + bombRadius)
+    ctx.lineTo(bombX + heldBombSize, bombY + heldBombSize - bombRadius)
+    ctx.quadraticCurveTo(bombX + heldBombSize, bombY + heldBombSize, bombX + heldBombSize - bombRadius, bombY + heldBombSize)
+    ctx.lineTo(bombX + bombRadius, bombY + heldBombSize)
+    ctx.quadraticCurveTo(bombX, bombY + heldBombSize, bombX, bombY + heldBombSize - bombRadius)
+    ctx.lineTo(bombX, bombY + bombRadius)
+    ctx.quadraticCurveTo(bombX, bombY, bombX + bombRadius, bombY)
+    ctx.closePath()
+    ctx.fill()
+
+    ctx.strokeStyle = "#3b3b3b9d"
+    ctx.lineWidth = 3.0
+    ctx.stroke()
+
+    ctx.fillStyle = "#494949"
+    ctx.fillRect(rightHandX - heldBombSize * 0.08, rightHandY - heldBombSize * 0.72, heldBombSize * 0.16, heldBombSize * 0.28)
+
+    ctx.fillStyle = "#ffcc00"
+    ctx.beginPath()
+    ctx.arc(rightHandX, rightHandY - heldBombSize * 0.74, heldBombSize * 0.1, 0, Math.PI * 2)
+    ctx.fill()
+  }
+
   const showSledgehammerInHand = gameState.selectedTool === "sledgehammer" && Boolean(gameState.hasSledgehammer)
   if (showSledgehammerInHand) {
     const handleLength = HAND_SIZE * 1.95
@@ -1476,6 +1520,48 @@ function drawEquippedHandItems(ctx, player, rightHandX, rightHandY, leftHandX, l
     ctx.fillRect(-headWidth / 2, -handleLength * 0.28, headWidth, headHeight)
     ctx.fillStyle = "#c8d0d4"
     ctx.fillRect(-headWidth * 0.2, -handleLength * 0.26, headWidth * 0.4, headHeight * 0.65)
+
+    ctx.restore()
+  }
+
+  const showShovelInHand = gameState.selectedTool === "shovel" && Boolean(gameState.hasShovel)
+  if (showShovelInHand) {
+    const handleLength = HAND_SIZE * 1.85
+    const handleWidth = Math.max(4.2, HAND_SIZE * 0.32)
+    const bladeWidth = HAND_SIZE * 2.55
+    const bladeHeight = HAND_SIZE * 2.95
+
+    ctx.save()
+    ctx.translate(leftHandX, leftHandY)
+    ctx.rotate(player.direction - Math.PI / 2)
+
+    ctx.save()
+    ctx.translate(1.6, 1.8)
+    ctx.fillStyle = "rgba(0, 0, 0, 0.22)"
+    ctx.fillRect(-handleWidth / 2, -handleLength * 0.2, handleWidth, handleLength)
+    ctx.beginPath()
+    ctx.moveTo(-bladeWidth * 0.45, -handleLength * 0.8)
+    ctx.lineTo(bladeWidth * 0.45, -handleLength * 0.8)
+    ctx.lineTo(bladeWidth * 0.2, -handleLength * 0.28)
+    ctx.lineTo(-bladeWidth * 0.2, -handleLength * 0.28)
+    ctx.closePath()
+    ctx.fill()
+    ctx.restore()
+
+    ctx.fillStyle = "#7a5636"
+    ctx.fillRect(-handleWidth / 2, -handleLength * 0.2, handleWidth, handleLength)
+
+    ctx.fillStyle = "#aeb6bc"
+    ctx.beginPath()
+    ctx.moveTo(-bladeWidth * 0.45, -handleLength * 0.8)
+    ctx.lineTo(bladeWidth * 0.45, -handleLength * 0.8)
+    ctx.lineTo(bladeWidth * 0.2, -handleLength * 0.28)
+    ctx.lineTo(-bladeWidth * 0.2, -handleLength * 0.28)
+    ctx.closePath()
+    ctx.fill()
+
+    ctx.fillStyle = "#cdd4d9"
+    ctx.fillRect(-bladeWidth * 0.16, -handleLength * 0.69, bladeWidth * 0.32, bladeHeight * 0.2)
 
     ctx.restore()
   }

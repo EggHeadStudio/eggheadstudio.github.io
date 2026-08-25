@@ -2,6 +2,10 @@ import { gameState } from "../core/game-state.js"
 import { TILE_SIZE, TERRAIN_TYPES } from "../core/constants.js"
 import { getDistance } from "./math-utils.js"
 
+function isFloodedHoleTile(tileX, tileY) {
+  return Boolean(gameState.dugHoles?.[`${tileX},${tileY}`]?.flooded)
+}
+
 export function isWaterPosition(x, y) {
   const { terrain } = gameState
   const tileX = Math.floor(x / TILE_SIZE)
@@ -12,7 +16,7 @@ export function isWaterPosition(x, y) {
     tileX < terrain[0].length &&
     tileY >= 0 &&
     tileY < terrain.length &&
-    terrain[tileY][tileX] === TERRAIN_TYPES.WATER
+    (terrain[tileY][tileX] === TERRAIN_TYPES.WATER || isFloodedHoleTile(tileX, tileY))
   )
 }
 
@@ -26,7 +30,8 @@ export function isLandPosition(x, y) {
     tileX < terrain[0].length &&
     tileY >= 0 &&
     tileY < terrain.length &&
-    terrain[tileY][tileX] !== TERRAIN_TYPES.WATER
+    terrain[tileY][tileX] !== TERRAIN_TYPES.WATER &&
+    !isFloodedHoleTile(tileX, tileY)
   )
 }
 

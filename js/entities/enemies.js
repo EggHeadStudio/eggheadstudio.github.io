@@ -38,6 +38,8 @@ import { isUnderRoof } from "../entities/wooden-boxes.js"
 import { incrementKillCount } from "../ui/ui-manager.js"
 import { isSpawnPositionClear } from "../utils/spawn-utils.js"
 import { createDeathEffect } from "./death-effects.js"
+import { isEnemyFullyInsideHole } from "./shovels.js"
+import { isWaterLikeTile } from "./shovels.js"
 
 const ENEMY_MAX_HEALTH = 5
 const ENEMY_HIT_INVULNERABILITY = 180
@@ -569,12 +571,11 @@ function canEnemyMoveToPosition(enemy, x, y, options = {}) {
     return { canMove: false, collisionType: null, collisionAngle: 0 }
   }
 
-  const tileType = terrain[tileY][tileX]
-  if (!allowWater && tileType === TERRAIN_TYPES.WATER) {
+  if (!allowWater && isWaterLikeTile(tileX, tileY)) {
     return { canMove: false, collisionType: null, collisionAngle: 0 }
   }
 
-  if (allowWater && tileType === TERRAIN_TYPES.WATER) {
+  if (allowWater && isWaterLikeTile(tileX, tileY)) {
     return { canMove: true, collisionType: null, collisionAngle: 0 }
   }
 
@@ -630,7 +631,7 @@ function isEnemyOnWater(enemy) {
     tileX < terrain[0].length &&
     tileY >= 0 &&
     tileY < terrain.length &&
-    terrain[tileY][tileX] === TERRAIN_TYPES.WATER
+    isWaterLikeTile(tileX, tileY)
   )
 }
 
@@ -648,7 +649,7 @@ function findNearestLandPoint(originX, originY, scanRadius = 6) {
         continue
       }
 
-      if (terrain[y][x] === TERRAIN_TYPES.WATER) {
+      if (isWaterLikeTile(x, y)) {
         continue
       }
 
@@ -876,7 +877,7 @@ export function updateEnemyMovement(enemy, canSeePlayer) {
         tileX >= terrain[0].length ||
         tileY < 0 ||
         tileY >= terrain.length ||
-        terrain[tileY][tileX] === 0 // TERRAIN_TYPES.WATER
+        isWaterLikeTile(tileX, tileY)
       ) {
         // Bounce off terrain boundaries
         if (tileX < 0 || tileX >= terrain[0].length) {
@@ -924,7 +925,7 @@ export function updateEnemyMovement(enemy, canSeePlayer) {
         tileX < terrain[0].length &&
         tileY >= 0 &&
         tileY < terrain.length &&
-        terrain[tileY][tileX] === TERRAIN_TYPES.WATER
+        isWaterLikeTile(tileX, tileY)
       ) {
         enemy.floatAngle = Math.random() * Math.PI * 2
         enemy.floatOffset = 0
@@ -973,7 +974,7 @@ export function updateEnemyMovement(enemy, canSeePlayer) {
       playerTileX < terrain[0].length &&
       playerTileY >= 0 &&
       playerTileY < terrain.length &&
-      terrain[playerTileY][playerTileX] === TERRAIN_TYPES.WATER
+      isWaterLikeTile(playerTileX, playerTileY)
 
     const chaseSpeed = isChasingBoatOnWater ? enemy.swimSpeed : enemy.chaseSpeed
     enemy.isSwimming = isChasingBoatOnWater
@@ -1046,7 +1047,7 @@ export function updateEnemyMovement(enemy, canSeePlayer) {
       tileX < terrain[0].length &&
       tileY >= 0 &&
       tileY < terrain.length &&
-      terrain[tileY][tileX] !== 0 // TERRAIN_TYPES.WATER
+      !isWaterLikeTile(tileX, tileY)
     ) {
       // Check collision with rocks
       for (const rock of rocks) {
@@ -1154,6 +1155,15 @@ export function drawAndUpdateEnemies() {
     // Update enemy movement
     if (!gameOver) {
       updateEnemyMovement(enemy, canSeePlayer)
+
+      if (isEnemyFullyInsideHole(enemy)) {
+        damageEnemy(enemy, enemy.health || 1, { ignoreCooldown: true })
+      }
+    }
+
+    // Enemy may have been removed after falling into a hole.
+    if (!gameState.enemies.includes(enemy)) {
+      continue
     }
 
     updateEnemyWaterEffects(enemy)

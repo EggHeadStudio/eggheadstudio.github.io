@@ -15,18 +15,18 @@ export function setHudVisibility(isVisible) {
 }
 
 export function resetHud() {
-  document.getElementById("appleCount").textContent = "0"
+  document.getElementById("weaponCount").textContent = "-"
   document.getElementById("timer").textContent = "00:00"
   document.getElementById("killCount").textContent = "0"
   bindHudSelectors()
   updateSledgehammerIndicator()
+  updateShovelIndicator()
   updateWeaponSelectionUi()
 }
 
 // Update apple counter in UI
 export function updateAppleCounter() {
   const apples = gameState.player?.apples ?? 0
-  document.getElementById("appleCount").textContent = apples.toString()
 
   if (apples <= 0 && gameState.selectedWeapon === "apple") {
     gameState.selectedWeapon = "wrist"
@@ -35,58 +35,174 @@ export function updateAppleCounter() {
   updateWeaponSelectionUi()
 }
 
-export function updateSledgehammerIndicator() {
-  const indicator = document.getElementById("sledgehammerIndicator")
-  if (!indicator) return
+export function updateBombCounter() {
+  const bombs = gameState.player?.bombs ?? 0
 
+  if (bombs <= 0 && gameState.selectedWeapon === "bomb") {
+    gameState.selectedWeapon = "wrist"
+  }
+
+  updateWeaponSelectionUi()
+}
+
+export function updateSledgehammerIndicator() {
   const hasSledgehammer = Boolean(gameState.hasSledgehammer)
 
   if (!hasSledgehammer && gameState.selectedTool === "sledgehammer") {
     gameState.selectedTool = "none"
   }
 
-  indicator.classList.toggle("active", hasSledgehammer)
-  indicator.classList.toggle("has-tool", hasSledgehammer)
+  updateToolSelectorUi()
   updateWeaponSelectionUi()
 }
 
-function getAppleWeaponButton() {
-  return document.getElementById("appleWeaponButton") || document.querySelector(".apple-icon")
+function getAvailableTools() {
+  const tools = ["none"]
+
+  if (gameState.hasSledgehammer) {
+    tools.push("sledgehammer")
+  }
+
+  if (gameState.hasShovel) {
+    tools.push("shovel")
+  }
+
+  return tools
+}
+
+function ensureSelectedToolIsAvailable() {
+  const availableTools = getAvailableTools()
+  if (!availableTools.includes(gameState.selectedTool)) {
+    gameState.selectedTool = "none"
+  }
+}
+
+function cycleToolSelection() {
+  ensureSelectedToolIsAvailable()
+  const availableTools = getAvailableTools()
+  const currentIndex = Math.max(0, availableTools.indexOf(gameState.selectedTool))
+  const nextIndex = (currentIndex + 1) % availableTools.length
+  gameState.selectedTool = availableTools[nextIndex]
+
+  updateToolSelectorUi()
+  updateWeaponSelectionUi()
+}
+
+export function updateShovelIndicator() {
+  const hasShovel = Boolean(gameState.hasShovel)
+
+  if (!hasShovel && gameState.selectedTool === "shovel") {
+    gameState.selectedTool = "none"
+  }
+
+  updateToolSelectorUi()
+  updateWeaponSelectionUi()
+}
+
+function updateToolSelectorUi() {
+  const selector = document.getElementById("toolSelector")
+  const icon = document.getElementById("toolSelectorIcon")
+  if (!selector || !icon) return
+
+  ensureSelectedToolIsAvailable()
+  const hasAnyTool = gameState.hasSledgehammer || gameState.hasShovel
+
+  selector.classList.toggle("active", hasAnyTool)
+  selector.classList.toggle("selected", gameState.selectedTool !== "none")
+  selector.classList.toggle("disabled", !hasAnyTool)
+
+  icon.classList.remove("none", "sledgehammer", "shovel")
+  icon.classList.add(gameState.selectedTool === "none" ? "none" : gameState.selectedTool)
+}
+
+function getAvailableWeapons() {
+  const weapons = ["wrist"]
+
+  if ((gameState.player?.apples ?? 0) > 0) {
+    weapons.push("apple")
+  }
+
+  if ((gameState.player?.bombs ?? 0) > 0) {
+    weapons.push("bomb")
+  }
+
+  return weapons
+}
+
+function ensureSelectedWeaponIsAvailable() {
+  const availableWeapons = getAvailableWeapons()
+  if (!availableWeapons.includes(gameState.selectedWeapon)) {
+    gameState.selectedWeapon = "wrist"
+  }
+}
+
+function cycleWeaponSelection() {
+  ensureSelectedWeaponIsAvailable()
+  const availableWeapons = getAvailableWeapons()
+  const currentIndex = Math.max(0, availableWeapons.indexOf(gameState.selectedWeapon))
+  const nextIndex = (currentIndex + 1) % availableWeapons.length
+  gameState.selectedWeapon = availableWeapons[nextIndex]
+  updateWeaponSelectionUi()
+}
+
+function updateWeaponSelectorUi() {
+  const selector = document.getElementById("weaponSelector")
+  const icon = document.getElementById("weaponSelectorIcon")
+  const count = document.getElementById("weaponCount")
+
+  if (!selector || !icon || !count) return
+
+  ensureSelectedWeaponIsAvailable()
+  const apples = gameState.player?.apples ?? 0
+  const bombs = gameState.player?.bombs ?? 0
+
+  selector.classList.toggle("selected", gameState.selectedWeapon !== "wrist")
+
+  icon.classList.remove("wrist", "apple", "bomb")
+  icon.classList.add(gameState.selectedWeapon)
+
+  if (gameState.selectedWeapon === "apple") {
+    count.textContent = apples.toString()
+  } else if (gameState.selectedWeapon === "bomb") {
+    count.textContent = bombs.toString()
+  } else {
+    count.textContent = "-"
+  }
 }
 
 function bindHudSelectors() {
   if (hudSelectorsBound) return
 
-  const appleButton = getAppleWeaponButton()
-  const hammerButton = document.getElementById("sledgehammerIndicator")
+  const weaponSelector = document.getElementById("weaponSelector")
+  const toolSelector = document.getElementById("toolSelector")
 
-  if (appleButton) {
-    appleButton.setAttribute("role", "button")
-    appleButton.setAttribute("tabindex", "0")
-    appleButton.setAttribute("aria-label", "Select apples")
+  if (weaponSelector) {
+    weaponSelector.setAttribute("role", "button")
+    weaponSelector.setAttribute("tabindex", "0")
+    weaponSelector.setAttribute("aria-label", "Cycle weapons")
 
-    appleButton.addEventListener("click", () => {
-      toggleAppleWeaponSelection()
+    weaponSelector.addEventListener("click", () => {
+      cycleWeaponSelection()
     })
 
-    appleButton.addEventListener("touchstart", (event) => {
+    weaponSelector.addEventListener("touchstart", (event) => {
       event.preventDefault()
-      toggleAppleWeaponSelection()
+      cycleWeaponSelection()
     })
   }
 
-  if (hammerButton) {
-    hammerButton.setAttribute("role", "button")
-    hammerButton.setAttribute("tabindex", "0")
-    hammerButton.setAttribute("aria-label", "Select sledgehammer")
+  if (toolSelector) {
+    toolSelector.setAttribute("role", "button")
+    toolSelector.setAttribute("tabindex", "0")
+    toolSelector.setAttribute("aria-label", "Cycle tools")
 
-    hammerButton.addEventListener("click", () => {
-      toggleSledgehammerToolSelection()
+    toolSelector.addEventListener("click", () => {
+      cycleToolSelection()
     })
 
-    hammerButton.addEventListener("touchstart", (event) => {
+    toolSelector.addEventListener("touchstart", (event) => {
       event.preventDefault()
-      toggleSledgehammerToolSelection()
+      cycleToolSelection()
     })
   }
 
@@ -107,6 +223,20 @@ export function toggleAppleWeaponSelection() {
   updateWeaponSelectionUi()
 }
 
+export function toggleBombWeaponSelection() {
+  const bombs = gameState.player?.bombs ?? 0
+
+  if (gameState.selectedWeapon === "bomb") {
+    gameState.selectedWeapon = "wrist"
+  } else if (bombs > 0) {
+    gameState.selectedWeapon = "bomb"
+  } else {
+    gameState.selectedWeapon = "wrist"
+  }
+
+  updateWeaponSelectionUi()
+}
+
 export function toggleSledgehammerToolSelection() {
   if (!gameState.hasSledgehammer) {
     gameState.selectedTool = "none"
@@ -119,23 +249,22 @@ export function toggleSledgehammerToolSelection() {
   updateWeaponSelectionUi()
 }
 
+export function toggleShovelToolSelection() {
+  if (!gameState.hasShovel) {
+    gameState.selectedTool = "none"
+  } else if (gameState.selectedTool === "shovel") {
+    gameState.selectedTool = "none"
+  } else {
+    gameState.selectedTool = "shovel"
+  }
+
+  updateWeaponSelectionUi()
+}
+
 export function updateWeaponSelectionUi() {
-  const appleButton = getAppleWeaponButton()
-  const hammerButton = document.getElementById("sledgehammerIndicator")
-  const apples = gameState.player?.apples ?? 0
-  const appleSelected = gameState.selectedWeapon === "apple" && apples > 0
-  const hammerSelected = gameState.selectedTool === "sledgehammer" && Boolean(gameState.hasSledgehammer)
+  updateWeaponSelectorUi()
 
-  if (appleButton) {
-    appleButton.classList.toggle("selected", appleSelected)
-    appleButton.classList.toggle("disabled", apples <= 0)
-  }
-
-  if (hammerButton) {
-    hammerButton.classList.toggle("selected", hammerSelected)
-    hammerButton.classList.toggle("disabled", !gameState.hasSledgehammer)
-    hammerButton.classList.toggle("has-tool", Boolean(gameState.hasSledgehammer))
-  }
+  updateToolSelectorUi()
 }
 
 // Update health display in UI

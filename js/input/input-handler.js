@@ -1,12 +1,13 @@
 // Input handling (keyboard and mouse)
 import { gameState } from "../core/game-state.js"
 import { throwApple } from "../entities/apples.js"
-import { tryGrabBomb, releaseBomb, detonateAnyBombWithCountdown } from "../entities/bombs.js"
+import { tryGrabBomb, releaseBomb, detonateAnyBombWithCountdown, placeSelectedBomb } from "../entities/bombs.js"
 import { tryGrabRock, releaseRock } from "../entities/rocks.js"
 import { tryGrabWoodenBox, releaseWoodenBox } from "../entities/wooden-boxes.js" // Import wooden box functions
 import { tryGrabEnemy, releaseEnemy } from "../entities/enemies.js"
 import { checkCarInteraction, enterCar, exitCar } from "../entities/cars.js" // Import car interaction functions
 import { checkBoatInteraction, enterBoat, exitBoat } from "../entities/boats.js"
+import { tryDigHoleAtScreenPosition } from "../entities/shovels.js"
 
 // Set up event listeners for keyboard and mouse
 export function setupEventListeners() {
@@ -61,6 +62,9 @@ export function handleKeyDown(e) {
         const nearBoat = checkBoatInteraction()
         if (nearBoat) {
           enterBoat(nearBoat)
+          e.preventDefault()
+          return
+        } else if (!gameState.isGrabbing && placeSelectedBomb()) {
           e.preventDefault()
           return
         } else if (gameState.isGrabbing) {
@@ -124,8 +128,21 @@ export function handleMouseDown(e) {
   }
 
   if (e.button === 0) {
+    const rect = gameState.canvas.getBoundingClientRect()
+    const pointerX = e.clientX - rect.left
+    const pointerY = e.clientY - rect.top
+    gameState.mousePosition.x = pointerX
+    gameState.mousePosition.y = pointerY
+
     // Left mouse button - only throw apple if not in a car
     if (!gameState.isInCar) {
+      if (gameState.selectedTool === "shovel") {
+        const didDig = tryDigHoleAtScreenPosition(pointerX, pointerY)
+        if (didDig) {
+          return
+        }
+      }
+
       throwApple()
     }
   }

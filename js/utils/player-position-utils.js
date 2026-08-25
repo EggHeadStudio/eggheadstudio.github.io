@@ -2,6 +2,10 @@ import { gameState } from "../core/game-state.js"
 import { TILE_SIZE, TERRAIN_TYPES } from "../core/constants.js"
 import { getDistance } from "./math-utils.js"
 
+function isFloodedHoleTile(tileX, tileY) {
+  return Boolean(gameState.dugHoles?.[`${tileX},${tileY}`]?.flooded)
+}
+
 const DEFAULT_SCAN_ANGLES = Array.from({ length: 16 }, (_, index) => (Math.PI * 2 * index) / 16)
 
 export function isPlayerPositionClear(x, y, options = {}) {
@@ -19,7 +23,7 @@ export function isPlayerPositionClear(x, y, options = {}) {
     return false
   }
 
-  if (terrain[tileY][tileX] === TERRAIN_TYPES.WATER) {
+  if (terrain[tileY][tileX] === TERRAIN_TYPES.WATER || isFloodedHoleTile(tileX, tileY)) {
     return false
   }
 
