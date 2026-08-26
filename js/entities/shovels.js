@@ -115,6 +115,20 @@ function updateFloodForHoleComponent(startTileX, startTileY) {
   }
 }
 
+function updateFloodForAdjacentHoleComponents(tileX, tileY) {
+  const processed = new Set()
+
+  for (const adjacentTile of getAdjacentTiles(tileX, tileY)) {
+    const adjacentKey = holeKey(adjacentTile.x, adjacentTile.y)
+    if (processed.has(adjacentKey) || !gameState.dugHoles[adjacentKey]) {
+      continue
+    }
+
+    processed.add(adjacentKey)
+    updateFloodForHoleComponent(adjacentTile.x, adjacentTile.y)
+  }
+}
+
 export function isHoleTile(tileX, tileY) {
   return Boolean(gameState.dugHoles[holeKey(tileX, tileY)])
 }
@@ -164,6 +178,31 @@ export function digHoleAtTile(tileX, tileY) {
   return true
 }
 
+export function fillHoleAtTile(tileX, tileY) {
+  const key = holeKey(tileX, tileY)
+  const hole = gameState.dugHoles[key]
+
+  // Only dry/black holes can be filled back in with dirt.
+  if (!hole || hole.flooded || !isTileWithinTerrain(tileX, tileY)) {
+    return false
+  }
+
+  delete gameState.dugHoles[key]
+  gameState.terrain[tileY][tileX] = TERRAIN_TYPES.DIRT
+  updateFloodForAdjacentHoleComponents(tileX, tileY)
+  return true
+}
+
+function digOrFillHoleAtTile(tileX, tileY) {
+  const hole = getHoleAtTile(tileX, tileY)
+
+  if (hole && !hole.flooded) {
+    return fillHoleAtTile(tileX, tileY)
+  }
+
+  return digHoleAtTile(tileX, tileY)
+}
+
 function canSelectDigTile(tileX, tileY, reachMultiplier = DESKTOP_DIG_REACH_MULTIPLIER) {
   if (!isTileWithinTerrain(tileX, tileY)) {
     return false
@@ -206,7 +245,7 @@ export function queueOrDigHoleAtScreenPosition(screenX, screenY, options = {}) {
     return { consumed: true, didDig: false, activated: true }
   }
 
-  const didDig = digHoleAtTile(tileX, tileY)
+  const didDig = digOrFillHoleAtTile(tileX, tileY)
   clearPendingDigTarget()
   return { consumed: true, didDig, activated: false }
 }
@@ -222,7 +261,7 @@ export function tryDigHoleAtWorldPosition(worldX, worldY) {
     return false
   }
 
-  return digHoleAtTile(tileX, tileY)
+  return digOrFillHoleAtTile(tileX, tileY)
 }
 
 export function tryDigHoleAtScreenPosition(screenX, screenY) {

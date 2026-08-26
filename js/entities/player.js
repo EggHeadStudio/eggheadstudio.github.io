@@ -7,7 +7,7 @@ import { applyKnockbackToEnemy, damageEnemy } from "../entities/enemies.js"
 import { damageWoodenBox, isUnderRoof } from "../entities/wooden-boxes.js"
 import { damageTree, isTreeBlocking } from "../entities/trees.js"
 import { createDeathEffect, DEATH_EFFECT_DURATION } from "./death-effects.js"
-import { isWaterLikeTile } from "./shovels.js"
+import { isWaterLikeTile, isHoleTile, isHoleFlooded } from "./shovels.js"
 import { movePlayerToNearestSafePosition } from "../utils/player-position-utils.js"
 
 // Animation constants
@@ -17,6 +17,9 @@ const ANIMATION_SPEED = 0.05
 const IDLE_ANIMATION_SPEED = 0.03
 const IDLE_ANIMATION_RANGE = 2
 const LIMB_MOVEMENT_RANGE = 12
+const PLAYER_HOLE_BODY_SCALE = 0.82
+const PLAYER_HOLE_TRANSITION_DURATION = 300
+const PLAYER_HOLE_TRANSITION_SPEED_MULTIPLIER = 0.62
 
 // Add a new animation constant for throwing
 const THROW_ANIMATION_DURATION = 200 // milliseconds
@@ -111,6 +114,66 @@ export function updatePlayerHealing() {
   }
 }
 
+function isStandingInDryHole(player) {
+  const tileX = Math.floor(player.x / TILE_SIZE)
+  const tileY = Math.floor(player.y / TILE_SIZE)
+  return isHoleTile(tileX, tileY) && !isHoleFlooded(tileX, tileY)
+}
+
+function updatePlayerHoleState(player) {
+  const now = Date.now()
+  const inDryHole = isStandingInDryHole(player)
+
+  if (player.isInDryHole !== inDryHole) {
+    player.isInDryHole = inDryHole
+    player.holeTransitionPhase = inDryHole ? "enter" : "exit"
+    player.holeTransitionStartedAt = now
+    player.holeTransitionUntil = now + PLAYER_HOLE_TRANSITION_DURATION
+  }
+
+  if (!player.holeTransitionUntil || now >= player.holeTransitionUntil) {
+    player.holeTransitionPhase = null
+    player.holeTransitionStartedAt = 0
+    player.holeTransitionUntil = 0
+  }
+}
+
+function getPlayerHoleTransitionState(player) {
+  const now = Date.now()
+  const isActive = Boolean(player.holeTransitionUntil && now < player.holeTransitionUntil)
+
+  if (!isActive) {
+    return { isActive: false, phase: null, progress: 1, pulse: 0 }
+  }
+
+  const duration = Math.max(1, PLAYER_HOLE_TRANSITION_DURATION)
+  const elapsed = Math.max(0, now - (player.holeTransitionStartedAt || now))
+  const progress = Math.min(1, elapsed / duration)
+  const pulse = Math.sin(progress * Math.PI)
+
+  return {
+    isActive: true,
+    phase: player.holeTransitionPhase || "enter",
+    progress,
+    pulse,
+  }
+}
+
+function getPlayerBodyScale(player) {
+  const transition = getPlayerHoleTransitionState(player)
+
+  if (player.isInDryHole) {
+    const enterBoost = transition.isActive && transition.phase === "enter" ? transition.pulse * 0.08 : 0
+    return PLAYER_HOLE_BODY_SCALE + enterBoost
+  }
+
+  if (transition.isActive && transition.phase === "exit") {
+    return 1 - (1 - PLAYER_HOLE_BODY_SCALE) * transition.pulse
+  }
+
+  return 1
+}
+
 // Update player position based on keyboard input
 export function updatePlayerPosition() {
   const {
@@ -134,6 +197,8 @@ export function updatePlayerPosition() {
     return
   }
 
+  updatePlayerHoleState(player)
+
   let dx = 0
   let dy = 0
 
@@ -153,8 +218,12 @@ export function updatePlayerPosition() {
     }
   }
 
-  // Apply speed (reduced if grabbing a bomb, rock, or enemy)
-  const currentSpeed = isGrabbing ? player.speed / 2 : player.speed
+  // Apply speed (reduced if grabbing a bomb, rock, or enemy).
+  // Entering/exiting a dry hole also applies a short slowdown so it feels like
+  // dropping in and climbing out.
+  const holeTransition = getPlayerHoleTransitionState(player)
+  const transitionSpeedMultiplier = holeTransition.isActive ? PLAYER_HOLE_TRANSITION_SPEED_MULTIPLIER : 1
+  const currentSpeed = (isGrabbing ? player.speed / 2 : player.speed) * transitionSpeedMultiplier
   dx *= currentSpeed
   dy *= currentSpeed
 
@@ -405,6 +474,7 @@ export function drawPlayer() {
   // Calculate screen position
   const screenX = player.x - camera.x
   const screenY = player.y - camera.y
+  const playerBodyScale = getPlayerBodyScale(player)
 
   // Don't draw if off-screen
   if (
@@ -421,12 +491,13 @@ export function drawPlayer() {
   ctx.globalAlpha = 0.3
   ctx.fillStyle = "#000"
   ctx.beginPath()
+  const shadowScale = isInCar && drivingCar ? 0.8 : playerBodyScale
   
   // If player is in car, draw a smaller shadow inside the car
   if (isInCar && drivingCar) {
-    ctx.ellipse(screenX + 3, screenY + 3, player.size * 0.6, player.size * 0.4, 0, 0, Math.PI * 2)
+    ctx.ellipse(screenX + 3, screenY + 3, player.size * 0.6 * shadowScale, player.size * 0.4 * shadowScale, 0, 0, Math.PI * 2)
   } else {
-    ctx.ellipse(screenX + 3, screenY + 3, player.size, player.size * 0.6, 0, 0, Math.PI * 2)
+    ctx.ellipse(screenX + 3, screenY + 3, player.size * shadowScale, player.size * 0.6 * shadowScale, 0, 0, Math.PI * 2)
   }
   
   ctx.fill()
@@ -442,9 +513,9 @@ export function drawPlayer() {
   ctx.translate(screenX, screenY)
   
   // If player is in car, draw the player smaller and more centered
-  const scaleFactor = isInCar && drivingCar ? 0.8 : 1;
-  if (isInCar && drivingCar) {
-    ctx.scale(scaleFactor, scaleFactor);
+  const scaleFactor = (isInCar && drivingCar ? 0.8 : 1) * playerBodyScale
+  if (scaleFactor !== 1) {
+    ctx.scale(scaleFactor, scaleFactor)
   }
   
   // Draw feet
@@ -1231,6 +1302,7 @@ function drawBackpack(ctx, x, y, player) {
 function drawHands(ctx, x, y, player) {
   try {
     const { keys, isGrabbing, isInCar, drivingCar, isMobile, joystickActive, joystickDistance } = gameState;
+    const holeTransition = getPlayerHoleTransitionState(player)
     
     // Calculate animation offset based on movement or idle state
     let handOffset;
@@ -1398,6 +1470,11 @@ function drawHands(ctx, x, y, player) {
         handOffset = Math.sin(player.animationTime * 0.5) * IDLE_ANIMATION_RANGE;
       }
 
+      if (holeTransition.isActive) {
+        const climbLift = holeTransition.phase === "enter" ? -1 : 1
+        handOffset += climbLift * holeTransition.pulse * 6
+      }
+
       // Base distance from center
       handDistance = player.size * 1.2;
 
@@ -1408,16 +1485,23 @@ function drawHands(ctx, x, y, player) {
       // Calculate hand positions with animation
       // When idle, make hands move slightly outward and inward (breathing effect)
       const breathingFactor = isMovingForward ? 0 : Math.sin(player.animationTime * 0.5) * 3;
+      const transitionLift = holeTransition.isActive
+        ? (holeTransition.phase === "enter" ? -1 : 1) * holeTransition.pulse * 4
+        : 0
       
       const rightHandX = x + Math.cos(handAngle1) * (handDistance + breathingFactor) + 
-                         (isMovingForward ? Math.cos(player.direction) * handOffset : 0);
+                         (isMovingForward ? Math.cos(player.direction) * handOffset : 0) +
+                         Math.cos(player.direction) * transitionLift;
       const rightHandY = y + Math.sin(handAngle1) * (handDistance + breathingFactor) + 
-                         (isMovingForward ? Math.sin(player.direction) * handOffset : 0);
+                         (isMovingForward ? Math.sin(player.direction) * handOffset : 0) +
+                         Math.sin(player.direction) * transitionLift;
 
       const leftHandX = x + Math.cos(handAngle2) * (handDistance + breathingFactor) + 
-                        (isMovingForward ? Math.cos(player.direction) * -handOffset : 0);
+                        (isMovingForward ? Math.cos(player.direction) * -handOffset : 0) +
+                        Math.cos(player.direction) * transitionLift;
       const leftHandY = y + Math.sin(handAngle2) * (handDistance + breathingFactor) + 
-                        (isMovingForward ? Math.sin(player.direction) * -handOffset : 0);
+                        (isMovingForward ? Math.sin(player.direction) * -handOffset : 0) +
+                        Math.sin(player.direction) * transitionLift;
 
       // Draw hands (light gray)
       ctx.fillStyle = player.handColor || "#AAAAAA";
@@ -1570,6 +1654,7 @@ function drawEquippedHandItems(ctx, player, rightHandX, rightHandY, leftHandX, l
 // Draw the player's feet
 function drawFeet(ctx, x, y, player) {
   const { keys, isInCar, drivingCar, isMobile, joystickActive, joystickDistance } = gameState;
+  const holeTransition = getPlayerHoleTransitionState(player)
   
   // Only animate feet when moving forward and not in a car
   const isMovingForward = player.isMoving && 
@@ -1577,6 +1662,8 @@ function drawFeet(ctx, x, y, player) {
   const footOffset = (isMovingForward && !isInCar) 
     ? Math.sin(player.animationTime) * LIMB_MOVEMENT_RANGE 
     : 0;
+
+  const transitionFootBoost = holeTransition.isActive ? holeTransition.pulse * 6 : 0
 
   // Calculate positions for feet (slightly behind the player)
   const footAngle1 = player.direction + Math.PI + Math.PI / 2; // Right foot
@@ -1586,11 +1673,11 @@ function drawFeet(ctx, x, y, player) {
   const footDistance = player.size * 0.7;
 
   // Calculate foot positions with animation
-  const rightFootX = x + Math.cos(footAngle1) * footDistance + Math.cos(player.direction) * footOffset;
-  const rightFootY = y + Math.sin(footAngle1) * footDistance + Math.sin(player.direction) * footOffset;
+  const rightFootX = x + Math.cos(footAngle1) * footDistance + Math.cos(player.direction) * (footOffset + transitionFootBoost);
+  const rightFootY = y + Math.sin(footAngle1) * footDistance + Math.sin(player.direction) * (footOffset + transitionFootBoost);
 
-  const leftFootX = x + Math.cos(footAngle2) * footDistance + Math.cos(player.direction) * -footOffset;
-  const leftFootY = y + Math.sin(footAngle2) * footDistance + Math.sin(player.direction) * -footOffset;
+  const leftFootX = x + Math.cos(footAngle2) * footDistance + Math.cos(player.direction) * (-footOffset - transitionFootBoost);
+  const leftFootY = y + Math.sin(footAngle2) * footDistance + Math.sin(player.direction) * (-footOffset - transitionFootBoost);
 
   // Draw feet (dark gray)
   ctx.fillStyle = "#444444";

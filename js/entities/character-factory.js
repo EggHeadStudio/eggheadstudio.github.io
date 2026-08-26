@@ -4,7 +4,7 @@ import { PLAYER_SIZE, PLAYER_SPEED, CHARACTER_ATTRIBUTE_BUDGET } from "../core/c
 // Character types with their default properties
 const CHARACTER_TYPES = {
   default: {
-    size: PLAYER_SIZE * 1.2,
+    size: PLAYER_SIZE * 1.1,
     speed: 3,
     health: 5,
     color: "#f8cc8e",
@@ -20,7 +20,7 @@ const CHARACTER_TYPES = {
   },
 
   rasse: {
-    size: PLAYER_SIZE,
+    size: PLAYER_SIZE * 0.8,
     speed: PLAYER_SPEED,
     health: 3,
     color: "#3498db",
@@ -36,7 +36,7 @@ const CHARACTER_TYPES = {
   },
 
   iida: {
-    size: PLAYER_SIZE,
+    size: PLAYER_SIZE * 0.8,
     speed: PLAYER_SPEED,
     health: 3,
     color: "#3498db",
@@ -75,7 +75,7 @@ const CHARACTER_TYPES = {
   },
 
   lidia: {
-    size: PLAYER_SIZE,
+    size: PLAYER_SIZE * 0.9,
     speed: PLAYER_SPEED,
     health: 3,
     color: "#4f9bd8",
@@ -135,11 +135,11 @@ const CHARACTER_TYPES = {
   },
 
   mara: {
-    size: PLAYER_SIZE,
-    speed: PLAYER_SPEED,
-    health: 3,
-    color: "#497fd6",
-    strength: 1.0,
+    size: PLAYER_SIZE * 1.2,
+    speed: 3,
+    health: 7,
+    color: "#8edfa9",
+    strength: 2.0,
     handColor: "#AAAAAA",
     footColor: "#444444",
     backpackColor: "#5a3b72",
@@ -147,14 +147,14 @@ const CHARACTER_TYPES = {
     backpackWidthScale: 0.9,
     backpackHeightScale: 1.02,
     hairStyle: "bun",
-    hairColor: "#201611",
-    noseColor: "#71819a",
+    hairColor: "#594d47",
+    noseColor: "#4b7756",
     noseSizeScale: 0.2,
     hasLashes: true,
     hasGlasses: true,
-    glassesColor: "#2f2238",
+    glassesColor: "#47434b",
     hasBeard: true,
-    beardColor: "#2b1d16",
+    beardColor: "#a18577",
   },
 
   taro: {
