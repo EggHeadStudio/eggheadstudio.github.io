@@ -58,6 +58,7 @@ export function initializeStartMenu(initialConfig = createDefaultGameConfig()) {
 
   renderCharacterOptions()
   renderTimeOptions()
+  setupPerformanceOptions()
   setupMinimapMenuTrigger()
 
   document.getElementById("resumeGameButton").addEventListener("click", () => {
@@ -113,6 +114,7 @@ function syncMenuFromConfig(config) {
 
   updateActiveOption("character", gameState.startupConfig.characterType)
   updateActiveOption("time", gameState.startupConfig.startPhase)
+  syncPerformanceOptions()
   renderCharacterPreview(gameState.startupConfig.characterType)
   renderMenuState()
 }
@@ -246,6 +248,26 @@ function renderTimeOptions() {
 
     optionsContainer.appendChild(button)
   }
+}
+
+function setupPerformanceOptions() {
+  const lightweightModeToggle = document.getElementById("lightweightModeToggle")
+  if (!lightweightModeToggle) {
+    return
+  }
+
+  lightweightModeToggle.addEventListener("change", () => {
+    gameState.startupConfig.lightweightMode = lightweightModeToggle.checked
+  })
+}
+
+function syncPerformanceOptions() {
+  const lightweightModeToggle = document.getElementById("lightweightModeToggle")
+  if (!lightweightModeToggle) {
+    return
+  }
+
+  lightweightModeToggle.checked = Boolean(gameState.startupConfig.lightweightMode)
 }
 
 function renderCharacterPreview(characterType) {

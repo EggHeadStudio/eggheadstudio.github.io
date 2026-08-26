@@ -138,6 +138,11 @@ export function drawDayNightOverlay() {
     return
   }
 
+  if (gameState.lightweightMode) {
+    drawLightweightOverlay(ctx, canvas, lighting)
+    return
+  }
+
   const screenX = player.x - camera.x
   const screenY = player.y - camera.y
   if (lighting.lightRadius <= 0) {
@@ -223,6 +228,18 @@ export function drawDayNightOverlay() {
   overlayCtx.restore()
 
   ctx.drawImage(overlayCanvas, 0, 0)
+}
+
+function drawLightweightOverlay(ctx, canvas, lighting) {
+  const alpha = Math.max(lighting.overlayAlpha, lighting.vignetteAlpha * 0.65)
+  if (alpha <= 0) {
+    return
+  }
+
+  ctx.save()
+  ctx.fillStyle = `rgba(${lighting.overlayColor.join(", ")}, ${alpha})`
+  ctx.fillRect(0, 0, canvas.width, canvas.height)
+  ctx.restore()
 }
 
 function getLightingState(segmentKey, progress) {

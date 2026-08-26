@@ -3,6 +3,7 @@ import { gameState } from "../core/game-state.js"
 import { getTerrainColor } from "../utils/color-utils.js"
 
 const MINIMAP_CACHE_REFRESH_MS = 80
+const MINIMAP_CACHE_REFRESH_MS_LIGHTWEIGHT = 180
 
 let minimapCacheCanvas = null
 let minimapCacheCtx = null
@@ -22,12 +23,13 @@ export function drawMinimap() {
 
   const { canvas, ctx } = refs
   const now = Date.now()
+  const refreshInterval = gameState.lightweightMode ? MINIMAP_CACHE_REFRESH_MS_LIGHTWEIGHT : MINIMAP_CACHE_REFRESH_MS
   const needsCacheRefresh =
     !minimapCacheCanvas ||
     !minimapCacheCtx ||
     canvas.width !== minimapCacheWidth ||
     canvas.height !== minimapCacheHeight ||
-    now - minimapCacheLastUpdateAt >= MINIMAP_CACHE_REFRESH_MS
+    now - minimapCacheLastUpdateAt >= refreshInterval
 
   if (needsCacheRefresh) {
     renderMinimapCache(refs)
@@ -57,7 +59,7 @@ function renderMinimapCache(refs) {
   const maxTileY = Math.floor(playerTileY) + worldHalfSpan + 1
 
   ctx.clearRect(0, 0, canvas.width, canvas.height)
-  ctx.fillStyle = "rgba(6, 12, 18, 0.74)"
+  ctx.fillStyle = gameState.lightweightMode ? "rgba(18, 26, 34, 0.56)" : "rgba(6, 12, 18, 0.74)"
   ctx.fillRect(0, 0, canvas.width, canvas.height)
 
   for (let y = minTileY; y <= maxTileY; y++) {
@@ -148,6 +150,11 @@ function ensureMinimapCacheContext(sourceCanvas) {
 function drawMinimapEntities(ctx, viewport) {
   const scale = viewport.tileSize / TILE_SIZE
 
+  if (gameState.lightweightMode) {
+    drawMinimapEntitiesLightweight(ctx, viewport, scale)
+    return
+  }
+
   drawMinimapTrees(ctx, viewport, scale)
   drawMinimapRocks(ctx, viewport, scale)
   drawMinimapWoodenBoxes(ctx, viewport, scale)
@@ -187,6 +194,108 @@ function drawMinimapEntities(ctx, viewport) {
 
   drawMinimapExplosions(ctx, viewport, scale)
   drawMinimapDeathEffects(ctx, viewport, scale)
+}
+
+function drawMinimapEntitiesLightweight(ctx, viewport, scale) {
+  drawEntityCircles(ctx, gameState.trees, viewport, scale, {
+    fillStyle: "rgba(94, 178, 95, 0.9)",
+    minRadius: 1.8,
+    radiusMultiplier: 0.34,
+    outlineStyle: "rgba(26, 64, 32, 0.3)",
+  })
+
+  drawEntityCircles(ctx, gameState.rocks, viewport, scale, {
+    fillStyle: "rgba(174, 182, 188, 0.86)",
+    minRadius: 1.1,
+    radiusMultiplier: 0.34,
+    outlineStyle: "rgba(42, 48, 54, 0.25)",
+  })
+
+  drawEntityRects(ctx, gameState.woodenBoxes, viewport, scale, {
+    fillStyle: "rgba(162, 120, 80, 0.84)",
+    minSize: 1.3,
+    sizeMultiplier: 0.44,
+    outlineStyle: "rgba(44, 30, 22, 0.24)",
+  })
+
+  drawEntityCircles(ctx, gameState.bombs, viewport, scale, {
+    fillStyle: "rgba(255, 156, 108, 0.9)",
+    minRadius: 1.3,
+    radiusMultiplier: 0.3,
+    outlineStyle: "rgba(62, 20, 16, 0.22)",
+  })
+
+  drawEntityRects(ctx, gameState.cars, viewport, scale, {
+    fillStyle: "rgba(108, 148, 102, 0.9)",
+    minSize: 2,
+    sizeMultiplier: 0.46,
+    outlineStyle: "rgba(20, 34, 24, 0.26)",
+  })
+
+  drawEntityRects(ctx, gameState.boats, viewport, scale, {
+    fillStyle: "rgba(150, 118, 86, 0.88)",
+    minSize: 1.8,
+    sizeMultiplier: 0.42,
+    outlineStyle: "rgba(48, 33, 22, 0.24)",
+  })
+
+  drawEntityCircles(ctx, gameState.enemies, viewport, scale, {
+    fillStyle: "rgba(235, 86, 86, 0.92)",
+    minRadius: 1.8,
+    radiusMultiplier: 0.4,
+    outlineStyle: "rgba(24, 14, 14, 0.28)",
+  })
+
+  drawEntityCircles(ctx, gameState.apples, viewport, scale, {
+    fillStyle: "rgba(244, 96, 96, 0.9)",
+    minRadius: 1,
+    radiusMultiplier: 0.32,
+    outlineStyle: "rgba(70, 20, 20, 0.2)",
+  })
+
+  drawEntityCircles(ctx, gameState.thrownApples, viewport, scale, {
+    fillStyle: "rgba(244, 96, 96, 0.78)",
+    minRadius: 0.9,
+    radiusMultiplier: 0.28,
+    outlineStyle: "rgba(70, 20, 20, 0.16)",
+  })
+
+  drawEntityCircles(ctx, gameState.shovels, viewport, scale, {
+    fillStyle: "rgba(146, 176, 196, 0.88)",
+    minRadius: 1.1,
+    radiusMultiplier: 0.3,
+    outlineStyle: "rgba(30, 44, 58, 0.2)",
+  })
+
+  drawEntityCircles(ctx, gameState.sledgehammers, viewport, scale, {
+    fillStyle: "rgba(154, 162, 170, 0.88)",
+    minRadius: 1.1,
+    radiusMultiplier: 0.3,
+    outlineStyle: "rgba(24, 28, 31, 0.2)",
+  })
+
+  drawEntityCircles(ctx, gameState.explosions, viewport, scale, {
+    fillStyle: "rgba(255, 185, 94, 0.8)",
+    minRadius: 1.4,
+    radiusMultiplier: 0.14,
+    outlineStyle: "rgba(255, 220, 150, 0.22)",
+    colorForItem: (explosion) => {
+      if (!explosion) {
+        return "rgba(255, 185, 94, 0.8)"
+      }
+
+      const radiusSource = explosion.maxRadius || explosion.radius || explosion.size || TILE_SIZE * 0.5
+      const intensity = Math.min(1, Math.max(0.2, radiusSource / (TILE_SIZE * 5)))
+      return `rgba(255, 185, 94, ${0.55 + intensity * 0.25})`
+    },
+  })
+
+  drawEntityCircles(ctx, gameState.deathEffects, viewport, scale, {
+    fillStyle: "rgba(142, 28, 36, 0.72)",
+    minRadius: 1.1,
+    radiusMultiplier: 0.16,
+    outlineStyle: "rgba(255, 180, 180, 0.12)",
+  })
 }
 
 function drawMinimapHoles(ctx, viewport) {
@@ -609,7 +718,8 @@ function getMinimapContext() {
   }
 
   const ctx = canvas.getContext("2d")
-  const devicePixelRatio = window.devicePixelRatio || 1
+  const maxPixelRatio = gameState.lightweightMode ? 1.1 : 2
+  const devicePixelRatio = Math.min(window.devicePixelRatio || 1, maxPixelRatio)
   const desiredWidth = Math.floor(canvas.clientWidth * devicePixelRatio)
   const desiredHeight = Math.floor(canvas.clientHeight * devicePixelRatio)
 

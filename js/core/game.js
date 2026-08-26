@@ -53,6 +53,7 @@ export function createDefaultGameConfig() {
     characterType: "default",
     characterAttributes: normalizeCharacterCustomization(),
     startPhase: "day",
+    lightweightMode: false,
     mapSize: WORLD_MAP_SIZE,
   }
 }
@@ -145,6 +146,7 @@ export function init(config = gameState.startupConfig) {
   gameState.canvas = document.getElementById("gameCanvas")
   gameState.ctx = gameState.canvas.getContext("2d")
   gameState.isMobile = Boolean(detectMobile())
+  gameState.lightweightMode = Boolean(normalizedConfig.lightweightMode)
 
   // Set canvas size to match container
   resizeCanvas()
@@ -334,7 +336,7 @@ export function resizeCanvas() {
   }
 
   const container = gameState.canvas.parentElement
-  const viewportScale = gameState.isMobile ? MOBILE_VIEWPORT_SCALE : 1
+  const viewportScale = gameState.isMobile ? MOBILE_VIEWPORT_SCALE : gameState.lightweightMode ? 0.85 : 1
 
   gameState.canvas.style.width = `${container.clientWidth}px`
   gameState.canvas.style.height = `${container.clientHeight}px`

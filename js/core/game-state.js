@@ -31,6 +31,7 @@ export const gameState = {
       strength: 1,
     },
     startPhase: "day",
+    lightweightMode: false,
     mapSize: WORLD_MAP_SIZE,
   },
 
@@ -48,6 +49,7 @@ export const gameState = {
   keys: {},
   mousePosition: { x: 0, y: 0 },
   isMobile: false,
+  lightweightMode: false,
 
   // Mobile controls
   joystickActive: false,

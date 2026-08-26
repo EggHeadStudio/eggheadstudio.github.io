@@ -15,6 +15,7 @@ function tileNoise(x, y, index) {
 // Draw terrain
 export function drawTerrain() {
   const { terrain, camera, ctx } = gameState
+  const isLightweight = gameState.lightweightMode
 
   const startX = Math.floor(camera.x / TILE_SIZE)
   const startY = Math.floor(camera.y / TILE_SIZE)
@@ -45,32 +46,35 @@ export function drawTerrain() {
 
         if (terrainType === 0) {
           // TERRAIN_TYPES.WATER
-          // Water ripples animation
-          const waveOffset = Math.sin(time + x * 0.3 + y * 0.2) * 3
+          if (!isLightweight) {
+            // Water ripples animation
+            const waveOffset = Math.sin(time + x * 0.3 + y * 0.2) * 3
 
-          ctx.beginPath()
-          ctx.moveTo(screenX, screenY + TILE_SIZE / 2 + waveOffset)
-          ctx.lineTo(screenX + TILE_SIZE, screenY + TILE_SIZE / 2 - waveOffset)
-          ctx.strokeStyle = "rgba(255, 255, 255, 0.3)"
-          ctx.lineWidth = 2
-          ctx.stroke()
+            ctx.beginPath()
+            ctx.moveTo(screenX, screenY + TILE_SIZE / 2 + waveOffset)
+            ctx.lineTo(screenX + TILE_SIZE, screenY + TILE_SIZE / 2 - waveOffset)
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.3)"
+            ctx.lineWidth = 2
+            ctx.stroke()
 
-          // Second wave for more texture
-          const waveOffset2 = Math.sin(time * 1.5 + x * 0.4 + y * 0.3) * 2
-          ctx.beginPath()
-          ctx.moveTo(screenX, screenY + TILE_SIZE / 3 + waveOffset2)
-          ctx.lineTo(screenX + TILE_SIZE, screenY + TILE_SIZE / 3 - waveOffset2)
-          ctx.strokeStyle = "rgba(255, 255, 255, 0.2)"
-          ctx.lineWidth = 1
-          ctx.stroke()
+            // Second wave for more texture
+            const waveOffset2 = Math.sin(time * 1.5 + x * 0.4 + y * 0.3) * 2
+            ctx.beginPath()
+            ctx.moveTo(screenX, screenY + TILE_SIZE / 3 + waveOffset2)
+            ctx.lineTo(screenX + TILE_SIZE, screenY + TILE_SIZE / 3 - waveOffset2)
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.2)"
+            ctx.lineWidth = 1
+            ctx.stroke()
+          }
         } else if (terrainType === 1) {
           // TERRAIN_TYPES.GRASS
           // Grass is drawn purely as blades that lean side to side in the wind.
           ctx.strokeStyle = adjustColorBrightness(getTerrainColor(terrainType), -18)
-          ctx.lineWidth = 1.5
+          ctx.lineWidth = isLightweight ? 1 : 1.5
           ctx.lineCap = "round"
 
-          for (let i = 0; i < 9; i++) {
+          const bladeCount = isLightweight ? 4 : 9
+          for (let i = 0; i < bladeCount; i++) {
             const baseX = screenX + 3 + tileNoise(x, y, i + 30) * (TILE_SIZE - 6)
             const baseY = screenY + TILE_SIZE - 2 - tileNoise(x, y, i + 35) * (TILE_SIZE - 6)
             const height = 9 + tileNoise(x, y, i + 40) * 7
@@ -78,7 +82,7 @@ export function drawTerrain() {
             // Phase shifts with world position so the wind visibly rolls
             // across the field rather than every blade moving in lockstep.
             const bladePhase = windPhase + x * 0.32 + y * 0.16 + tileNoise(x, y, i + 50) * 1.4
-            const bend = Math.sin(bladePhase) * gustStrength * 10
+            const bend = isLightweight ? 0 : Math.sin(bladePhase) * gustStrength * 10
 
             ctx.beginPath()
             ctx.moveTo(baseX, baseY)
@@ -204,21 +208,23 @@ function drawHoleTile(ctx, screenX, screenY, flooded, tileX, tileY, time) {
     ctx.fillStyle = getTerrainColor(0)
     ctx.fillRect(screenX, screenY, TILE_SIZE, TILE_SIZE)
 
-    const waveOffset = Math.sin(time + tileX * 0.3 + tileY * 0.2) * 3
-    ctx.beginPath()
-    ctx.moveTo(screenX, screenY + TILE_SIZE / 2 + waveOffset)
-    ctx.lineTo(screenX + TILE_SIZE, screenY + TILE_SIZE / 2 - waveOffset)
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.3)"
-    ctx.lineWidth = 2
-    ctx.stroke()
+    if (!gameState.lightweightMode) {
+      const waveOffset = Math.sin(time + tileX * 0.3 + tileY * 0.2) * 3
+      ctx.beginPath()
+      ctx.moveTo(screenX, screenY + TILE_SIZE / 2 + waveOffset)
+      ctx.lineTo(screenX + TILE_SIZE, screenY + TILE_SIZE / 2 - waveOffset)
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.3)"
+      ctx.lineWidth = 2
+      ctx.stroke()
 
-    const waveOffset2 = Math.sin(time * 1.5 + tileX * 0.4 + tileY * 0.3) * 2
-    ctx.beginPath()
-    ctx.moveTo(screenX, screenY + TILE_SIZE / 3 + waveOffset2)
-    ctx.lineTo(screenX + TILE_SIZE, screenY + TILE_SIZE / 3 - waveOffset2)
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.2)"
-    ctx.lineWidth = 1
-    ctx.stroke()
+      const waveOffset2 = Math.sin(time * 1.5 + tileX * 0.4 + tileY * 0.3) * 2
+      ctx.beginPath()
+      ctx.moveTo(screenX, screenY + TILE_SIZE / 3 + waveOffset2)
+      ctx.lineTo(screenX + TILE_SIZE, screenY + TILE_SIZE / 3 - waveOffset2)
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.2)"
+      ctx.lineWidth = 1
+      ctx.stroke()
+    }
     return
   }
 

@@ -254,6 +254,10 @@ export function drawAndUpdateTrees() {
 
   if (!trees) return
 
+  if (gameState.lightweightMode) {
+    return
+  }
+
   const time = Date.now() / 1000
 
   for (const tree of trees) {
@@ -291,7 +295,8 @@ export function drawTreeCanopyOverlay() {
 
   if (!trees) return
 
-  const time = Date.now() / 1000
+  const isLightweight = gameState.lightweightMode
+  const time = isLightweight ? 0 : Date.now() / 1000
 
   for (const tree of trees) {
     const screenX = tree.x - camera.x
@@ -307,7 +312,7 @@ export function drawTreeCanopyOverlay() {
       continue
     }
 
-    const sway = Math.sin(time * 1.25 + tree.swayOffset) * 2
+    const sway = isLightweight ? 0 : Math.sin(time * 1.25 + tree.swayOffset) * 2
     drawCanopy(ctx, screenX + sway, screenY - tree.size * 0.1, tree)
     drawTreeApples(ctx, screenX + sway, screenY - tree.size * 0.1, tree)
   }
@@ -352,14 +357,17 @@ function drawCanopy(ctx, screenX, screenY, tree) {
   const shades = ["#1e7a3c", "#249448", "#2fae57"]
   // Darker canopy as the tree gets damaged, so it reads as dying
   const damageFade = tree.damageState * 0.12
+  const isLightweight = gameState.lightweightMode
 
   for (const blob of tree.canopy) {
     // Slight canopy shadow to separate leaves from entities below.
-    ctx.fillStyle = "rgba(0, 0, 0, 0.14)"
-    ctx.globalAlpha = 1 - damageFade
-    ctx.beginPath()
-    ctx.arc(screenX + blob.offsetX + 1.6, screenY + blob.offsetY + 2.2, blob.radius * 0.98, 0, Math.PI * 2)
-    ctx.fill()
+    if (!isLightweight) {
+      ctx.fillStyle = "rgba(0, 0, 0, 0.14)"
+      ctx.globalAlpha = 1 - damageFade
+      ctx.beginPath()
+      ctx.arc(screenX + blob.offsetX + 1.6, screenY + blob.offsetY + 2.2, blob.radius * 0.98, 0, Math.PI * 2)
+      ctx.fill()
+    }
 
     ctx.fillStyle = shades[blob.shade] || shades[1]
     ctx.globalAlpha = 1 - damageFade
@@ -372,6 +380,8 @@ function drawCanopy(ctx, screenX, screenY, tree) {
 }
 
 function drawTreeApples(ctx, screenX, screenY, tree) {
+  const isLightweight = gameState.lightweightMode
+
   for (const apple of tree.apples) {
     const appleX = screenX + apple.offsetX
     const appleY = screenY + apple.offsetY
@@ -381,11 +391,13 @@ function drawTreeApples(ctx, screenX, screenY, tree) {
     ctx.arc(appleX, appleY, APPLE_SIZE * 0.55, 0, Math.PI * 2)
     ctx.fill()
 
-    // Small highlight so apples pop against the canopy
-    ctx.fillStyle = "rgba(255, 255, 255, 0.35)"
-    ctx.beginPath()
-    ctx.arc(appleX - APPLE_SIZE * 0.18, appleY - APPLE_SIZE * 0.18, APPLE_SIZE * 0.16, 0, Math.PI * 2)
-    ctx.fill()
+    if (!isLightweight) {
+      // Small highlight so apples pop against the canopy
+      ctx.fillStyle = "rgba(255, 255, 255, 0.35)"
+      ctx.beginPath()
+      ctx.arc(appleX - APPLE_SIZE * 0.18, appleY - APPLE_SIZE * 0.18, APPLE_SIZE * 0.16, 0, Math.PI * 2)
+      ctx.fill()
+    }
   }
 }
 
