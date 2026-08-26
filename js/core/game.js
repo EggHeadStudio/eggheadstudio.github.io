@@ -98,6 +98,7 @@ export function init(config = gameState.startupConfig) {
   gameState.selectedWeapon = "wrist"
   gameState.selectedTool = "none"
   gameState.dugHoles = {}
+  gameState.pendingDigTile = null
   gameState.isInCar = false // Reset car state
   gameState.drivingCar = null // Reset driving car
   gameState.bombs = []

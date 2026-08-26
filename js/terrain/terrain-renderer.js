@@ -164,6 +164,38 @@ export function drawTerrain() {
       }
     }
   }
+
+  drawPendingDigOverlay(ctx, time)
+}
+
+function drawPendingDigOverlay(ctx, time) {
+  const pendingDigTile = gameState.pendingDigTile
+
+  if (!pendingDigTile || !gameState.hasShovel || gameState.selectedTool !== "shovel" || gameState.isInCar) {
+    return
+  }
+
+  const screenX = pendingDigTile.tileX * TILE_SIZE - gameState.camera.x
+  const screenY = pendingDigTile.tileY * TILE_SIZE - gameState.camera.y
+
+  if (
+    screenX + TILE_SIZE < 0 ||
+    screenX > gameState.canvas.width ||
+    screenY + TILE_SIZE < 0 ||
+    screenY > gameState.canvas.height
+  ) {
+    return
+  }
+
+  const pulse = 0.5 + 0.5 * Math.sin(time * 6)
+
+  ctx.save()
+  ctx.fillStyle = `rgba(255, 230, 120, ${0.18 + pulse * 0.08})`
+  ctx.fillRect(screenX + 1, screenY + 1, TILE_SIZE - 2, TILE_SIZE - 2)
+  ctx.strokeStyle = `rgba(255, 244, 168, ${0.55 + pulse * 0.25})`
+  ctx.lineWidth = 2
+  ctx.strokeRect(screenX + 1.5, screenY + 1.5, TILE_SIZE - 3, TILE_SIZE - 3)
+  ctx.restore()
 }
 
 function drawHoleTile(ctx, screenX, screenY, flooded, tileX, tileY, time) {

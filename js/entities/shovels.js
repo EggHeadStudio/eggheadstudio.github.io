@@ -5,6 +5,9 @@ import { createShadow } from "../utils/rendering-utils.js"
 import { updateShovelIndicator } from "../ui/ui-manager.js"
 import { isSpawnPositionClear } from "../utils/spawn-utils.js"
 
+const DESKTOP_DIG_REACH_MULTIPLIER = 1.95
+const MOBILE_DIG_REACH_MULTIPLIER = 2.35
+
 function holeKey(tileX, tileY) {
   return `${tileX},${tileY}`
 }
@@ -32,6 +35,24 @@ function isHoleTraversableTerrain(tileX, tileY) {
   const { terrain } = gameState
   const terrainType = terrain[tileY][tileX]
   return terrainType !== TERRAIN_TYPES.WATER
+}
+
+function getTileFromWorldPosition(worldX, worldY) {
+  return {
+    tileX: Math.floor(worldX / TILE_SIZE),
+    tileY: Math.floor(worldY / TILE_SIZE),
+  }
+}
+
+function isTileWithinDigReach(tileX, tileY, reachMultiplier = DESKTOP_DIG_REACH_MULTIPLIER) {
+  const tileCenterX = tileX * TILE_SIZE + TILE_SIZE / 2
+  const tileCenterY = tileY * TILE_SIZE + TILE_SIZE / 2
+  const maxDigDistance = TILE_SIZE * reachMultiplier
+  return getDistance(gameState.player.x, gameState.player.y, tileCenterX, tileCenterY) <= maxDigDistance
+}
+
+export function clearPendingDigTarget() {
+  gameState.pendingDigTile = null
 }
 
 function isTileAdjacentToWater(tileX, tileY) {
@@ -143,23 +164,61 @@ export function digHoleAtTile(tileX, tileY) {
   return true
 }
 
+function canSelectDigTile(tileX, tileY, reachMultiplier = DESKTOP_DIG_REACH_MULTIPLIER) {
+  if (!isTileWithinTerrain(tileX, tileY)) {
+    return false
+  }
+
+  if (!isHoleTraversableTerrain(tileX, tileY)) {
+    return false
+  }
+
+  if (!isTileWithinDigReach(tileX, tileY, reachMultiplier)) {
+    return false
+  }
+
+  return true
+}
+
+function isSamePendingDigTile(tileX, tileY) {
+  return gameState.pendingDigTile && gameState.pendingDigTile.tileX === tileX && gameState.pendingDigTile.tileY === tileY
+}
+
+export function queueOrDigHoleAtScreenPosition(screenX, screenY, options = {}) {
+  if (!gameState.hasShovel || gameState.selectedTool !== "shovel" || gameState.isInCar) {
+    clearPendingDigTarget()
+    return { consumed: false, didDig: false, activated: false }
+  }
+
+  const { mobile = false } = options
+  const reachMultiplier = mobile ? MOBILE_DIG_REACH_MULTIPLIER : DESKTOP_DIG_REACH_MULTIPLIER
+  const worldX = screenX + gameState.camera.x
+  const worldY = screenY + gameState.camera.y
+  const { tileX, tileY } = getTileFromWorldPosition(worldX, worldY)
+
+  if (!canSelectDigTile(tileX, tileY, reachMultiplier)) {
+    clearPendingDigTarget()
+    return { consumed: true, didDig: false, activated: false }
+  }
+
+  if (!isSamePendingDigTile(tileX, tileY)) {
+    gameState.pendingDigTile = { tileX, tileY, activatedAt: Date.now() }
+    return { consumed: true, didDig: false, activated: true }
+  }
+
+  const didDig = digHoleAtTile(tileX, tileY)
+  clearPendingDigTarget()
+  return { consumed: true, didDig, activated: false }
+}
+
 export function tryDigHoleAtWorldPosition(worldX, worldY) {
   if (!gameState.hasShovel || gameState.selectedTool !== "shovel" || gameState.isInCar) {
     return false
   }
 
-  const tileX = Math.floor(worldX / TILE_SIZE)
-  const tileY = Math.floor(worldY / TILE_SIZE)
+  const { tileX, tileY } = getTileFromWorldPosition(worldX, worldY)
 
-  if (!isTileWithinTerrain(tileX, tileY)) {
-    return false
-  }
-
-  const tileCenterX = tileX * TILE_SIZE + TILE_SIZE / 2
-  const tileCenterY = tileY * TILE_SIZE + TILE_SIZE / 2
-  const maxDigDistance = TILE_SIZE * 1.6
-
-  if (getDistance(gameState.player.x, gameState.player.y, tileCenterX, tileCenterY) > maxDigDistance) {
+  if (!canSelectDigTile(tileX, tileY, DESKTOP_DIG_REACH_MULTIPLIER)) {
     return false
   }
 

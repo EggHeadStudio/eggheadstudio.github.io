@@ -7,7 +7,7 @@ import { tryGrabWoodenBox, releaseWoodenBox } from "../entities/wooden-boxes.js"
 import { tryGrabEnemy, releaseEnemy } from "../entities/enemies.js"
 import { checkCarInteraction, enterCar, exitCar } from "../entities/cars.js" // Import car interaction functions
 import { checkBoatInteraction, enterBoat, exitBoat } from "../entities/boats.js"
-import { tryDigHoleAtScreenPosition } from "../entities/shovels.js"
+import { queueOrDigHoleAtScreenPosition } from "../entities/shovels.js"
 
 // Set up event listeners for keyboard and mouse
 export function setupEventListeners() {
@@ -137,10 +137,8 @@ export function handleMouseDown(e) {
     // Left mouse button - only throw apple if not in a car
     if (!gameState.isInCar) {
       if (gameState.selectedTool === "shovel") {
-        const didDig = tryDigHoleAtScreenPosition(pointerX, pointerY)
-        if (didDig) {
-          return
-        }
+        queueOrDigHoleAtScreenPosition(pointerX, pointerY, { mobile: false })
+        return
       }
 
       throwApple()

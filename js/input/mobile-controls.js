@@ -7,7 +7,7 @@ import { tryGrabWoodenBox, releaseWoodenBox } from "../entities/wooden-boxes.js"
 import { tryGrabEnemy, releaseEnemy } from "../entities/enemies.js"
 import { checkCarInteraction, enterCar, exitCar } from "../entities/cars.js" // Import car interaction functions
 import { checkBoatInteraction, enterBoat, exitBoat } from "../entities/boats.js"
-import { tryDigHoleAtScreenPosition } from "../entities/shovels.js"
+import { queueOrDigHoleAtScreenPosition } from "../entities/shovels.js"
 
 export function setupMobileControls() {
   if (!detectMobile()) return
@@ -218,12 +218,10 @@ export function handleCanvasTouchStart(e) {
   const pointerY = touch.clientY - rect.top
 
   if (gameState.selectedTool === "shovel") {
-    const didDig = tryDigHoleAtScreenPosition(pointerX, pointerY)
-    if (didDig) {
-      e.preventDefault()
-      e.stopPropagation()
-      return
-    }
+    queueOrDigHoleAtScreenPosition(pointerX, pointerY, { mobile: true })
+    e.preventDefault()
+    e.stopPropagation()
+    return
   }
 
   throwApple()

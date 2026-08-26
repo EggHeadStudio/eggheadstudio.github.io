@@ -4,19 +4,19 @@ import { PLAYER_SIZE, PLAYER_SPEED, CHARACTER_ATTRIBUTE_BUDGET } from "../core/c
 // Character types with their default properties
 const CHARACTER_TYPES = {
   default: {
-    size: PLAYER_SIZE,
-    speed: PLAYER_SPEED,
-    health: 3,
-    color: "#3498db",
-    strength: 1.0,
-    handColor: "#AAAAAA",
+    size: PLAYER_SIZE * 1.2,
+    speed: 3,
+    health: 5,
+    color: "#f8cc8e",
+    strength: 5.0,
+    handColor: "#d2d2d2",
     footColor: "#444444",
     backpackColor: "#8B4513",
     backpackPocketColor: "#A0522D",
     hairStyle: "none",
     hairColor: "#2d2d2d",
-    noseColor: "#7d858d",
-    noseSizeScale: 0.2,
+    noseColor: "#b5966a",
+    noseSizeScale: 0.15,
   },
 
   rasse: {
@@ -285,6 +285,20 @@ export function normalizeCharacterCustomization(customization = {}, type = "defa
   }
 
   return applyCharacterStatBudget(clampedStats, preferredStatKey)
+}
+
+export function getCharacterCustomizationDefaults(type = "default") {
+  const baseCharacter = CHARACTER_TYPES[type] || CHARACTER_TYPES.default
+
+  return normalizeCharacterCustomization(
+    {
+      color: baseCharacter.color,
+      health: baseCharacter.health,
+      speed: baseCharacter.speed,
+      strength: baseCharacter.strength,
+    },
+    type,
+  )
 }
 
 /**

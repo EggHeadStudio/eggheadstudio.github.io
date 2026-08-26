@@ -2,6 +2,7 @@ import { createDefaultGameConfig, init, pauseCurrentGame, resumeCurrentGame } fr
 import { gameState } from "../core/game-state.js"
 import {
   CHARACTER_CUSTOMIZATION_RULES,
+  getCharacterCustomizationDefaults,
   getCharacterTypeLabel,
   getCharacterTypeProperties,
   getSelectableCharacterTypes,
@@ -100,9 +101,14 @@ function syncMenuFromConfig(config) {
     ...config,
   }
 
+  const defaultAttributesForType = getCharacterCustomizationDefaults(mergedConfig.characterType)
+  const mergedAttributes = mergedConfig.characterAttributes
+    ? { ...defaultAttributesForType, ...mergedConfig.characterAttributes }
+    : defaultAttributesForType
+
   gameState.startupConfig = {
     ...mergedConfig,
-    characterAttributes: normalizeCharacterCustomization(mergedConfig.characterAttributes, mergedConfig.characterType),
+    characterAttributes: normalizeCharacterCustomization(mergedAttributes, mergedConfig.characterType),
   }
 
   updateActiveOption("character", gameState.startupConfig.characterType)
@@ -209,10 +215,7 @@ function renderCharacterOptions() {
 
     button.addEventListener("click", () => {
       gameState.startupConfig.characterType = characterType
-      gameState.startupConfig.characterAttributes = normalizeCharacterCustomization(
-        gameState.startupConfig.characterAttributes,
-        characterType,
-      )
+      gameState.startupConfig.characterAttributes = getCharacterCustomizationDefaults(characterType)
       updateActiveOption("character", characterType)
       renderCharacterPreview(characterType)
     })

@@ -90,6 +90,7 @@ export const gameState = {
   selectedWeapon: "wrist",
   selectedTool: "none",
   dugHoles: {},
+  pendingDigTile: null,
   
   // Car state
   isInCar: false,
