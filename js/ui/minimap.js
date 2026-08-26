@@ -2,6 +2,14 @@ import { TILE_SIZE, MINIMAP_VISIBLE_TILES_MOBILE, MINIMAP_VISIBLE_TILES_DESKTOP 
 import { gameState } from "../core/game-state.js"
 import { getTerrainColor } from "../utils/color-utils.js"
 
+const MINIMAP_CACHE_REFRESH_MS = 80
+
+let minimapCacheCanvas = null
+let minimapCacheCtx = null
+let minimapCacheLastUpdateAt = 0
+let minimapCacheWidth = 0
+let minimapCacheHeight = 0
+
 export function drawMinimap() {
   if (!gameState.isStarted || !gameState.player) {
     return
@@ -13,6 +21,29 @@ export function drawMinimap() {
   }
 
   const { canvas, ctx } = refs
+  const now = Date.now()
+  const needsCacheRefresh =
+    !minimapCacheCanvas ||
+    !minimapCacheCtx ||
+    canvas.width !== minimapCacheWidth ||
+    canvas.height !== minimapCacheHeight ||
+    now - minimapCacheLastUpdateAt >= MINIMAP_CACHE_REFRESH_MS
+
+  if (needsCacheRefresh) {
+    renderMinimapCache(refs)
+  }
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height)
+  ctx.drawImage(minimapCacheCanvas, 0, 0)
+}
+
+function renderMinimapCache(refs) {
+  const { canvas } = refs
+  const ctx = ensureMinimapCacheContext(canvas)
+  if (!ctx) {
+    return
+  }
+
   const visibleTiles = gameState.isMobile ? MINIMAP_VISIBLE_TILES_MOBILE : MINIMAP_VISIBLE_TILES_DESKTOP
   const worldHalfSpan = Math.floor(visibleTiles / 2)
   const playerTileX = gameState.player.x / TILE_SIZE
@@ -87,25 +118,41 @@ export function drawMinimap() {
   ctx.strokeStyle = "rgba(255, 255, 255, 0.2)"
   ctx.lineWidth = Math.max(1, tileSize * 0.04)
   ctx.strokeRect(0, 0, canvas.width, canvas.height)
+
+  minimapCacheLastUpdateAt = Date.now()
+}
+
+function ensureMinimapCacheContext(sourceCanvas) {
+  if (!minimapCacheCanvas) {
+    minimapCacheCanvas = document.createElement("canvas")
+  }
+
+  if (!minimapCacheCtx) {
+    minimapCacheCtx = minimapCacheCanvas.getContext("2d")
+  }
+
+  if (!minimapCacheCtx) {
+    return null
+  }
+
+  if (sourceCanvas.width !== minimapCacheWidth || sourceCanvas.height !== minimapCacheHeight) {
+    minimapCacheWidth = sourceCanvas.width
+    minimapCacheHeight = sourceCanvas.height
+    minimapCacheCanvas.width = minimapCacheWidth
+    minimapCacheCanvas.height = minimapCacheHeight
+  }
+
+  return minimapCacheCtx
 }
 
 function drawMinimapEntities(ctx, viewport) {
   const scale = viewport.tileSize / TILE_SIZE
 
   drawMinimapTrees(ctx, viewport, scale)
-
+  drawMinimapRocks(ctx, viewport, scale)
   drawMinimapWoodenBoxes(ctx, viewport, scale)
-
-  drawEntityCircles(ctx, gameState.rocks, viewport, scale, {
-    colorForItem: (rock) => getRockMinimapColor(rock.texture),
-    minRadius: 1.7,
-    radiusMultiplier: 0.78,
-  })
-
   drawMinimapBombs(ctx, viewport, scale)
-
   drawMinimapCars(ctx, viewport, scale)
-
   drawMinimapBoats(ctx, viewport, scale)
 
   drawMinimapEnemies(ctx, viewport, scale)
@@ -137,6 +184,9 @@ function drawMinimapEntities(ctx, viewport) {
     radiusMultiplier: 0.4,
     outlineStyle: "rgba(24, 28, 31, 0.62)",
   })
+
+  drawMinimapExplosions(ctx, viewport, scale)
+  drawMinimapDeathEffects(ctx, viewport, scale)
 }
 
 function drawMinimapHoles(ctx, viewport) {
@@ -180,7 +230,6 @@ function drawMinimapHoles(ctx, viewport) {
     }
   }
 }
-
 function drawMinimapTrees(ctx, viewport, scale) {
   if (!gameState.trees || gameState.trees.length === 0) {
     return
@@ -329,6 +378,19 @@ function drawMinimapCars(ctx, viewport, scale) {
   }
 }
 
+function drawMinimapRocks(ctx, viewport, scale) {
+  if (!gameState.rocks || gameState.rocks.length === 0) {
+    return
+  }
+
+  drawEntityCircles(ctx, gameState.rocks, viewport, scale, {
+    fillStyle: "rgba(136, 145, 150, 0.95)",
+    minRadius: 1.2,
+    radiusMultiplier: 0.42,
+    outlineStyle: "rgba(35, 40, 44, 0.64)",
+  })
+}
+
 function drawMinimapBoats(ctx, viewport, scale) {
   if (!gameState.boats || gameState.boats.length === 0) {
     return
@@ -387,6 +449,55 @@ function drawMinimapEnemies(ctx, viewport, scale) {
     ctx.fill()
     ctx.strokeStyle = "rgba(24, 14, 14, 0.62)"
     ctx.lineWidth = Math.max(0.8, radius * 0.25)
+    ctx.stroke()
+  }
+}
+
+function drawMinimapExplosions(ctx, viewport, scale) {
+  if (!gameState.explosions || gameState.explosions.length === 0) {
+    return
+  }
+
+  for (const explosion of gameState.explosions) {
+    const point = getMinimapPoint(explosion, viewport)
+    if (!point) {
+      continue
+    }
+
+    const radiusSource = explosion.maxRadius || explosion.radius || explosion.size || TILE_SIZE * 0.5
+    const radius = Math.max(1.8, radiusSource * scale * 0.11)
+
+    ctx.fillStyle = "rgba(255, 161, 64, 0.9)"
+    ctx.beginPath()
+    ctx.arc(point.x, point.y, radius, 0, Math.PI * 2)
+    ctx.fill()
+
+    ctx.strokeStyle = "rgba(255, 220, 150, 0.5)"
+    ctx.lineWidth = Math.max(0.6, radius * 0.22)
+    ctx.stroke()
+  }
+}
+
+function drawMinimapDeathEffects(ctx, viewport, scale) {
+  if (!gameState.deathEffects || gameState.deathEffects.length === 0) {
+    return
+  }
+
+  for (const effect of gameState.deathEffects) {
+    const point = getMinimapPoint(effect, viewport)
+    if (!point) {
+      continue
+    }
+
+    const radius = Math.max(1.4, (effect.size || TILE_SIZE * 0.25) * scale * 0.2)
+
+    ctx.fillStyle = "rgba(122, 12, 18, 0.82)"
+    ctx.beginPath()
+    ctx.arc(point.x, point.y, radius, 0, Math.PI * 2)
+    ctx.fill()
+
+    ctx.strokeStyle = "rgba(255, 180, 180, 0.18)"
+    ctx.lineWidth = Math.max(0.5, radius * 0.2)
     ctx.stroke()
   }
 }
