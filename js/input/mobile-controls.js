@@ -9,6 +9,20 @@ import { checkCarInteraction, enterCar, exitCar } from "../entities/cars.js" // 
 import { checkBoatInteraction, enterBoat, exitBoat } from "../entities/boats.js"
 import { queueOrDigHoleAtScreenPosition } from "../entities/shovels.js"
 
+function getCanvasPointerPosition(clientX, clientY) {
+  const canvas = gameState.canvas
+  const rect = canvas.getBoundingClientRect()
+
+  // Map from CSS/display coordinates to internal canvas coordinates.
+  const scaleX = rect.width > 0 ? canvas.width / rect.width : 1
+  const scaleY = rect.height > 0 ? canvas.height / rect.height : 1
+
+  return {
+    x: (clientX - rect.left) * scaleX,
+    y: (clientY - rect.top) * scaleY,
+  }
+}
+
 export function setupMobileControls() {
   if (!detectMobile()) return
 
@@ -213,9 +227,9 @@ export function handleCanvasTouchStart(e) {
   }
 
   const touch = e.changedTouches[0]
-  const rect = gameState.canvas.getBoundingClientRect()
-  const pointerX = touch.clientX - rect.left
-  const pointerY = touch.clientY - rect.top
+  const pointer = getCanvasPointerPosition(touch.clientX, touch.clientY)
+  const pointerX = pointer.x
+  const pointerY = pointer.y
 
   if (gameState.selectedTool === "shovel") {
     queueOrDigHoleAtScreenPosition(pointerX, pointerY, { mobile: true })

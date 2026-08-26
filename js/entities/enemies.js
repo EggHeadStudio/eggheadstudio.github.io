@@ -47,6 +47,9 @@ const ENEMY_FLOAT_SPEED = 0.42
 const ENEMY_FLOAT_BOB = 2.2
 const ENEMY_WAKE_LIFETIME = 320
 const ENEMY_CLEANUP_EFFECT_DURATION = 900
+const ENEMY_HOLE_FALL_DURATION = 420
+const ENEMY_HOLE_FALL_MIN_SCALE = 0.34
+const ENEMY_HOLE_FALL_SPLATTER_SCALE = 0.5
 
 const ENEMY_TYPE_CONFIG = {
   red: {
@@ -128,6 +131,8 @@ function createEnemy(type, x, y) {
     foamTrail: [],
     bowWaves: [],
     isSwimming: false,
+    isFallingIntoHole: false,
+    holeFallStartedAt: 0,
   }
 }
 
@@ -236,46 +241,55 @@ function getEnemyScreenPosition(enemy, camera) {
 
 function drawEnemy(ctx, enemy, camera) {
   const { canvas } = gameState
+  const renderScale = getEnemyRenderScale(enemy)
+  const renderSize = enemy.size * renderScale
   const { screenX, screenY, raft } = getEnemyScreenPosition(enemy, camera)
 
   if (
-    screenX < -enemy.size ||
-    screenX > canvas.width + enemy.size ||
-    screenY < -enemy.size ||
-    screenY > canvas.height + enemy.size
+    screenX < -renderSize ||
+    screenX > canvas.width + renderSize ||
+    screenY < -renderSize ||
+    screenY > canvas.height + renderSize
   ) {
     return
   }
 
-  if (!raft) {
+  if (!raft && !enemy.isFallingIntoHole) {
     drawEnemyWaterEffects(ctx, enemy, camera)
-    createShadow(ctx, screenX, screenY, enemy.size)
+    createShadow(ctx, screenX, screenY, renderSize)
+  } else if (!raft && enemy.isFallingIntoHole) {
+    ctx.save()
+    ctx.fillStyle = "rgba(0, 0, 0, 0.32)"
+    ctx.beginPath()
+    ctx.ellipse(screenX, screenY + renderSize * 0.72, renderSize, renderSize * 0.34, 0, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.restore()
   } else {
     ctx.save()
     ctx.fillStyle = "rgba(0, 0, 0, 0.14)"
     ctx.beginPath()
-    ctx.ellipse(screenX, screenY + enemy.size * 0.72, enemy.size * 0.68, enemy.size * 0.24, 0, 0, Math.PI * 2)
+    ctx.ellipse(screenX, screenY + renderSize * 0.72, renderSize * 0.68, renderSize * 0.24, 0, 0, Math.PI * 2)
     ctx.fill()
     ctx.restore()
   }
 
   ctx.fillStyle = enemy.color
   ctx.beginPath()
-  ctx.arc(screenX, screenY, enemy.size * (enemy.isSwimming ? 0.92 : 1), 0, Math.PI * 2)
+  ctx.arc(screenX, screenY, renderSize * (enemy.isSwimming ? 0.92 : 1), 0, Math.PI * 2)
   ctx.fill()
 
   if (!raft && (enemy.isSwimming || enemy.floatOffset !== 0)) {
     ctx.strokeStyle = "rgba(255, 255, 255, 0.28)"
     ctx.lineWidth = 2
     ctx.beginPath()
-    ctx.ellipse(screenX, screenY + enemy.size * 0.3, enemy.size * 0.85, enemy.size * 0.28, 0, 0, Math.PI * 2)
+    ctx.ellipse(screenX, screenY + renderSize * 0.3, renderSize * 0.85, renderSize * 0.28, 0, 0, Math.PI * 2)
     ctx.stroke()
   }
 
-  drawEnemyBruises(ctx, enemy, screenX, screenY)
+  drawEnemyBruises(ctx, enemy, screenX, screenY, renderScale)
 
-  const eyeOffset = enemy.size / 3
-  const eyeSize = enemy.size / 5
+  const eyeOffset = renderSize / 3
+  const eyeSize = renderSize / 5
 
   ctx.fillStyle = "white"
   ctx.beginPath()
@@ -323,7 +337,7 @@ function drawEnemy(ctx, enemy, camera) {
     const alertSize = Math.sin(Date.now() / 100) * 3 + 10
     ctx.fillStyle = "rgba(255, 0, 0, 0.5)"
     ctx.beginPath()
-    ctx.arc(screenX, screenY - enemy.size - 10, alertSize, 0, Math.PI * 2)
+    ctx.arc(screenX, screenY - renderSize - 10, alertSize, 0, Math.PI * 2)
     ctx.fill()
   }
 
@@ -334,9 +348,9 @@ function drawEnemy(ctx, enemy, camera) {
     ctx.fillStyle = "yellow"
     for (let i = 0; i < 3; i++) {
       const angle = time + (i * Math.PI * 2) / 3
-      const orbitRadius = enemy.size * 0.8
+      const orbitRadius = renderSize * 0.8
       const starX = screenX + Math.cos(angle) * orbitRadius
-      const starY = screenY + Math.sin(angle) * orbitRadius - enemy.size / 2
+      const starY = screenY + Math.sin(angle) * orbitRadius - renderSize / 2
 
       ctx.beginPath()
       ctx.arc(starX, starY, dizzySize, 0, Math.PI * 2)
@@ -350,7 +364,7 @@ function drawEnemy(ctx, enemy, camera) {
 
     ctx.fillStyle = "rgba(255, 255, 255, " + 0.7 * (1 - knockbackProgress) + ")"
     ctx.beginPath()
-    ctx.arc(screenX, screenY, enemy.size + impactSize, 0, Math.PI * 2)
+    ctx.arc(screenX, screenY, renderSize + impactSize, 0, Math.PI * 2)
     ctx.fill()
   }
 }
@@ -478,7 +492,7 @@ export function damageEnemy(enemy, amount = 1, options = {}) {
     return false
   }
 
-  const { ignoreCooldown = false } = options
+  const { ignoreCooldown = false, deathSizeScale = 1 } = options
   const currentTime = Date.now()
 
   if (!ignoreCooldown && currentTime - enemy.lastHit < ENEMY_HIT_INVULNERABILITY) {
@@ -492,9 +506,9 @@ export function damageEnemy(enemy, amount = 1, options = {}) {
     createDeathEffect({
       x: enemy.x,
       y: enemy.y,
-      size: enemy.size,
-      sourceVelocityX: enemy.isBeingThrown ? enemy.throwVelocityX : enemy.knockbackVelocityX,
-      sourceVelocityY: enemy.isBeingThrown ? enemy.throwVelocityY : enemy.knockbackVelocityY,
+      size: enemy.size * deathSizeScale,
+      sourceVelocityX: enemy.isFallingIntoHole ? 0 : enemy.isBeingThrown ? enemy.throwVelocityX : enemy.knockbackVelocityX,
+      sourceVelocityY: enemy.isFallingIntoHole ? 0 : enemy.isBeingThrown ? enemy.throwVelocityY : enemy.knockbackVelocityY,
     })
 
     const enemyIndex = gameState.enemies.indexOf(enemy)
@@ -523,20 +537,22 @@ function createEnemyBruiseMarks() {
   ]
 }
 
-function drawEnemyBruises(ctx, enemy, screenX, screenY) {
+function drawEnemyBruises(ctx, enemy, screenX, screenY, sizeScale = 1) {
   const hitCount = enemy.maxHealth - enemy.health
   if (hitCount <= 0) {
     return
   }
+
+  const drawSize = enemy.size * sizeScale
 
   for (let i = 0; i < Math.min(hitCount, enemy.bruiseMarks.length); i++) {
     const bruise = enemy.bruiseMarks[i]
     ctx.fillStyle = `rgba(58, 18, 84, ${Math.min(bruise.alpha + 0.12, 0.5)})`
     ctx.beginPath()
     ctx.arc(
-      screenX + enemy.size * bruise.x,
-      screenY + enemy.size * bruise.y,
-      enemy.size * bruise.radius * 1.08,
+      screenX + drawSize * bruise.x,
+      screenY + drawSize * bruise.y,
+      drawSize * bruise.radius * 1.08,
       0,
       Math.PI * 2,
     )
@@ -544,15 +560,15 @@ function drawEnemyBruises(ctx, enemy, screenX, screenY) {
 
     ctx.fillStyle = `rgba(96, 42, 132, ${bruise.alpha})`
     ctx.beginPath()
-    ctx.arc(screenX + enemy.size * bruise.x, screenY + enemy.size * bruise.y, enemy.size * bruise.radius, 0, Math.PI * 2)
+    ctx.arc(screenX + drawSize * bruise.x, screenY + drawSize * bruise.y, drawSize * bruise.radius, 0, Math.PI * 2)
     ctx.fill()
 
     ctx.fillStyle = `rgba(168, 110, 210, ${bruise.alpha * 0.38})`
     ctx.beginPath()
     ctx.arc(
-      screenX + enemy.size * (bruise.x - 0.04),
-      screenY + enemy.size * (bruise.y - 0.04),
-      enemy.size * bruise.radius * 0.42,
+      screenX + drawSize * (bruise.x - 0.04),
+      screenY + drawSize * (bruise.y - 0.04),
+      drawSize * bruise.radius * 0.42,
       0,
       Math.PI * 2,
     )
@@ -774,6 +790,61 @@ function normalizeAngle(angle) {
   return angle
 }
 
+function getEnemyHoleFallProgress(enemy) {
+  if (!enemy.isFallingIntoHole || !enemy.holeFallStartedAt) {
+    return 0
+  }
+
+  const elapsed = Date.now() - enemy.holeFallStartedAt
+  return Math.min(1, elapsed / ENEMY_HOLE_FALL_DURATION)
+}
+
+function getEnemyRenderScale(enemy) {
+  if (!enemy.isFallingIntoHole) {
+    return 1
+  }
+
+  const progress = getEnemyHoleFallProgress(enemy)
+  const eased = progress * progress * (3 - 2 * progress)
+  return 1 - (1 - ENEMY_HOLE_FALL_MIN_SCALE) * eased
+}
+
+function startEnemyHoleFall(enemy) {
+  if (!enemy || enemy.isFallingIntoHole || enemy.health <= 0) {
+    return
+  }
+
+  enemy.isFallingIntoHole = true
+  enemy.holeFallStartedAt = Date.now()
+  enemy.isBeingThrown = false
+  enemy.isKnockedBack = false
+  enemy.throwVelocityX = 0
+  enemy.throwVelocityY = 0
+  enemy.knockbackVelocityX = 0
+  enemy.knockbackVelocityY = 0
+  enemy.floatOffset = 0
+  enemy.isSwimming = false
+  enemy.foamTrail = []
+  enemy.bowWaves = []
+}
+
+function updateEnemyHoleFall(enemy) {
+  if (!enemy.isFallingIntoHole) {
+    return false
+  }
+
+  if (getEnemyHoleFallProgress(enemy) < 1) {
+    return false
+  }
+
+  damageEnemy(enemy, enemy.health || 1, {
+    ignoreCooldown: true,
+    deathSizeScale: ENEMY_HOLE_FALL_SPLATTER_SCALE,
+  })
+
+  return true
+}
+
 // Check for collisions between thrown enemy and other enemies
 function checkThrownEnemyCollisions(thrownEnemy) {
   const { enemies } = gameState
@@ -854,6 +925,9 @@ export function updateEnemyMovement(enemy, canSeePlayer) {
 
   // If this is the grabbed enemy, don't update its movement
   if (gameState.grabbedEnemy === enemy) return
+
+  // Falling enemies are handled by the hole-fall animation state machine.
+  if (enemy.isFallingIntoHole) return
 
   // Handle knockback state
   if (enemy.isKnockedBack) {
@@ -1154,10 +1228,14 @@ export function drawAndUpdateEnemies() {
 
     // Update enemy movement
     if (!gameOver) {
-      updateEnemyMovement(enemy, canSeePlayer)
+      if (enemy.isFallingIntoHole) {
+        updateEnemyHoleFall(enemy)
+      } else {
+        updateEnemyMovement(enemy, canSeePlayer)
 
-      if (isEnemyFullyInsideHole(enemy)) {
-        damageEnemy(enemy, enemy.health || 1, { ignoreCooldown: true })
+        if (isEnemyFullyInsideHole(enemy)) {
+          startEnemyHoleFall(enemy)
+        }
       }
     }
 

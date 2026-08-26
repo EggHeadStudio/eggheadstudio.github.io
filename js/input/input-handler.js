@@ -35,6 +35,19 @@ export function setupEventListeners() {
 
 }
 
+function getCanvasPointerPosition(clientX, clientY) {
+  const rect = gameState.canvas.getBoundingClientRect()
+
+  // Map from CSS/display coordinates to internal canvas coordinates.
+  const scaleX = rect.width > 0 ? gameState.canvas.width / rect.width : 1
+  const scaleY = rect.height > 0 ? gameState.canvas.height / rect.height : 1
+
+  return {
+    x: (clientX - rect.left) * scaleX,
+    y: (clientY - rect.top) * scaleY,
+  }
+}
+
 // Handle keyboard input
 export function handleKeyDown(e) {
   if (gameState.isPaused) {
@@ -116,9 +129,9 @@ export function handleMouseMove(e) {
     return
   }
 
-  const rect = gameState.canvas.getBoundingClientRect()
-  gameState.mousePosition.x = e.clientX - rect.left
-  gameState.mousePosition.y = e.clientY - rect.top
+  const pointer = getCanvasPointerPosition(e.clientX, e.clientY)
+  gameState.mousePosition.x = pointer.x
+  gameState.mousePosition.y = pointer.y
 }
 
 // Handle mouse clicks
@@ -128,9 +141,9 @@ export function handleMouseDown(e) {
   }
 
   if (e.button === 0) {
-    const rect = gameState.canvas.getBoundingClientRect()
-    const pointerX = e.clientX - rect.left
-    const pointerY = e.clientY - rect.top
+    const pointer = getCanvasPointerPosition(e.clientX, e.clientY)
+    const pointerX = pointer.x
+    const pointerY = pointer.y
     gameState.mousePosition.x = pointerX
     gameState.mousePosition.y = pointerY
 

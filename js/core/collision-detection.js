@@ -16,7 +16,7 @@ export function checkCollisions() {
     const enemy = enemies[i]
 
     // Skip collision check if this is the enemy being carried
-    if (grabbedEnemy === enemy) continue
+    if (grabbedEnemy === enemy || enemy.isFallingIntoHole) continue
 
     const distance = getDistance(player.x, player.y, enemy.x, enemy.y)
 
@@ -65,7 +65,7 @@ export function handleEnemyCollisions() {
 
   for (const enemy of enemies) {
     // Skip dead enemies
-    if (enemy.health <= 0) continue
+    if (enemy.health <= 0 || enemy.isFallingIntoHole) continue
 
     const distance = getDistance(player.x, player.y, enemy.x, enemy.y)
     
