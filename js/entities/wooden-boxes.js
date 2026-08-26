@@ -19,6 +19,8 @@ let lastRoofDetectionAt = 0
 
 const ROOF_DETECTION_INTERVAL_MS = 90
 const ROOF_DETECTION_INTERVAL_MS_LIGHTWEIGHT = 260
+const OBJECT_SNAP_GAP = 2
+const TILE_SEARCH_RADIUS = 6
 
 // Generate wooden boxes
 export function generateWoodenBoxes(count) {
@@ -179,8 +181,7 @@ export function releaseWoodenBox() {
       } else {
         grabbedWoodenBox.isFloating = false
 
-        // Check for box snapping to other boxes or rocks
-        checkForBoxSnapping(grabbedWoodenBox, woodenBoxes, rocks)
+        settleBoxOnLand(grabbedWoodenBox, woodenBoxes, rocks)
       }
     }
 
@@ -242,7 +243,7 @@ function checkForBoxSnapping(box, allBoxes, allRocks) {
 
     // Calculate new position based on snap angle with reduced gap
     // Use 0.95 multiplier for both objects to make them almost touch
-    const snapDistance = box.size * 0.95 + closestObject.size * 0.95
+    const snapDistance = box.size * 0.95 + closestObject.size * 0.95 + OBJECT_SNAP_GAP
 
     // Calculate the new position where the box would snap
     const newX = closestObject.x + Math.cos(snapAngle) * snapDistance
@@ -290,7 +291,7 @@ function snapBoxToOtherBox(box, otherObject) {
 
   // Calculate new position based on snap angle
   // Use 0.95 multiplier for both objects to make them almost touch
-  const snapDistance = box.size * 0.95 + otherObject.size * 0.95
+  const snapDistance = box.size * 0.95 + otherObject.size * 0.95 + OBJECT_SNAP_GAP
 
   // Calculate the new position where the box would snap
   const newX = otherObject.x + Math.cos(snapAngle) * snapDistance
@@ -325,6 +326,141 @@ function snapBoxToOtherBox(box, otherObject) {
 
   // Create a small visual effect to indicate snapping
   createSnapEffect(box, otherObject)
+}
+
+function settleBoxOnLand(box, allBoxes, allRocks) {
+  if (!box || box.isFloating || box.isBeingThrown) {
+    return
+  }
+
+  snapObjectToNearestTileCenter(box)
+
+  if (isBoxOverlappingAnyObject(box, allBoxes, allRocks)) {
+    moveBoxToNearestFreeTile(box, allBoxes, allRocks)
+  }
+
+  checkForBoxSnapping(box, allBoxes, allRocks)
+
+  if (isBoxOverlappingAnyObject(box, allBoxes, allRocks)) {
+    moveBoxToNearestFreeTile(box, allBoxes, allRocks)
+  }
+}
+
+function snapObjectToNearestTileCenter(object) {
+  const { terrain } = gameState
+  if (!terrain || terrain.length === 0 || terrain[0].length === 0) {
+    return
+  }
+
+  const tileX = Math.round((object.x - TILE_SIZE / 2) / TILE_SIZE)
+  const tileY = Math.round((object.y - TILE_SIZE / 2) / TILE_SIZE)
+
+  object.x = tileX * TILE_SIZE + TILE_SIZE / 2
+  object.y = tileY * TILE_SIZE + TILE_SIZE / 2
+  clampObjectToWorld(object)
+}
+
+function clampObjectToWorld(object) {
+  const { terrain } = gameState
+  if (!terrain || terrain.length === 0 || terrain[0].length === 0) {
+    return
+  }
+
+  const minX = object.size
+  const minY = object.size
+  const maxX = terrain[0].length * TILE_SIZE - object.size
+  const maxY = terrain.length * TILE_SIZE - object.size
+
+  object.x = Math.max(minX, Math.min(maxX, object.x))
+  object.y = Math.max(minY, Math.min(maxY, object.y))
+}
+
+function isTileAvailableForBox(tileX, tileY, box, allBoxes, allRocks) {
+  const { terrain } = gameState
+  if (!terrain || tileY < 0 || tileY >= terrain.length || tileX < 0 || tileX >= terrain[0].length) {
+    return false
+  }
+
+  if (terrain[tileY][tileX] === 0) {
+    return false
+  }
+
+  const candidateX = tileX * TILE_SIZE + TILE_SIZE / 2
+  const candidateY = tileY * TILE_SIZE + TILE_SIZE / 2
+
+  return !isBoxOverlappingAnyObjectAt(candidateX, candidateY, box, allBoxes, allRocks)
+}
+
+function isBoxOverlappingAnyObject(box, allBoxes, allRocks) {
+  return isBoxOverlappingAnyObjectAt(box.x, box.y, box, allBoxes, allRocks)
+}
+
+function isBoxOverlappingAnyObjectAt(x, y, box, allBoxes, allRocks) {
+  for (const otherBox of allBoxes) {
+    if (!otherBox || otherBox === box || otherBox.isBeingThrown || otherBox.isFloating) {
+      continue
+    }
+
+    const minDistance = box.size * 0.95 + otherBox.size * 0.95 + OBJECT_SNAP_GAP
+    if (getDistance(x, y, otherBox.x, otherBox.y) < minDistance) {
+      return true
+    }
+  }
+
+  for (const rock of allRocks) {
+    if (!rock || rock === gameState.grabbedRock) {
+      continue
+    }
+
+    const targetSize = rock.isHammerShaped ? rock.size * 0.88 : rock.size
+    const minDistance = box.size * 0.95 + targetSize * 0.95 + OBJECT_SNAP_GAP
+    if (getDistance(x, y, rock.x, rock.y) < minDistance) {
+      return true
+    }
+  }
+
+  return false
+}
+
+function moveBoxToNearestFreeTile(box, allBoxes, allRocks) {
+  const baseTileX = Math.round((box.x - TILE_SIZE / 2) / TILE_SIZE)
+  const baseTileY = Math.round((box.y - TILE_SIZE / 2) / TILE_SIZE)
+
+  let bestCandidate = null
+  let bestDistance = Number.POSITIVE_INFINITY
+
+  for (let radius = 0; radius <= TILE_SEARCH_RADIUS; radius++) {
+    for (let tileY = baseTileY - radius; tileY <= baseTileY + radius; tileY++) {
+      for (let tileX = baseTileX - radius; tileX <= baseTileX + radius; tileX++) {
+        if (radius > 0 && Math.max(Math.abs(tileX - baseTileX), Math.abs(tileY - baseTileY)) !== radius) {
+          continue
+        }
+
+        if (!isTileAvailableForBox(tileX, tileY, box, allBoxes, allRocks)) {
+          continue
+        }
+
+        const candidateX = tileX * TILE_SIZE + TILE_SIZE / 2
+        const candidateY = tileY * TILE_SIZE + TILE_SIZE / 2
+        const distance = getDistance(box.x, box.y, candidateX, candidateY)
+
+        if (distance < bestDistance) {
+          bestDistance = distance
+          bestCandidate = { x: candidateX, y: candidateY }
+        }
+      }
+    }
+
+    if (bestCandidate) {
+      break
+    }
+  }
+
+  if (bestCandidate) {
+    box.x = bestCandidate.x
+    box.y = bestCandidate.y
+    clampObjectToWorld(box)
+  }
 }
 
 // Ensure the damageWoodenBox function is properly exported and handles the damage states
@@ -776,9 +912,7 @@ export function drawAndUpdateWoodenBoxes(options = {}) {
           } else {
             // Box landed on land
             setBoxFloating(box, false)
-
-            // Check for box snapping
-            checkForBoxSnapping(box, woodenBoxes, gameState.rocks)
+            settleBoxOnLand(box, woodenBoxes, gameState.rocks)
           }
         }
 
@@ -831,8 +965,7 @@ export function drawAndUpdateWoodenBoxes(options = {}) {
         ) {
           box.isFloating = false
 
-          // Check for box snapping
-          checkForBoxSnapping(box, woodenBoxes, gameState.rocks)
+          settleBoxOnLand(box, woodenBoxes, gameState.rocks)
         }
 
         // Drift toward shore if nearby
@@ -1069,21 +1202,49 @@ function detectRoofAreas() {
       }
     }
   }
+
+  mergeAllOverlappingRoofs()
 }
 
-// Check if two roof areas overlap significantly
+// Check if two roof areas overlap or touch.
 function roofsOverlap(roof1, roof2) {
-  // Calculate the overlap area
-  const xOverlap = Math.max(0, Math.min(roof1.x + roof1.width, roof2.x + roof2.width) - Math.max(roof1.x, roof2.x))
+  const epsilon = 1
+  const roof1Right = roof1.x + roof1.width
+  const roof1Bottom = roof1.y + roof1.height
+  const roof2Right = roof2.x + roof2.width
+  const roof2Bottom = roof2.y + roof2.height
 
-  const yOverlap = Math.max(0, Math.min(roof1.y + roof1.height, roof2.y + roof2.height) - Math.max(roof1.y, roof2.y))
+  return !(
+    roof1Right < roof2.x - epsilon ||
+    roof2Right < roof1.x - epsilon ||
+    roof1Bottom < roof2.y - epsilon ||
+    roof2Bottom < roof1.y - epsilon
+  )
+}
 
-  const overlapArea = xOverlap * yOverlap
-  const roof1Area = roof1.width * roof1.height
-  const roof2Area = roof2.width * roof2.height
+function mergeAllOverlappingRoofs() {
+  let merged = true
 
-  // If the overlap is more than 40% of either roof, consider them overlapping
-  return overlapArea > 0.4 * Math.min(roof1Area, roof2Area)
+  while (merged) {
+    merged = false
+
+    for (let i = 0; i < roofAreas.length; i++) {
+      for (let j = i + 1; j < roofAreas.length; j++) {
+        if (!roofsOverlap(roofAreas[i], roofAreas[j])) {
+          continue
+        }
+
+        mergeRoofs(roofAreas[i], roofAreas[j])
+        roofAreas.splice(j, 1)
+        merged = true
+        break
+      }
+
+      if (merged) {
+        break
+      }
+    }
+  }
 }
 
 // Merge two overlapping roofs

@@ -8,6 +8,8 @@ import { createSnapEffect } from "../entities/wooden-boxes.js"
 import { isSpawnPositionClear } from "../utils/spawn-utils.js"
 
 const HAMMER_ROCK_SIZE_SCALE = 0.88
+const OBJECT_SNAP_GAP = 2
+const TILE_SEARCH_RADIUS = 6
 
 // Generate rocks
 export function generateRocks(count) {
@@ -78,8 +80,7 @@ export function releaseRock() {
     grabbedRock.x = newX
     grabbedRock.y = newY
 
-    // Check for rock snapping to other rocks or boxes
-    checkForRockSnapping(grabbedRock, rocks, woodenBoxes)
+    settleRockOnLand(grabbedRock, rocks, woodenBoxes)
 
     rocks.push(grabbedRock)
 
@@ -138,7 +139,7 @@ function checkForRockSnapping(rock, allRocks, allBoxes) {
     // Use 0.95 multiplier for both objects to make them almost touch
     const rockSnapSize = rock.isHammerShaped ? rock.size * HAMMER_ROCK_SIZE_SCALE : rock.size
     const targetSnapSize = closestObject.isHammerShaped ? closestObject.size * HAMMER_ROCK_SIZE_SCALE : closestObject.size
-    const snapDistance = rockSnapSize * 0.95 + targetSnapSize * 0.95
+    const snapDistance = rockSnapSize * 0.95 + targetSnapSize * 0.95 + OBJECT_SNAP_GAP
 
     // Calculate the new position where the rock would snap
     const newX = closestObject.x + Math.cos(snapAngle) * snapDistance
@@ -174,6 +175,142 @@ function checkForRockSnapping(rock, allRocks, allBoxes) {
 
     // Create a visual effect
     createSnapEffect(rock, closestObject)
+  }
+}
+
+function settleRockOnLand(rock, allRocks, allBoxes) {
+  if (!rock) {
+    return
+  }
+
+  snapRockToNearestTileCenter(rock)
+
+  if (isRockOverlappingAnyObject(rock, allRocks, allBoxes)) {
+    moveRockToNearestFreeTile(rock, allRocks, allBoxes)
+  }
+
+  checkForRockSnapping(rock, allRocks, allBoxes)
+
+  if (isRockOverlappingAnyObject(rock, allRocks, allBoxes)) {
+    moveRockToNearestFreeTile(rock, allRocks, allBoxes)
+  }
+}
+
+function snapRockToNearestTileCenter(rock) {
+  const { terrain } = gameState
+  if (!terrain || terrain.length === 0 || terrain[0].length === 0) {
+    return
+  }
+
+  const tileX = Math.round((rock.x - TILE_SIZE / 2) / TILE_SIZE)
+  const tileY = Math.round((rock.y - TILE_SIZE / 2) / TILE_SIZE)
+
+  rock.x = tileX * TILE_SIZE + TILE_SIZE / 2
+  rock.y = tileY * TILE_SIZE + TILE_SIZE / 2
+  clampRockToWorld(rock)
+}
+
+function clampRockToWorld(rock) {
+  const { terrain } = gameState
+  if (!terrain || terrain.length === 0 || terrain[0].length === 0) {
+    return
+  }
+
+  const minX = rock.size
+  const minY = rock.size
+  const maxX = terrain[0].length * TILE_SIZE - rock.size
+  const maxY = terrain.length * TILE_SIZE - rock.size
+
+  rock.x = Math.max(minX, Math.min(maxX, rock.x))
+  rock.y = Math.max(minY, Math.min(maxY, rock.y))
+}
+
+function isTileAvailableForRock(tileX, tileY, rock, allRocks, allBoxes) {
+  const { terrain } = gameState
+  if (!terrain || tileY < 0 || tileY >= terrain.length || tileX < 0 || tileX >= terrain[0].length) {
+    return false
+  }
+
+  if (terrain[tileY][tileX] === 0) {
+    return false
+  }
+
+  const candidateX = tileX * TILE_SIZE + TILE_SIZE / 2
+  const candidateY = tileY * TILE_SIZE + TILE_SIZE / 2
+  return !isRockOverlappingAnyObjectAt(candidateX, candidateY, rock, allRocks, allBoxes)
+}
+
+function isRockOverlappingAnyObject(rock, allRocks, allBoxes) {
+  return isRockOverlappingAnyObjectAt(rock.x, rock.y, rock, allRocks, allBoxes)
+}
+
+function isRockOverlappingAnyObjectAt(x, y, rock, allRocks, allBoxes) {
+  const rockSize = rock.isHammerShaped ? rock.size * HAMMER_ROCK_SIZE_SCALE : rock.size
+
+  for (const otherRock of allRocks) {
+    if (!otherRock || otherRock === rock) {
+      continue
+    }
+
+    const otherSize = otherRock.isHammerShaped ? otherRock.size * HAMMER_ROCK_SIZE_SCALE : otherRock.size
+    const minDistance = rockSize * 0.95 + otherSize * 0.95 + OBJECT_SNAP_GAP
+    if (getDistance(x, y, otherRock.x, otherRock.y) < minDistance) {
+      return true
+    }
+  }
+
+  for (const box of allBoxes) {
+    if (!box || box === gameState.grabbedWoodenBox || box.isBeingThrown || box.isFloating) {
+      continue
+    }
+
+    const minDistance = rockSize * 0.95 + box.size * 0.95 + OBJECT_SNAP_GAP
+    if (getDistance(x, y, box.x, box.y) < minDistance) {
+      return true
+    }
+  }
+
+  return false
+}
+
+function moveRockToNearestFreeTile(rock, allRocks, allBoxes) {
+  const baseTileX = Math.round((rock.x - TILE_SIZE / 2) / TILE_SIZE)
+  const baseTileY = Math.round((rock.y - TILE_SIZE / 2) / TILE_SIZE)
+
+  let bestCandidate = null
+  let bestDistance = Number.POSITIVE_INFINITY
+
+  for (let radius = 0; radius <= TILE_SEARCH_RADIUS; radius++) {
+    for (let tileY = baseTileY - radius; tileY <= baseTileY + radius; tileY++) {
+      for (let tileX = baseTileX - radius; tileX <= baseTileX + radius; tileX++) {
+        if (radius > 0 && Math.max(Math.abs(tileX - baseTileX), Math.abs(tileY - baseTileY)) !== radius) {
+          continue
+        }
+
+        if (!isTileAvailableForRock(tileX, tileY, rock, allRocks, allBoxes)) {
+          continue
+        }
+
+        const candidateX = tileX * TILE_SIZE + TILE_SIZE / 2
+        const candidateY = tileY * TILE_SIZE + TILE_SIZE / 2
+        const distance = getDistance(rock.x, rock.y, candidateX, candidateY)
+
+        if (distance < bestDistance) {
+          bestDistance = distance
+          bestCandidate = { x: candidateX, y: candidateY }
+        }
+      }
+    }
+
+    if (bestCandidate) {
+      break
+    }
+  }
+
+  if (bestCandidate) {
+    rock.x = bestCandidate.x
+    rock.y = bestCandidate.y
+    clampRockToWorld(rock)
   }
 }
 
