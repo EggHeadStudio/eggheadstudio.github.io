@@ -1679,8 +1679,8 @@ function drawFeet(ctx, x, y, player) {
   const leftFootX = x + Math.cos(footAngle2) * footDistance + Math.cos(player.direction) * (-footOffset - transitionFootBoost);
   const leftFootY = y + Math.sin(footAngle2) * footDistance + Math.sin(player.direction) * (-footOffset - transitionFootBoost);
 
-  // Draw feet (dark gray)
-  ctx.fillStyle = "#444444";
+  // Draw feet using the character-configured color when provided.
+  ctx.fillStyle = player.footColor || "#444444";
 
   // Right foot
   ctx.beginPath();
