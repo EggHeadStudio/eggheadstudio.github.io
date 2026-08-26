@@ -12,10 +12,18 @@ This file lists the variables you can change right now, and where each one is de
     - none -> sledgehammer -> shovel
 
 - Digging and holes:
+  - Shovel uses a two-step action: first tap/click selects a target tile, second tap/click on the same tile digs it.
+  - Selected dig tile shows a soft yellow overlay before the dig is committed.
+  - Desktop and mobile now share the same tile-targeting dig flow.
+  - Mobile uses a slightly wider dig radius than desktop.
   - Shovel can dig nearby land tiles into holes.
   - Hole groups flood when connected to water.
   - Flooded holes render and behave like water.
   - Dry holes can trap enemies when the hole area is large enough.
+
+- Input accuracy:
+  - Pointer/touch coordinates are normalized from CSS pixels to canvas pixels.
+  - This fixes tap/click offset issues on scaled canvases across different phones and browsers.
 
 - Water behavior consistency:
   - Player and enemies use water-like checks so flooded holes are treated as water.
@@ -34,6 +42,55 @@ This file lists the variables you can change right now, and where each one is de
 - Tree and vehicle interactions:
   - Cars now collide with tree trunks.
   - Tree canopies render as an overlay so cars and entities appear under leaves.
+
+- Enemy hole trap animation:
+  - Enemies no longer die instantly when trapped in a dry hole.
+  - They now sink/shrink for a short fall animation, then die with a smaller splatter effect.
+
+- Character selection and defaults:
+  - Choosing a premade character now loads that character's own default color and base stats.
+  - Health/speed/strength can still be tuned after selection.
+  - Character customization still enforces min/max limits and shared stat budget.
+
+## Game purpose and direction
+
+Current core fantasy:
+
+- Survive in a hostile world by mastering terrain, tools, and timing.
+- Use digging, traps, vehicles, and resource management to control enemy flow.
+- Adapt your strategy across day/night phases and changing map situations.
+
+Short "player purpose" statement:
+
+- Scout, gather, fortify, and survive as long as possible while building a controllable safe zone.
+
+## Suggested next features
+
+If you want a stronger game loop, these are high-impact additions:
+
+- Objective loop:
+  - Add daily contracts (for example: survive one night, trap 5 enemies, deliver 10 apples, repair one vehicle).
+  - Reward contracts with upgrade points.
+
+- Progression:
+  - Add permanent unlocks between runs (new shovel tier, stronger backpack, better night lamp).
+  - Keep run-based difficulty but provide long-term goals.
+
+- Base building light:
+  - Let player place simple defensive items (spikes, lanterns, barricades) using wood/trunk resources.
+  - This gives purpose to gathering and map control.
+
+- Enemy ecology:
+  - Give each enemy type a role (runner, tank, dig-avoider, trap-breaker).
+  - This makes character stat choices and tool usage more meaningful.
+
+- Win/lose states beyond "only survive":
+  - Add extraction goal (repair boat/car and escape) OR holdout goal (survive N cycles).
+  - This gives each run a clear ending and purpose.
+
+- Better onboarding:
+  - Add a 30-second first-run tutorial overlay for A/B buttons, digging flow, and weapon/tool cycles.
+  - This is especially useful on mobile.
 
 ## Run locally
 
