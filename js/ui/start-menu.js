@@ -392,38 +392,38 @@ function stopCharacterPreviewAnimation() {
 
 function getCharacterStyleDescription(characterType) {
   if (characterType === "rasse") {
-    return "Mohawk badass look"
+    return "Always two steps ahead of trouble"
   }
 
   if (characterType === "iida") {
-    return "Long hair and glasses girly look"
+    return "Quietly maps chaos before it starts"
   }
 
   if (characterType === "andrus") {
-    return "Bulky body, short hair, sunglasses"
+    return "Holds the line when panic hits"
   }
 
   if (characterType === "lidia") {
-    return "Long blond hair, lashes, stylish backpack"
+    return "Turns impossible routes into easy wins"
   }
 
   if (characterType === "elli") {
-    return "Ultra-long dark hair, lashes, glasses"
+    return "Calm under pressure, ruthless with timing"
   }
 
   if (characterType === "niko") {
-    return "Curly hair, beard, compact daypack"
+    return "Finds shortcuts nobody else can spot"
   }
 
   if (characterType === "mara") {
-    return "Hair bun, beard, and round glasses"
+    return "Reads every fight before it happens"
   }
 
   if (characterType === "taro") {
-    return "Short hair, sunglasses, hiking pack"
+    return "Fast decisions, cleaner exits, zero drama"
   }
 
-  return "Clean bald look"
+  return "Built for survival, never for spotlight"
 }
 
 function updateActiveOption(group, value) {
