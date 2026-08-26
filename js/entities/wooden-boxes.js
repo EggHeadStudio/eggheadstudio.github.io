@@ -15,6 +15,10 @@ import { isLandPosition, isSpawnPositionClear, isWaterPosition } from "../utils/
 
 // Roof system for wooden boxes and rocks
 let roofAreas = [] // Store detected roof areas
+let lastRoofDetectionAt = 0
+
+const ROOF_DETECTION_INTERVAL_MS = 90
+const ROOF_DETECTION_INTERVAL_MS_LIGHTWEIGHT = 260
 
 // Generate wooden boxes
 export function generateWoodenBoxes(count) {
@@ -949,8 +953,8 @@ export function drawAndUpdateWoodenBoxes(options = {}) {
       drawGrabbedWoodenBox(ctx, camera)
     }
 
-    // Detect and draw roof areas
-    detectRoofAreas()
+    // Detect roof areas with a small throttle to avoid expensive recompute every frame.
+    updateRoofAreasIfNeeded()
 
     // Draw entities that should appear under roofs
     drawEntitiesUnderRoof()
@@ -965,7 +969,20 @@ export function drawAndUpdateWoodenBoxes(options = {}) {
 }
 
 export function drawWoodenBoxRoofs() {
+  updateRoofAreasIfNeeded()
   drawRoofAreas()
+}
+
+function updateRoofAreasIfNeeded(force = false) {
+  const now = Date.now()
+  const interval = gameState.lightweightMode ? ROOF_DETECTION_INTERVAL_MS_LIGHTWEIGHT : ROOF_DETECTION_INTERVAL_MS
+
+  if (!force && now - lastRoofDetectionAt < interval) {
+    return
+  }
+
+  detectRoofAreas()
+  lastRoofDetectionAt = now
 }
 
 // Draw entities that should appear under the roof
@@ -1187,6 +1204,11 @@ function findUShapes(objectGroup) {
 function drawRoofAreas() {
   const { camera, ctx, player } = gameState
 
+  if (gameState.lightweightMode) {
+    drawRoofAreasLightweight(ctx, camera, player)
+    return
+  }
+
   for (const roof of roofAreas) {
     const screenX = roof.x - camera.x
     const screenY = roof.y - camera.y
@@ -1286,6 +1308,25 @@ function drawRoofAreas() {
     // Check if player is under this roof
     if (isPointUnderRoof(player.x, player.y, roof)) {
       // Draw shadow over player to show they're under the roof
+      drawPlayerRoofShadow(ctx, player, camera)
+    }
+  }
+}
+
+function drawRoofAreasLightweight(ctx, camera, player) {
+  for (const roof of roofAreas) {
+    const screenX = roof.x - camera.x
+    const screenY = roof.y - camera.y
+
+    // Cheap roof pass: flat translucent fill + thin border, no clipping/grid.
+    ctx.fillStyle = "rgba(128, 76, 32, 0.28)"
+    ctx.fillRect(screenX, screenY, roof.width, roof.height)
+
+    ctx.strokeStyle = "rgba(98, 58, 24, 0.48)"
+    ctx.lineWidth = 1
+    ctx.strokeRect(screenX, screenY, roof.width, roof.height)
+
+    if (isPointUnderRoof(player.x, player.y, roof)) {
       drawPlayerRoofShadow(ctx, player, camera)
     }
   }

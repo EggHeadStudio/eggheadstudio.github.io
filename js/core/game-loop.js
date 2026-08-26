@@ -138,9 +138,7 @@ export function update() {
   drawTreeCanopyOverlay()
 
   // Draw roof overlays last so roofed structures still cover entities
-  if (!gameState.lightweightMode) {
-    drawWoodenBoxRoofs()
-  }
+  drawWoodenBoxRoofs()
 
   // Draw world-space post effects and lightweight overlays last
   drawDayNightOverlay()
