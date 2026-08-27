@@ -30,7 +30,7 @@ export const gameState = {
       speed: 4,
       strength: 1,
     },
-    startPhase: "day",
+    startPhase: "dawn",
     lightweightMode: false,
     mapSize: WORLD_MAP_SIZE,
   },
@@ -38,10 +38,10 @@ export const gameState = {
   // Environment systems
   dayNight: {
     cycleStartTime: 0,
-    startPhase: "day",
-    currentPhase: "day",
+    startPhase: "dawn",
+    currentPhase: "dawn",
     phaseProgress: 0,
-    displayLabel: "Day",
+    displayLabel: "Dawn",
     lighting: null,
   },
 
@@ -70,6 +70,7 @@ export const gameState = {
   apples: [],
   sledgehammers: [],
   shovels: [],
+  saws: [],
   thrownApples: [],
   explosions: [],
   deathEffects: [],
@@ -89,6 +90,7 @@ export const gameState = {
   grabbedWoodenBox: null, // Added for wooden box grabbing
   hasSledgehammer: false,
   hasShovel: false,
+  hasSaw: false,
   selectedWeapon: "wrist",
   selectedTool: "none",
   dugHoles: {},

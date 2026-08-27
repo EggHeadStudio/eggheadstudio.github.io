@@ -1,5 +1,5 @@
 import { gameState } from "../core/game-state.js"
-import { SHOVEL_COUNT, SHOVEL_SIZE, TILE_SIZE, TERRAIN_TYPES } from "../core/constants.js"
+import { SHOVEL_COUNT, SHOVEL_SIZE, TILE_SIZE, TERRAIN_TYPES, SPAWN_SHOVEL_NEAR_PLAYER } from "../core/constants.js"
 import { getDistance } from "../utils/math-utils.js"
 import { createShadow } from "../utils/rendering-utils.js"
 import { updateShovelIndicator } from "../ui/ui-manager.js"
@@ -355,7 +355,7 @@ export function isHoleBlockingCarPosition(x, y, carSize) {
 export function generateShovels(count = SHOVEL_COUNT) {
   const { terrain, player, shovels } = gameState
 
-  if (count > 0) {
+  if (count > 0 && SPAWN_SHOVEL_NEAR_PLAYER) {
     const nearbyShovel = createNearbyShovel(player, shovels)
     if (nearbyShovel) {
       shovels.push(nearbyShovel)

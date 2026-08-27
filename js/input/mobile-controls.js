@@ -8,6 +8,7 @@ import { tryGrabEnemy, releaseEnemy } from "../entities/enemies.js"
 import { checkCarInteraction, enterCar, exitCar } from "../entities/cars.js" // Import car interaction functions
 import { checkBoatInteraction, enterBoat, exitBoat } from "../entities/boats.js"
 import { queueOrDigHoleAtScreenPosition } from "../entities/shovels.js"
+import { tryUseSawOnNearbyTree, tryUseSawOnTreeAtScreenPosition } from "../entities/trees.js"
 
 function getCanvasPointerPosition(clientX, clientY) {
   const canvas = gameState.canvas
@@ -205,10 +206,16 @@ export function handleButtonBStart(e) {
   gameState.buttonBActive = true
   e.target.classList.add("button-active")
 
-  // Button B is for throwing apples - only if not in a car.
+  // Button B is for throwing apples unless the saw is selected.
   // Shovel digging happens from a tap on the game canvas instead, matching
   // desktop mouse clicks.
   if (!gameState.isInCar) {
+    if (gameState.selectedTool === "saw") {
+      if (tryUseSawOnNearbyTree(gameState.player.x, gameState.player.y)) {
+        return
+      }
+    }
+
     throwApple()
   }
 }
@@ -236,6 +243,14 @@ export function handleCanvasTouchStart(e) {
     e.preventDefault()
     e.stopPropagation()
     return
+  }
+
+  if (gameState.selectedTool === "saw") {
+    if (tryUseSawOnTreeAtScreenPosition(pointerX, pointerY)) {
+      e.preventDefault()
+      e.stopPropagation()
+      return
+    }
   }
 
   throwApple()

@@ -6,12 +6,13 @@ export const MINIMAP_VISIBLE_TILES_MOBILE = 26 * 2
 export const MINIMAP_VISIBLE_TILES_DESKTOP = 40 * 2
 export const MOBILE_VIEWPORT_SCALE = 1.18
 export const PLAYER_SIZE = 30
-export const PLAYER_HEAL_DELAY_MS = 60000
+export const PLAYER_HEAL_DELAY_MS = 20000
 export const PLAYER_HEAL_UNDER_ROOF_MULTIPLIER = 2
 export const BOMB_SIZE = 45
 export const APPLE_SIZE = 15
 export const SLEDGEHAMMER_SIZE = 22
 export const SHOVEL_SIZE = 22
+export const SAW_SIZE = 22
 export const ENEMY_SIZE = 35
 export const PLAYER_SPEED = 4
 export const ENEMY_SPEED = 2
@@ -45,9 +46,37 @@ export const ENEMY_SPAWN_BATCH_RED = 1
 export const ENEMY_SPAWN_BATCH_YELLOW = 1
 export const ENEMY_SPAWN_BATCH_BLACK = 0
 export const ENEMY_SPAWN_BATCH = ENEMY_SPAWN_BATCH_RED + ENEMY_SPAWN_BATCH_YELLOW
+
+export const ENEMY_PHASE_SPAWN_CONFIG = {
+  dawn: {
+    initial: { red: 0, yellow: 0, black: 0 },
+    ambient: { red: 0, yellow: 0, black: 0 },
+    interval: 60000,
+  },
+  day: {
+    initial: { red: 0, yellow: 0, black: 0 },
+    ambient: { red: 0, yellow: 0, black: 0 },
+    interval: 60000,
+  },
+  dusk: {
+    initial: { red: 1, yellow: 0, black: 0 },
+    ambient: { red: 1, yellow: 0, black: 0 },
+    interval: 9000,
+  },
+  night: {
+    initial: { red: 2, yellow: 1, black: 1 },
+    ambient: { red: 2, yellow: 1, black: 1 },
+    interval: 3000,
+  },
+}
+
 export const APPLE_THROW_SPEED = 8
 export const ROCK_SIZE = 50 // Slightly larger than bombs
 export const ROCK_COUNT = 120 // Initial number of rocks
+export const ROCK_RUBBLE_PATCH_COUNT = 3 // Number of rock piles scattered across the map
+export const ROCK_RUBBLE_MIN_PER_PATCH = 15 // Minimum rocks in each rubble patch
+export const ROCK_RUBBLE_MAX_PER_PATCH = 30 // Maximum rocks in each rubble patch
+export const ROCK_RUBBLE_RADIUS = 70 // Radius of each rubble patch
 export const WOODEN_BOX_SIZE = 45 // Size of wooden boxes
 export const WOODEN_BOX_COUNT = 120 // Initial number of wooden boxes
 export const WOODEN_BOX_THROW_MULTIPLIER = 0.3 // Reduced from 2 to 0.3 (4x reduction)
@@ -67,6 +96,10 @@ export const CAR_COUNT = 5 // Maximum number of cars in the game
 export const BOAT_COUNT = 5
 export const SLEDGEHAMMER_COUNT = 5
 export const SHOVEL_COUNT = 5
+export const SAW_COUNT = 5
+export const SPAWN_SLEDGEHAMMER_NEAR_PLAYER = false
+export const SPAWN_SHOVEL_NEAR_PLAYER = false
+export const SPAWN_SAW_NEAR_PLAYER = false
 export const INITIAL_BOMB_COUNT = 25
 export const INITIAL_ENEMY_COUNT = INITIAL_RED_ENEMY_COUNT + INITIAL_YELLOW_ENEMY_COUNT
 export const INITIAL_APPLE_COUNT = 40

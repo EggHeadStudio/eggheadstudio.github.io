@@ -134,6 +134,79 @@ export function isTreeBlocking(x, y, radius) {
   return false
 }
 
+function getClosestTreeForSaw(worldX, worldY) {
+  const { player, trees } = gameState
+
+  if (!player || !trees || !gameState.hasSaw || gameState.selectedTool !== "saw") {
+    return null
+  }
+
+  let closestTree = null
+  let closestDistance = Number.POSITIVE_INFINITY
+  const maxPlayerDistance = player.size + 120
+
+  for (const tree of trees) {
+    const clickDistance = getDistance(worldX, worldY, tree.x, tree.y)
+    const playerDistance = getDistance(player.x, player.y, tree.x, tree.y)
+
+    if (clickDistance > tree.size + 22) {
+      continue
+    }
+
+    if (playerDistance > maxPlayerDistance) {
+      continue
+    }
+
+    if (clickDistance < closestDistance) {
+      closestTree = tree
+      closestDistance = clickDistance
+    }
+  }
+
+  return closestTree
+}
+
+export function tryUseSawOnTreeAtScreenPosition(screenX, screenY) {
+  const { camera, player } = gameState
+
+  if (!player || !gameState.hasSaw || gameState.selectedTool !== "saw" || gameState.isInCar) {
+    return false
+  }
+
+  const worldX = screenX + camera.x
+  const worldY = screenY + camera.y
+  return tryUseSawOnNearbyTree(worldX, worldY)
+}
+
+export function tryUseSawOnNearbyTree(worldX, worldY) {
+  const closestTree = getClosestTreeForSaw(worldX, worldY)
+
+  if (!closestTree) {
+    return false
+  }
+
+  gameState.player.sawingTree = {
+    tree: closestTree,
+    startedAt: Date.now(),
+  }
+
+  const didDamage = damageTree(closestTree, 1)
+
+  if (!gameState.hitEffects) {
+    gameState.hitEffects = []
+  }
+
+  gameState.hitEffects.push({
+    x: closestTree.x,
+    y: closestTree.y,
+    size: closestTree.size * 1.15,
+    createdAt: Date.now(),
+    duration: 180,
+  })
+
+  return didDamage || true
+}
+
 // Apply damage to a tree; chops it down once it runs out of hit points
 export function damageTree(tree, amount = 1) {
   if (!tree) return false
@@ -161,12 +234,17 @@ function chopDownTree(tree) {
 
   createTreeDestructionEffect(tree)
 
-  // Apples that were growing on the tree fall where they hung and stay
-  // on the ground to be picked up.
+  // Apples that were growing on the tree fall around the base of the trunk,
+  // not directly under the center of the stump.
   for (const apple of tree.apples) {
+    const angle = Math.random() * Math.PI * 2
+    const radius = tree.size * (0.45 + Math.random() * 0.65)
+    const scatterX = tree.x + Math.cos(angle) * radius
+    const scatterY = tree.y + Math.sin(angle) * radius + 10
+
     gameState.apples.push({
-      x: tree.x + apple.offsetX,
-      y: tree.y + apple.offsetY,
+      x: scatterX,
+      y: scatterY,
       size: APPLE_SIZE,
       color: "#e74c3c",
       value: TREE_APPLE_VALUE,

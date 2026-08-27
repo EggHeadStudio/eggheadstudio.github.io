@@ -77,7 +77,7 @@ const START_OFFSETS = {
 
 const TOTAL_CYCLE_DURATION = PHASE_SEGMENTS.reduce((total, segment) => total + segment.duration, 0)
 
-export function initializeDayNightCycle(startPhase = "day") {
+export function initializeDayNightCycle(startPhase = "dawn") {
   const cycleStartTime = Date.now() - (START_OFFSETS[startPhase] || 0)
   gameState.dayNight = {
     cycleStartTime,
@@ -115,8 +115,8 @@ export function updateDayNightCycle() {
         spawnImmediateNightBlackEnemies()
       }
 
-      if (previousPhase && previousPhase !== segment.key && segment.key === "dawnToDay") {
-        refreshWorldForNewDay()
+      if (previousPhase && previousPhase !== segment.key && segment.key === "dusk") {
+        refreshWorldForNewDay("dusk")
       }
 
       updateTimeOfDayLabel(segment.label)

@@ -1566,8 +1566,8 @@ function drawRoofAreas() {
     const screenY = roof.y - camera.y
     const cornerRadius = roof.cornerRadius || 15 // Default to 15px if not specified
 
-    // Draw semi-transparent brown roof with rounded corners
-    ctx.fillStyle = "rgba(139, 69, 19, 0.34)" // Slightly lighter roof transparency
+    // Draw an even more transparent roof so the structure underneath remains clearly visible.
+    ctx.fillStyle = "rgba(139, 69, 19, 0.12)"
 
     // Draw rounded rectangle
     ctx.beginPath()
@@ -1590,7 +1590,7 @@ function drawRoofAreas() {
     ctx.fill()
 
     // Draw subtle grid pattern for visual interest
-    ctx.strokeStyle = "rgba(139, 69, 19, 0.43)"
+    ctx.strokeStyle = "rgba(139, 69, 19, 0.18)"
     ctx.lineWidth = 1
 
     // Different patterns for different roof types
@@ -1636,7 +1636,7 @@ function drawRoofAreas() {
     ctx.restore() // Restore context after clipping
 
     // Add a subtle border with rounded corners
-    ctx.strokeStyle = "rgba(139, 69, 19, 0.52)"
+    ctx.strokeStyle = "rgba(139, 69, 19, 0.2)"
     ctx.lineWidth = 2
     ctx.beginPath()
     ctx.moveTo(screenX + cornerRadius, screenY)
@@ -1670,11 +1670,11 @@ function drawRoofAreasLightweight(ctx, camera, player) {
     const screenX = roof.x - camera.x
     const screenY = roof.y - camera.y
 
-    // Cheap roof pass: flat translucent fill + thin border, no clipping/grid.
-    ctx.fillStyle = "rgba(128, 76, 32, 0.23)"
+    // Cheap roof pass: keep it subtle and nearly see-through so the structure beneath stays visible.
+    ctx.fillStyle = "rgba(128, 76, 32, 0.08)"
     ctx.fillRect(screenX, screenY, roof.width, roof.height)
 
-    ctx.strokeStyle = "rgba(98, 58, 24, 0.42)"
+    ctx.strokeStyle = "rgba(98, 58, 24, 0.16)"
     ctx.lineWidth = 1
     ctx.strokeRect(screenX, screenY, roof.width, roof.height)
 

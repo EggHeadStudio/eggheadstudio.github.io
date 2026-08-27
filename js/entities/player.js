@@ -427,31 +427,7 @@ function checkMeleeAttack() {
     }
   }
 
-  // Check for collision with trees
-  if (gameState.trees) {
-    for (const tree of gameState.trees) {
-      const distance = getDistance(rightHandX, rightHandY, tree.x, tree.y)
-
-      if (distance < HAND_SIZE + tree.size * 0.6) {
-        damageTree(tree, 1)
-
-        if (!gameState.hitEffects) {
-          gameState.hitEffects = []
-        }
-
-        gameState.hitEffects.push({
-          x: tree.x,
-          y: tree.y,
-          size: tree.size * 1.1,
-          createdAt: Date.now(),
-          duration: 200,
-        })
-
-        // Only hit one tree per swing
-        return
-      }
-    }
-  }
+  // Trees are only chopped with the saw tool; normal melee swings do not damage them.
 }
 
 // Draw player
@@ -1488,6 +1464,12 @@ function drawHands(ctx, x, y, player) {
       const transitionLift = holeTransition.isActive
         ? (holeTransition.phase === "enter" ? -1 : 1) * holeTransition.pulse * 4
         : 0
+
+      const sawActionAge = player.sawingTree ? Date.now() - player.sawingTree.startedAt : 0
+      const sawSwing = sawActionAge > 0 && sawActionAge < 260 ? Math.sin(sawActionAge / 42) * 22 : 0
+      const sawArmStretch = gameState.selectedTool === "saw" && Boolean(gameState.hasSaw)
+        ? sawSwing
+        : 0
       
       const rightHandX = x + Math.cos(handAngle1) * (handDistance + breathingFactor) + 
                          (isMovingForward ? Math.cos(player.direction) * handOffset : 0) +
@@ -1498,10 +1480,16 @@ function drawHands(ctx, x, y, player) {
 
       const leftHandX = x + Math.cos(handAngle2) * (handDistance + breathingFactor) + 
                         (isMovingForward ? Math.cos(player.direction) * -handOffset : 0) +
-                        Math.cos(player.direction) * transitionLift;
+                        Math.cos(player.direction) * transitionLift +
+                        (gameState.selectedTool === "saw" && Boolean(gameState.hasSaw)
+                          ? Math.cos(player.direction) * sawArmStretch
+                          : 0);
       const leftHandY = y + Math.sin(handAngle2) * (handDistance + breathingFactor) + 
                         (isMovingForward ? Math.sin(player.direction) * -handOffset : 0) +
-                        Math.sin(player.direction) * transitionLift;
+                        Math.sin(player.direction) * transitionLift +
+                        (gameState.selectedTool === "saw" && Boolean(gameState.hasSaw)
+                          ? Math.sin(player.direction) * sawArmStretch
+                          : 0);
 
       // Draw hands (light gray)
       ctx.fillStyle = player.handColor || "#AAAAAA";
@@ -1646,6 +1634,61 @@ function drawEquippedHandItems(ctx, player, rightHandX, rightHandY, leftHandX, l
 
     ctx.fillStyle = "#cdd4d9"
     ctx.fillRect(-bladeWidth * 0.16, -handleLength * 0.69, bladeWidth * 0.32, bladeHeight * 0.2)
+
+    ctx.restore()
+  }
+
+  const showSawInHand = gameState.selectedTool === "saw" && Boolean(gameState.hasSaw)
+  if (showSawInHand) {
+    const handleLength = HAND_SIZE * 2.4
+    const handleWidth = HAND_SIZE * 0.48
+    const bladeLength = HAND_SIZE * 4.2
+    const bladeWidth = HAND_SIZE * 1.05
+    const sawActionAge = player.sawingTree ? Date.now() - player.sawingTree.startedAt : 0
+    const sawSwing = sawActionAge > 0 && sawActionAge < 260 ? Math.sin(sawActionAge / 42) : 0
+
+    ctx.save()
+    ctx.translate(leftHandX, leftHandY)
+    ctx.rotate(player.direction + sawSwing * 0.9)
+
+    ctx.save()
+    ctx.translate(10, 3)
+    ctx.fillStyle = "rgba(0, 0, 0, 0.18)"
+    ctx.fillRect(-handleLength * 0.62, -handleWidth * 0.5, handleLength, handleWidth)
+    ctx.fillRect(-handleWidth * 0.16, -bladeWidth * 0.5, bladeLength, bladeWidth)
+    ctx.restore()
+
+    ctx.fillStyle = "#6b4423"
+    ctx.fillRect(-handleLength * 0.62, -handleWidth * 0.5, handleLength, handleWidth)
+
+    ctx.fillStyle = "#dfe6eb"
+    ctx.fillRect(-handleWidth * 0.16, -bladeWidth * 0.5, bladeLength, bladeWidth)
+
+    ctx.fillStyle = "#bbc3ca"
+    ctx.beginPath()
+    ctx.moveTo(-handleWidth * 0.16, -bladeWidth * 0.5)
+    ctx.lineTo(-handleWidth * 0.16 + bladeLength * 0.12, -bladeWidth * 0.7)
+    ctx.lineTo(-handleWidth * 0.16 + bladeLength * 0.12, bladeWidth * 0.7)
+    ctx.lineTo(-handleWidth * 0.16, bladeWidth * 0.5)
+    ctx.closePath()
+    ctx.fill()
+
+    ctx.fillStyle = "#dfe6eb"
+    for (let tooth = 0; tooth < 9; tooth++) {
+      const x = -handleWidth * 0.16 + tooth * (bladeLength / 9)
+      ctx.beginPath()
+      ctx.moveTo(x, bladeWidth * 0.5)
+      ctx.lineTo(x + bladeWidth * 0.18, bladeWidth * 0.82)
+      ctx.lineTo(x + bladeWidth * 0.18, -bladeWidth * 0.82)
+      ctx.lineTo(x, -bladeWidth * 0.5)
+      ctx.closePath()
+      ctx.fill()
+    }
+
+    ctx.fillStyle = "#7a5636"
+    ctx.fillRect(-handleLength * 0.82, -handleWidth * 0.34, handleLength * 0.2, handleWidth * 0.68)
+    ctx.fillStyle = "#9f6b3a"
+    ctx.fillRect(-handleLength * 0.68, -handleWidth * 0.22, handleLength * 0.12, handleWidth * 0.44)
 
     ctx.restore()
   }

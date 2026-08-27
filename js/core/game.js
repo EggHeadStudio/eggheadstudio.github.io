@@ -21,6 +21,7 @@ import { generateEnemies, getInitialEnemySpawnPlan } from "../entities/enemies.j
 import { generateApples } from "../entities/apples.js"
 import { generateSledgehammers } from "../entities/sledgehammers.js"
 import { generateShovels } from "../entities/shovels.js"
+import { generateSaws } from "../entities/saws.js"
 import { generateWoodenBoxes } from "../entities/wooden-boxes.js" // Import wooden boxes generator
 import { generateCars } from "../entities/cars.js" // Import cars generator
 import { generateBoats } from "../entities/boats.js"
@@ -52,7 +53,7 @@ export function createDefaultGameConfig() {
   return {
     characterType: "default",
     characterAttributes: normalizeCharacterCustomization(),
-    startPhase: "day",
+    startPhase: "dawn",
     lightweightMode: false,
     mapSize: WORLD_MAP_SIZE,
   }
@@ -96,6 +97,7 @@ export function init(config = gameState.startupConfig) {
   gameState.grabbedWoodenBox = null // Reset grabbed wooden box
   gameState.hasSledgehammer = false
   gameState.hasShovel = false
+  gameState.hasSaw = false
   gameState.selectedWeapon = "wrist"
   gameState.selectedTool = "none"
   gameState.dugHoles = {}
@@ -107,6 +109,7 @@ export function init(config = gameState.startupConfig) {
   gameState.apples = []
   gameState.sledgehammers = []
   gameState.shovels = []
+  gameState.saws = []
   gameState.thrownApples = []
   gameState.explosions = []
   gameState.deathEffects = []
@@ -182,7 +185,7 @@ export function init(config = gameState.startupConfig) {
   // Generate initial bombs
   generateBombs(INITIAL_BOMB_COUNT)
 
-  // Generate initial rocks
+  // Generate initial rocks and clustered rubble patches
   generateRocks(ROCK_COUNT)
 
   // Generate initial enemies
@@ -196,7 +199,10 @@ export function init(config = gameState.startupConfig) {
 
   // Generate shovels
   generateShovels()
-  
+
+  // Generate saws
+  generateSaws()
+
   // Generate initial cars - one near player, the rest randomly distributed
   generateCars(CAR_COUNT - 1, true); // First parameter is number of cars to place randomly, second parameter true = spawn one near player
 

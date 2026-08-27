@@ -12,6 +12,7 @@ import { drawAndUpdateBoats } from "../entities/boats.js"
 import { drawAndUpdateApples, drawAndUpdateThrownApples } from "../entities/apples.js"
 import { drawAndUpdateSledgehammers } from "../entities/sledgehammers.js"
 import { drawAndUpdateShovels } from "../entities/shovels.js"
+import { drawAndUpdateSaws } from "../entities/saws.js"
 import { drawAndUpdateBombs } from "../entities/bombs.js"
 import { drawAndUpdateDeathEffects } from "../entities/death-effects.js"
 import { drawAndUpdateExplosions } from "../entities/explosions.js"
@@ -103,6 +104,9 @@ export function update() {
 
   // Draw and update shovels
   drawAndUpdateShovels()
+
+  // Draw and update saws
+  drawAndUpdateSaws()
 
   // Draw and update bombs
   drawAndUpdateBombs()

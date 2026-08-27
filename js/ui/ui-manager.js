@@ -21,6 +21,7 @@ export function resetHud() {
   bindHudSelectors()
   updateSledgehammerIndicator()
   updateShovelIndicator()
+  updateSawIndicator()
   updateWeaponSelectionUi()
 }
 
@@ -67,6 +68,10 @@ function getAvailableTools() {
     tools.push("shovel")
   }
 
+  if (gameState.hasSaw) {
+    tools.push("saw")
+  }
+
   return tools
 }
 
@@ -99,19 +104,30 @@ export function updateShovelIndicator() {
   updateWeaponSelectionUi()
 }
 
+export function updateSawIndicator() {
+  const hasSaw = Boolean(gameState.hasSaw)
+
+  if (!hasSaw && gameState.selectedTool === "saw") {
+    gameState.selectedTool = "none"
+  }
+
+  updateToolSelectorUi()
+  updateWeaponSelectionUi()
+}
+
 function updateToolSelectorUi() {
   const selector = document.getElementById("toolSelector")
   const icon = document.getElementById("toolSelectorIcon")
   if (!selector || !icon) return
 
   ensureSelectedToolIsAvailable()
-  const hasAnyTool = gameState.hasSledgehammer || gameState.hasShovel
+  const hasAnyTool = gameState.hasSledgehammer || gameState.hasShovel || gameState.hasSaw
 
   selector.classList.toggle("active", hasAnyTool)
   selector.classList.toggle("selected", gameState.selectedTool !== "none")
   selector.classList.toggle("disabled", !hasAnyTool)
 
-  icon.classList.remove("none", "sledgehammer", "shovel")
+  icon.classList.remove("none", "sledgehammer", "shovel", "saw")
   icon.classList.add(gameState.selectedTool === "none" ? "none" : gameState.selectedTool)
 }
 
@@ -256,6 +272,18 @@ export function toggleShovelToolSelection() {
     gameState.selectedTool = "none"
   } else {
     gameState.selectedTool = "shovel"
+  }
+
+  updateWeaponSelectionUi()
+}
+
+export function toggleSawToolSelection() {
+  if (!gameState.hasSaw) {
+    gameState.selectedTool = "none"
+  } else if (gameState.selectedTool === "saw") {
+    gameState.selectedTool = "none"
+  } else {
+    gameState.selectedTool = "saw"
   }
 
   updateWeaponSelectionUi()

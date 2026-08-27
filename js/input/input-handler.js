@@ -8,6 +8,7 @@ import { tryGrabEnemy, releaseEnemy } from "../entities/enemies.js"
 import { checkCarInteraction, enterCar, exitCar } from "../entities/cars.js" // Import car interaction functions
 import { checkBoatInteraction, enterBoat, exitBoat } from "../entities/boats.js"
 import { queueOrDigHoleAtScreenPosition } from "../entities/shovels.js"
+import { tryUseSawOnTreeAtScreenPosition } from "../entities/trees.js"
 
 // Set up event listeners for keyboard and mouse
 export function setupEventListeners() {
@@ -152,6 +153,12 @@ export function handleMouseDown(e) {
       if (gameState.selectedTool === "shovel") {
         queueOrDigHoleAtScreenPosition(pointerX, pointerY, { mobile: false })
         return
+      }
+
+      if (gameState.selectedTool === "saw") {
+        if (tryUseSawOnTreeAtScreenPosition(pointerX, pointerY)) {
+          return
+        }
       }
 
       throwApple()

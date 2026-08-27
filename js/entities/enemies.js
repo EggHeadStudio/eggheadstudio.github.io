@@ -7,6 +7,7 @@ import {
   ENEMY_SPAWN_BATCH_RED,
   ENEMY_SPAWN_BATCH_YELLOW,
   ENEMY_SPAWN_BATCH_BLACK,
+  ENEMY_PHASE_SPAWN_CONFIG,
   ENEMY_RED_COLOR,
   ENEMY_RED_SIZE,
   ENEMY_RED_HEALTH,
@@ -78,23 +79,26 @@ const ENEMY_TYPE_CONFIG = {
   },
 }
 
-function isNightSpawnPhase(phase = gameState.dayNight?.currentPhase) {
-  return phase === "night"
+function getPhaseSpawnConfig(phase = gameState.dayNight?.currentPhase) {
+  const normalizedPhase = phase || "dusk"
+  return ENEMY_PHASE_SPAWN_CONFIG[normalizedPhase] || ENEMY_PHASE_SPAWN_CONFIG.dusk
 }
 
 export function getInitialEnemySpawnPlan(phase = gameState.dayNight?.currentPhase) {
+  const phaseConfig = getPhaseSpawnConfig(phase)
   return {
-    red: INITIAL_RED_ENEMY_COUNT,
-    yellow: INITIAL_YELLOW_ENEMY_COUNT,
-    black: isNightSpawnPhase(phase) ? INITIAL_BLACK_ENEMY_COUNT : 0,
+    red: phaseConfig.initial.red,
+    yellow: phaseConfig.initial.yellow,
+    black: phaseConfig.initial.black,
   }
 }
 
 function getAmbientEnemySpawnPlan(phase = gameState.dayNight?.currentPhase) {
+  const phaseConfig = getPhaseSpawnConfig(phase)
   return {
-    red: ENEMY_SPAWN_BATCH_RED,
-    yellow: ENEMY_SPAWN_BATCH_YELLOW,
-    black: isNightSpawnPhase(phase) ? ENEMY_SPAWN_BATCH_BLACK : 0,
+    red: phaseConfig.ambient.red,
+    yellow: phaseConfig.ambient.yellow,
+    black: phaseConfig.ambient.black,
   }
 }
 
@@ -199,8 +203,9 @@ function drawEnemyCleanupEffects(ctx, camera) {
 }
 
 export function spawnImmediateNightBlackEnemies() {
+  const nightConfig = getPhaseSpawnConfig("night")
   const currentBlackCount = gameState.enemies.filter((enemy) => enemy.type === "black").length
-  const missingBlackCount = Math.max(0, INITIAL_BLACK_ENEMY_COUNT - currentBlackCount)
+  const missingBlackCount = Math.max(0, nightConfig.initial.black - currentBlackCount)
 
   if (missingBlackCount > 0) {
     generateEnemies({ black: missingBlackCount })
@@ -468,9 +473,11 @@ export function releaseEnemy() {
 // Spawn new enemies more frequently
 export function spawnEnemies() {
   const currentTime = Date.now()
+  const currentPhase = gameState.dayNight?.currentPhase || "dusk"
+  const phaseConfig = getPhaseSpawnConfig(currentPhase)
 
-  if (currentTime - gameState.lastEnemySpawnTime > ENEMY_SPAWN_INTERVAL) {
-    generateEnemies(getAmbientEnemySpawnPlan())
+  if (currentTime - gameState.lastEnemySpawnTime > (phaseConfig.interval || ENEMY_SPAWN_INTERVAL)) {
+    generateEnemies(getAmbientEnemySpawnPlan(currentPhase))
     gameState.lastEnemySpawnTime = currentTime
   }
 }
@@ -612,6 +619,7 @@ function canEnemyMoveToPosition(enemy, x, y, options = {}) {
 
       const distance = getDistance(x, y, box.x, box.y)
       if (distance < enemy.size + box.size * 0.8) {
+        damageWoodenBox(box)
         return {
           canMove: false,
           collisionType: "box",
@@ -1142,6 +1150,7 @@ export function updateEnemyMovement(enemy, canSeePlayer) {
 
           const distance = getDistance(newX, newY, box.x, box.y)
           if (distance < enemy.size + box.size * 0.8) {
+            damageWoodenBox(box)
             canMove = false
             collidedWithBox = true
             boxCollisionAngle = Math.atan2(enemy.y - box.y, enemy.x - box.x)

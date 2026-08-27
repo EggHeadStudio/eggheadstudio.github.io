@@ -46,7 +46,7 @@ export function maintainGameElements() {
   // automatically when one is destroyed in the destroyCar function
 }
 
-export function refreshWorldForNewDay() {
+export function refreshWorldForNewDay(startPhase = "dusk") {
   clearAllEnemies({ spawnCleanupEffects: true })
   generateTrees()
   generateRocks(ROCK_COUNT)
@@ -56,6 +56,6 @@ export function refreshWorldForNewDay() {
   generateBoats(BOAT_COUNT, { ignoreLimit: true })
   generateApples(INITIAL_APPLE_COUNT, { spawnNearPlayer: false })
   generateSledgehammers(SLEDGEHAMMER_COUNT)
-  generateEnemies(getInitialEnemySpawnPlan("day"))
+  generateEnemies(getInitialEnemySpawnPlan(startPhase))
   gameState.lastEnemySpawnTime = Date.now()
 }

@@ -1,6 +1,15 @@
 // Rock entity
 import { gameState } from "../core/game-state.js"
-import { ROCK_SIZE, TILE_SIZE, WOODEN_BOX_SIZE, WOODEN_BOX_SNAP_DISTANCE } from "../core/constants.js"
+import {
+  ROCK_SIZE,
+  TILE_SIZE,
+  WOODEN_BOX_SIZE,
+  WOODEN_BOX_SNAP_DISTANCE,
+  ROCK_RUBBLE_PATCH_COUNT,
+  ROCK_RUBBLE_MIN_PER_PATCH,
+  ROCK_RUBBLE_MAX_PER_PATCH,
+  ROCK_RUBBLE_RADIUS,
+} from "../core/constants.js"
 import { getDistance } from "../utils/math-utils.js"
 import { isPlayerPositionClear, movePlayerToNearestSafePosition } from "../utils/player-position-utils.js"
 import { createShadow } from "../utils/rendering-utils.js"
@@ -38,6 +47,136 @@ export function generateRocks(count) {
       rocks.push(rock)
     } else {
       i-- // Try again
+    }
+  }
+
+  generateRockRubblePatches()
+}
+
+export function generateRockRubblePatches(patchCount = ROCK_RUBBLE_PATCH_COUNT) {
+  const { terrain, rocks, player } = gameState
+
+  if (!terrain || terrain.length === 0 || !rocks) {
+    return
+  }
+
+  const mapWidth = terrain[0].length
+  const mapHeight = terrain.length
+  const patchAnchors = [
+    { x: mapWidth * 0.28, y: mapHeight * 0.28 },
+    { x: mapWidth * 0.7, y: mapHeight * 0.34 },
+    { x: mapWidth * 0.58, y: mapHeight * 0.72 },
+  ]
+
+  for (let patchIndex = 0; patchIndex < patchCount; patchIndex++) {
+    let patchCenter = null
+
+    const anchor = patchAnchors[patchIndex] || {
+      x: 2 + Math.random() * (mapWidth - 4),
+      y: 2 + Math.random() * (mapHeight - 4),
+    }
+
+    for (let searchRadius = 2; searchRadius < 18 && !patchCenter; searchRadius++) {
+      for (let offsetY = -searchRadius; offsetY <= searchRadius && !patchCenter; offsetY++) {
+        for (let offsetX = -searchRadius; offsetX <= searchRadius && !patchCenter; offsetX++) {
+          const tileX = Math.floor(anchor.x) + offsetX
+          const tileY = Math.floor(anchor.y) + offsetY
+
+          if (tileX < 0 || tileY < 0 || tileX >= mapWidth || tileY >= mapHeight) {
+            continue
+          }
+
+          if (terrain[tileY][tileX] === 0 || terrain[tileY][tileX] === 2) {
+            continue
+          }
+
+          const x = tileX * TILE_SIZE + TILE_SIZE / 2
+          const y = tileY * TILE_SIZE + TILE_SIZE / 2
+
+          if (player && getDistance(x, y, player.x, player.y) < 260) {
+            continue
+          }
+
+          const nearbyRock = rocks.some((rock) => getDistance(x, y, rock.x, rock.y) < 200)
+          if (nearbyRock) {
+            continue
+          }
+
+          patchCenter = { x, y }
+        }
+      }
+    }
+
+    if (!patchCenter) {
+      for (let attempt = 0; attempt < 80 && !patchCenter; attempt++) {
+        const tileX = 2 + Math.floor(Math.random() * (mapWidth - 4))
+        const tileY = 2 + Math.floor(Math.random() * (mapHeight - 4))
+
+        if (terrain[tileY][tileX] === 0 || terrain[tileY][tileX] === 2) {
+          continue
+        }
+
+        const x = tileX * TILE_SIZE + TILE_SIZE / 2
+        const y = tileY * TILE_SIZE + TILE_SIZE / 2
+
+        if (player && getDistance(x, y, player.x, player.y) < 260) {
+          continue
+        }
+
+        if (rocks.some((rock) => getDistance(x, y, rock.x, rock.y) < 200)) {
+          continue
+        }
+
+        patchCenter = { x, y }
+      }
+    }
+
+    if (!patchCenter) {
+      continue
+    }
+
+    const clusterSize =
+      ROCK_RUBBLE_MIN_PER_PATCH + Math.floor(Math.random() * (ROCK_RUBBLE_MAX_PER_PATCH - ROCK_RUBBLE_MIN_PER_PATCH + 1))
+    const clusterRocks = []
+
+    for (let i = 0; i < clusterSize; i++) {
+      let candidate = null
+
+      for (let attempt = 0; attempt < 40; attempt++) {
+        const angle = Math.random() * Math.PI * 2
+        const radius = 12 + Math.random() * ROCK_RUBBLE_RADIUS
+        const x = patchCenter.x + Math.cos(angle) * radius + (Math.random() - 0.5) * 22
+        const y = patchCenter.y + Math.sin(angle) * radius + (Math.random() - 0.5) * 22
+        const candidateSize = ROCK_SIZE * (0.35 + Math.random() * 0.55)
+
+        const overlapsExisting = rocks.some((rock) => getDistance(x, y, rock.x, rock.y) < rock.size * 0.7 + candidateSize * 0.75)
+        const overlapsLocal = clusterRocks.some((rock) => getDistance(x, y, rock.x, rock.y) < rock.size * 0.7 + candidateSize * 0.75)
+
+        if (!isSpawnPositionClear(x, y, candidateSize, { requireLand: true, playerDistanceBuffer: 0, includeRocks: false, includeTrees: false }) || overlapsExisting || overlapsLocal) {
+          continue
+        }
+
+        candidate = { x, y, size: candidateSize }
+        break
+      }
+
+      if (!candidate) {
+        continue
+      }
+
+      clusterRocks.push({
+        x: candidate.x,
+        y: candidate.y,
+        size: candidate.size,
+        texture: Math.floor(Math.random() * 3),
+        rotation: Math.random() * Math.PI * 2,
+        snappedTo: null,
+        type: "rock",
+      })
+    }
+
+    if (clusterRocks.length >= ROCK_RUBBLE_MIN_PER_PATCH * 0.7) {
+      rocks.push(...clusterRocks)
     }
   }
 }
