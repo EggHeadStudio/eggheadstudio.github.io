@@ -1,6 +1,6 @@
 // Rock entity
 import { gameState } from "../core/game-state.js"
-import { ROCK_SIZE, TILE_SIZE, WOODEN_BOX_SNAP_DISTANCE } from "../core/constants.js"
+import { ROCK_SIZE, TILE_SIZE, WOODEN_BOX_SIZE, WOODEN_BOX_SNAP_DISTANCE } from "../core/constants.js"
 import { getDistance } from "../utils/math-utils.js"
 import { isPlayerPositionClear, movePlayerToNearestSafePosition } from "../utils/player-position-utils.js"
 import { createShadow } from "../utils/rendering-utils.js"
@@ -10,6 +10,9 @@ import { isSpawnPositionClear } from "../utils/spawn-utils.js"
 const HAMMER_ROCK_SIZE_SCALE = 0.88
 const TILE_SEARCH_RADIUS = 6
 const OBJECT_SNAP_GAP = 2
+const NON_GRID_SNAP_TILE_GAP = 1
+const NON_GRID_SNAP_SPAN = TILE_SIZE * (NON_GRID_SNAP_TILE_GAP + 1)
+const MIN_PLAYER_SNAP_CLEARANCE = 6
 
 // Generate rocks
 export function generateRocks(count) {
@@ -98,8 +101,15 @@ export function releaseRock() {
 
 // Check if a rock should snap to another rock or box
 function checkForRockSnapping(rock, allRocks, allBoxes) {
+  // Non-sledge rocks use free drop + tile settle only.
+  if (!rock.isHammerShaped) {
+    rock.snappedTo = null
+    return
+  }
+
   let closestObject = null
-  let closestDistance = WOODEN_BOX_SNAP_DISTANCE
+  const nonGridSnapRange = NON_GRID_SNAP_SPAN + TILE_SIZE * 0.55
+  let closestDistance = Math.max(WOODEN_BOX_SNAP_DISTANCE, nonGridSnapRange)
   let objectType = null
 
   // Find the closest rock within snapping distance
@@ -138,26 +148,12 @@ function checkForRockSnapping(rock, allRocks, allBoxes) {
     const newX = snappedPosition.x
     const newY = snappedPosition.y
 
-    // Check if player would get stuck
-    const { player } = gameState
-    if (player) {
-      const distanceToPlayer = getDistance(newX, newY, player.x, player.y)
-
-      // If player is too close to where the rock will snap
-      if (distanceToPlayer < player.size + rock.size * 0.7) {
-        // Push player away from the snapping area
-        const pushAngle = Math.atan2(player.y - newY, player.x - newX)
-        const pushDistance = player.size + rock.size * 0.7 - distanceToPlayer + 5 // Add 5px buffer
-
-        // Move player away
-        player.x += Math.cos(pushAngle) * pushDistance
-        player.y += Math.sin(pushAngle) * pushDistance
-      }
-    }
-
     // Set the rock position
     rock.x = newX
     rock.y = newY
+
+    // Resolve player overlap after object has moved to its final snap position.
+    nudgePlayerAwayFromSnap(newX, newY, rock)
 
     // Store reference to snapped object
     rock.snappedTo = closestObject
@@ -261,7 +257,9 @@ function isRockOverlappingAnyObjectAt(x, y, rock, allRocks, allBoxes) {
     }
 
     const otherHalfSize = otherIsGridWall ? TILE_SIZE * 0.5 : otherRock.size * 0.95
-    const minDistance = movingHalfSize + otherHalfSize + OBJECT_SNAP_GAP
+    const minDistance = (!movingIsGridWall || !otherIsGridWall)
+      ? NON_GRID_SNAP_SPAN
+      : movingHalfSize + otherHalfSize + OBJECT_SNAP_GAP
     if (getDistance(x, y, otherRock.x, otherRock.y) < minDistance) {
       return true
     }
@@ -282,8 +280,10 @@ function isRockOverlappingAnyObjectAt(x, y, rock, allRocks, allBoxes) {
       continue
     }
 
-    const boxHalfSize = boxIsGridWall ? TILE_SIZE * 0.5 : box.size * 0.95
-    const minDistance = movingHalfSize + boxHalfSize + OBJECT_SNAP_GAP
+    const boxHalfSize = boxIsGridWall ? TILE_SIZE * 0.5 : getNonGridBoxEffectiveSize(box)
+    const minDistance = (!movingIsGridWall || !boxIsGridWall)
+      ? NON_GRID_SNAP_SPAN
+      : movingHalfSize + boxHalfSize + OBJECT_SNAP_GAP
     if (getDistance(x, y, box.x, box.y) < minDistance) {
       return true
     }
@@ -349,29 +349,47 @@ function findAdjacentTileSnapPositionForRock(rock, anchorObject, allRocks, allBo
   const anchorIsGridWall = Boolean(anchorObject.isHammerShaped || anchorObject.isSledgeCube || anchorObject.isSledgeSpiked)
 
   if (!rockIsGridWall || !anchorIsGridWall) {
-    const movingHalfSize = rockIsGridWall ? TILE_SIZE * 0.5 : rock.size * 0.95
-    const anchorHalfSize = anchorIsGridWall ? TILE_SIZE * 0.5 : (anchorObject.size || TILE_SIZE * 0.5) * 0.95
-    const snapDistance = movingHalfSize + anchorHalfSize + OBJECT_SNAP_GAP
+    const anchorTileX = Math.round((anchorObject.x - TILE_SIZE / 2) / TILE_SIZE)
+    const anchorTileY = Math.round((anchorObject.y - TILE_SIZE / 2) / TILE_SIZE)
+    const anchorCenterX = anchorTileX * TILE_SIZE + TILE_SIZE / 2
+    const anchorCenterY = anchorTileY * TILE_SIZE + TILE_SIZE / 2
 
-    const candidates = [
-      { x: anchorObject.x + snapDistance, y: anchorObject.y },
-      { x: anchorObject.x - snapDistance, y: anchorObject.y },
-      { x: anchorObject.x, y: anchorObject.y + snapDistance },
-      { x: anchorObject.x, y: anchorObject.y - snapDistance },
-    ]
+    const deltaX = rock.x - anchorCenterX
+    const deltaY = rock.y - anchorCenterY
+    const preferHorizontal = Math.abs(deltaX) >= Math.abs(deltaY)
+    const horizontalSign = deltaX >= 0 ? 1 : -1
+    const verticalSign = deltaY >= 0 ? 1 : -1
+    const tileStep = NON_GRID_SNAP_TILE_GAP + 1
+
+    const candidates = preferHorizontal
+      ? [
+          { tileX: anchorTileX + horizontalSign * tileStep, tileY: anchorTileY },
+          { tileX: anchorTileX - horizontalSign * tileStep, tileY: anchorTileY },
+          { tileX: anchorTileX, tileY: anchorTileY + verticalSign * tileStep },
+          { tileX: anchorTileX, tileY: anchorTileY - verticalSign * tileStep },
+        ]
+      : [
+          { tileX: anchorTileX, tileY: anchorTileY + verticalSign * tileStep },
+          { tileX: anchorTileX, tileY: anchorTileY - verticalSign * tileStep },
+          { tileX: anchorTileX + horizontalSign * tileStep, tileY: anchorTileY },
+          { tileX: anchorTileX - horizontalSign * tileStep, tileY: anchorTileY },
+        ]
 
     let best = null
     let bestDistance = Number.POSITIVE_INFINITY
 
     for (const candidate of candidates) {
-      if (!canPlaceRockAtPosition(candidate.x, candidate.y, rock, allRocks, allBoxes)) {
+      if (!isTileAvailableForRock(candidate.tileX, candidate.tileY, rock, allRocks, allBoxes)) {
         continue
       }
 
-      const distance = getDistance(rock.x, rock.y, candidate.x, candidate.y)
+      const candidateX = candidate.tileX * TILE_SIZE + TILE_SIZE / 2
+      const candidateY = candidate.tileY * TILE_SIZE + TILE_SIZE / 2
+
+      const distance = getDistance(rock.x, rock.y, candidateX, candidateY)
       if (distance < bestDistance) {
         bestDistance = distance
-        best = candidate
+        best = { x: candidateX, y: candidateY }
       }
     }
 
@@ -427,6 +445,40 @@ function canPlaceRockAtPosition(x, y, rock, allRocks, allBoxes) {
   }
 
   return !isRockOverlappingAnyObjectAt(x, y, rock, allRocks, allBoxes)
+}
+
+function getNonGridBoxEffectiveSize(box) {
+  if (!box) {
+    return TILE_SIZE * 0.5
+  }
+
+  if (box.isTrunk) {
+    return WOODEN_BOX_SIZE * 0.95
+  }
+
+  return (box.size || TILE_SIZE * 0.5) * 0.95
+}
+
+function nudgePlayerAwayFromSnap(targetX, targetY, snappedObject) {
+  const { player } = gameState
+  if (!player) {
+    return
+  }
+
+  const objectSize = snappedObject?.size || TILE_SIZE
+  const minDistance = player.size + objectSize * 0.7 + MIN_PLAYER_SNAP_CLEARANCE
+  const distanceToPlayer = getDistance(targetX, targetY, player.x, player.y)
+
+  if (distanceToPlayer < minDistance) {
+    const pushAngle = Math.atan2(player.y - targetY, player.x - targetX)
+    const pushDistance = minDistance - distanceToPlayer
+    player.x += Math.cos(pushAngle) * pushDistance
+    player.y += Math.sin(pushAngle) * pushDistance
+  }
+
+  if (!isPlayerPositionClear(player.x, player.y)) {
+    movePlayerToNearestSafePosition(player.x, player.y, targetX, targetY)
+  }
 }
 
 function drawRockShape(ctx, rock) {

@@ -21,6 +21,9 @@ const ROOF_DETECTION_INTERVAL_MS = 90
 const ROOF_DETECTION_INTERVAL_MS_LIGHTWEIGHT = 260
 const TILE_SEARCH_RADIUS = 6
 const OBJECT_SNAP_GAP = 2
+const NON_GRID_SNAP_TILE_GAP = 1
+const NON_GRID_SNAP_SPAN = TILE_SIZE * (NON_GRID_SNAP_TILE_GAP + 1)
+const MIN_PLAYER_SNAP_CLEARANCE = 8
 
 // Generate wooden boxes
 export function generateWoodenBoxes(count) {
@@ -141,8 +144,10 @@ export function releaseWoodenBox() {
   const { player, grabbedWoodenBox, woodenBoxes, terrain, rocks } = gameState
 
   if (grabbedWoodenBox) {
+    const canUseThrownMotion = Boolean(grabbedWoodenBox.isSledgeCube || grabbedWoodenBox.isSledgeSpiked)
+
     // If throwing, calculate throw parameters
-    if (gameState.keys[" "] || gameState.buttonAActive) {
+    if (canUseThrownMotion && (gameState.keys[" "] || gameState.buttonAActive)) {
       // Space or A button
       // Calculate position in front of player based on facing direction
       const throwAngle = player.direction
@@ -161,7 +166,8 @@ export function releaseWoodenBox() {
       grabbedWoodenBox.x = newX
       grabbedWoodenBox.y = newY
     } else {
-      // If not throwing, just place it in front of the player
+      // Non-sledge items always place directly (no throw-slide), like rocks.
+      // Sledge modules also use this path when throw input is not active.
       const placeDistance = player.size + grabbedWoodenBox.size * 0.8
       const newX = player.x + Math.cos(player.direction) * placeDistance
       const newY = player.y + Math.sin(player.direction) * placeDistance
@@ -207,8 +213,15 @@ function checkForBoxSnapping(box, allBoxes, allRocks) {
   // Don't snap if the box is being thrown or is floating
   if (box.isBeingThrown || box.isFloating) return
 
+  // Non-sledge pieces use free drop + tile settle only.
+  if (!isGridWallBox(box)) {
+    box.snappedTo = null
+    return
+  }
+
   let closestObject = null
-  let closestDistance = WOODEN_BOX_SNAP_DISTANCE
+  const nonGridSnapRange = NON_GRID_SNAP_SPAN + TILE_SIZE * 0.55
+  let closestDistance = Math.max(WOODEN_BOX_SNAP_DISTANCE, nonGridSnapRange)
   let objectType = null
 
   // Find the closest box within snapping distance
@@ -247,26 +260,12 @@ function checkForBoxSnapping(box, allBoxes, allRocks) {
     const newX = snappedPosition.x
     const newY = snappedPosition.y
 
-    // Check if player would get stuck
-    const { player } = gameState
-    if (player) {
-      const distanceToPlayer = getDistance(newX, newY, player.x, player.y)
-
-      // If player is too close to where the box will snap
-      if (distanceToPlayer < player.size + box.size * 0.7) {
-        // Push player away from the snapping area
-        const pushAngle = Math.atan2(player.y - newY, player.x - newX)
-        const pushDistance = player.size + box.size * 0.7 - distanceToPlayer + 5 // Add 5px buffer
-
-        // Move player away
-        player.x += Math.cos(pushAngle) * pushDistance
-        player.y += Math.sin(pushAngle) * pushDistance
-      }
-    }
-
     // Set the box position
     box.x = newX
     box.y = newY
+
+    // Resolve player overlap after object has moved to its final snap position.
+    nudgePlayerAwayFromSnap(newX, newY, box)
 
     // Store reference to snapped object
     box.snappedTo = closestObject
@@ -281,6 +280,13 @@ function checkForBoxSnapping(box, allBoxes, allRocks) {
 
 // Modify the snapBoxToOtherBox function to reduce the gap between boxes
 function snapBoxToOtherBox(box, otherObject) {
+  if (!isGridWallModule(box) || !isGridWallModule(otherObject)) {
+    box.snappedTo = null
+    settleBoxOnLand(box, gameState.woodenBoxes, gameState.rocks)
+    nudgePlayerAwayFromSnap(box.x, box.y, box)
+    return
+  }
+
   const snappedPosition = findAdjacentTileSnapPositionForBox(box, otherObject, gameState.woodenBoxes, gameState.rocks)
   if (!snappedPosition) {
     return
@@ -289,26 +295,12 @@ function snapBoxToOtherBox(box, otherObject) {
   const newX = snappedPosition.x
   const newY = snappedPosition.y
 
-  // Check if player would get stuck
-  const { player } = gameState
-  if (player) {
-    const distanceToPlayer = getDistance(newX, newY, player.x, player.y)
-
-    // If player is too close to where the box will snap
-    if (distanceToPlayer < player.size + box.size * 0.7) {
-      // Push player away from the snapping area
-      const pushAngle = Math.atan2(player.y - newY, player.x - newX)
-      const pushDistance = player.size + box.size * 0.7 - distanceToPlayer + 5 // Add 5px buffer
-
-      // Move player away
-      player.x += Math.cos(pushAngle) * pushDistance
-      player.y += Math.sin(pushAngle) * pushDistance
-    }
-  }
-
   // Set the box position
   box.x = newX
   box.y = newY
+
+  // Resolve player overlap after object has moved to its final snap position.
+  nudgePlayerAwayFromSnap(newX, newY, box)
 
   // Store reference to snapped object
   box.snappedTo = otherObject
@@ -345,26 +337,47 @@ function findAdjacentTileSnapPositionForBox(box, anchorObject, allBoxes, allRock
   }
 
   if (!isGridWallModule(box) || !isGridWallModule(anchorObject)) {
-    const snapDistance = getObjectEffectiveHalfSize(box) + getObjectEffectiveHalfSize(anchorObject) + OBJECT_SNAP_GAP
-    const candidates = [
-      { x: anchorObject.x + snapDistance, y: anchorObject.y },
-      { x: anchorObject.x - snapDistance, y: anchorObject.y },
-      { x: anchorObject.x, y: anchorObject.y + snapDistance },
-      { x: anchorObject.x, y: anchorObject.y - snapDistance },
-    ]
+    const anchorTileX = Math.round((anchorObject.x - TILE_SIZE / 2) / TILE_SIZE)
+    const anchorTileY = Math.round((anchorObject.y - TILE_SIZE / 2) / TILE_SIZE)
+    const anchorCenterX = anchorTileX * TILE_SIZE + TILE_SIZE / 2
+    const anchorCenterY = anchorTileY * TILE_SIZE + TILE_SIZE / 2
+
+    const deltaX = box.x - anchorCenterX
+    const deltaY = box.y - anchorCenterY
+    const preferHorizontal = Math.abs(deltaX) >= Math.abs(deltaY)
+    const horizontalSign = deltaX >= 0 ? 1 : -1
+    const verticalSign = deltaY >= 0 ? 1 : -1
+    const tileStep = NON_GRID_SNAP_TILE_GAP + 1
+
+    const candidates = preferHorizontal
+      ? [
+          { tileX: anchorTileX + horizontalSign * tileStep, tileY: anchorTileY },
+          { tileX: anchorTileX - horizontalSign * tileStep, tileY: anchorTileY },
+          { tileX: anchorTileX, tileY: anchorTileY + verticalSign * tileStep },
+          { tileX: anchorTileX, tileY: anchorTileY - verticalSign * tileStep },
+        ]
+      : [
+          { tileX: anchorTileX, tileY: anchorTileY + verticalSign * tileStep },
+          { tileX: anchorTileX, tileY: anchorTileY - verticalSign * tileStep },
+          { tileX: anchorTileX + horizontalSign * tileStep, tileY: anchorTileY },
+          { tileX: anchorTileX - horizontalSign * tileStep, tileY: anchorTileY },
+        ]
 
     let best = null
     let bestDistance = Number.POSITIVE_INFINITY
 
     for (const candidate of candidates) {
-      if (!canPlaceBoxAtPosition(candidate.x, candidate.y, box, allBoxes, allRocks)) {
+      if (!isTileAvailableForBox(candidate.tileX, candidate.tileY, box, allBoxes, allRocks)) {
         continue
       }
 
-      const distance = getDistance(box.x, box.y, candidate.x, candidate.y)
+      const candidateX = candidate.tileX * TILE_SIZE + TILE_SIZE / 2
+      const candidateY = candidate.tileY * TILE_SIZE + TILE_SIZE / 2
+
+      const distance = getDistance(box.x, box.y, candidateX, candidateY)
       if (distance < bestDistance) {
         bestDistance = distance
-        best = candidate
+        best = { x: candidateX, y: candidateY }
       }
     }
 
@@ -460,7 +473,15 @@ function isGridWallModule(object) {
 }
 
 function getBoxEffectiveSize(box) {
-  return isGridWallBox(box) ? TILE_SIZE * 0.5 : box.size * 0.95
+  if (isGridWallBox(box)) {
+    return TILE_SIZE * 0.5
+  }
+
+  if (box?.isTrunk) {
+    return WOODEN_BOX_SIZE * 0.95
+  }
+
+  return box.size * 0.95
 }
 
 function getRockEffectiveSize(rock) {
@@ -476,7 +497,33 @@ function getObjectEffectiveHalfSize(object) {
     return TILE_SIZE * 0.5
   }
 
+  if (object.isTrunk) {
+    return WOODEN_BOX_SIZE * 0.95
+  }
+
   return (object.size || TILE_SIZE * 0.5) * 0.95
+}
+
+function nudgePlayerAwayFromSnap(targetX, targetY, snappedObject) {
+  const { player } = gameState
+  if (!player) {
+    return
+  }
+
+  const objectSize = snappedObject?.isTrunk ? WOODEN_BOX_SIZE : (snappedObject?.size || TILE_SIZE)
+  const minDistance = player.size + objectSize * 0.7 + MIN_PLAYER_SNAP_CLEARANCE
+  const distanceToPlayer = getDistance(targetX, targetY, player.x, player.y)
+
+  if (distanceToPlayer < minDistance) {
+    const pushAngle = Math.atan2(player.y - targetY, player.x - targetX)
+    const pushDistance = minDistance - distanceToPlayer
+    player.x += Math.cos(pushAngle) * pushDistance
+    player.y += Math.sin(pushAngle) * pushDistance
+  }
+
+  if (!isPlayerPositionClear(player.x, player.y)) {
+    movePlayerToNearestSafePosition(player.x, player.y, targetX, targetY)
+  }
 }
 
 function canPlaceBoxAtPosition(x, y, box, allBoxes, allRocks) {
@@ -523,7 +570,9 @@ function isBoxOverlappingAnyObjectAt(x, y, box, allBoxes, allRocks) {
       continue
     }
 
-    const minDistance = movingHalfSize + getBoxEffectiveSize(otherBox) + OBJECT_SNAP_GAP
+    const minDistance = (!movingIsGridWall || !otherIsGridWall)
+      ? NON_GRID_SNAP_SPAN
+      : movingHalfSize + getBoxEffectiveSize(otherBox) + OBJECT_SNAP_GAP
     if (getDistance(x, y, otherBox.x, otherBox.y) < minDistance) {
       return true
     }
@@ -544,7 +593,9 @@ function isBoxOverlappingAnyObjectAt(x, y, box, allBoxes, allRocks) {
       continue
     }
 
-    const minDistance = movingHalfSize + getRockEffectiveSize(rock) + OBJECT_SNAP_GAP
+    const minDistance = (!movingIsGridWall || !rockIsGridWall)
+      ? NON_GRID_SNAP_SPAN
+      : movingHalfSize + getRockEffectiveSize(rock) + OBJECT_SNAP_GAP
     if (getDistance(x, y, rock.x, rock.y) < minDistance) {
       return true
     }
@@ -1516,7 +1567,7 @@ function drawRoofAreas() {
     const cornerRadius = roof.cornerRadius || 15 // Default to 15px if not specified
 
     // Draw semi-transparent brown roof with rounded corners
-    ctx.fillStyle = "rgba(139, 69, 19, 0.4)" // Semi-transparent brown
+    ctx.fillStyle = "rgba(139, 69, 19, 0.34)" // Slightly lighter roof transparency
 
     // Draw rounded rectangle
     ctx.beginPath()
@@ -1539,7 +1590,7 @@ function drawRoofAreas() {
     ctx.fill()
 
     // Draw subtle grid pattern for visual interest
-    ctx.strokeStyle = "rgba(139, 69, 19, 0.5)"
+    ctx.strokeStyle = "rgba(139, 69, 19, 0.43)"
     ctx.lineWidth = 1
 
     // Different patterns for different roof types
@@ -1585,7 +1636,7 @@ function drawRoofAreas() {
     ctx.restore() // Restore context after clipping
 
     // Add a subtle border with rounded corners
-    ctx.strokeStyle = "rgba(139, 69, 19, 0.6)"
+    ctx.strokeStyle = "rgba(139, 69, 19, 0.52)"
     ctx.lineWidth = 2
     ctx.beginPath()
     ctx.moveTo(screenX + cornerRadius, screenY)
@@ -1620,10 +1671,10 @@ function drawRoofAreasLightweight(ctx, camera, player) {
     const screenY = roof.y - camera.y
 
     // Cheap roof pass: flat translucent fill + thin border, no clipping/grid.
-    ctx.fillStyle = "rgba(128, 76, 32, 0.28)"
+    ctx.fillStyle = "rgba(128, 76, 32, 0.23)"
     ctx.fillRect(screenX, screenY, roof.width, roof.height)
 
-    ctx.strokeStyle = "rgba(98, 58, 24, 0.48)"
+    ctx.strokeStyle = "rgba(98, 58, 24, 0.42)"
     ctx.lineWidth = 1
     ctx.strokeRect(screenX, screenY, roof.width, roof.height)
 
