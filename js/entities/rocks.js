@@ -8,8 +8,8 @@ import { createSnapEffect } from "../entities/wooden-boxes.js"
 import { isSpawnPositionClear } from "../utils/spawn-utils.js"
 
 const HAMMER_ROCK_SIZE_SCALE = 0.88
-const OBJECT_SNAP_GAP = 2
 const TILE_SEARCH_RADIUS = 6
+const OBJECT_SNAP_GAP = 2
 
 // Generate rocks
 export function generateRocks(count) {
@@ -56,6 +56,7 @@ export function tryGrabRock() {
       if (gameState.hasSledgehammer && gameState.selectedTool === "sledgehammer") {
         rock.isHammerShaped = true
         rock.rotation = 0
+        rock.size = TILE_SIZE / HAMMER_ROCK_SIZE_SCALE
       }
 
       gameState.isGrabbing = true
@@ -129,21 +130,13 @@ function checkForRockSnapping(rock, allRocks, allBoxes) {
 
   // If found a rock or box to snap to
   if (closestObject) {
-    // Calculate the angle between the objects
-    const angle = Math.atan2(rock.y - closestObject.y, rock.x - closestObject.x)
+    const snappedPosition = findAdjacentTileSnapPositionForRock(rock, closestObject, allRocks, allBoxes)
+    if (!snappedPosition) {
+      return
+    }
 
-    // Round to nearest 90 degrees for edge alignment
-    const snapAngle = Math.round(angle / (Math.PI / 2)) * (Math.PI / 2)
-
-    // Calculate new position based on snap angle with reduced gap
-    // Use 0.95 multiplier for both objects to make them almost touch
-    const rockSnapSize = rock.isHammerShaped ? rock.size * HAMMER_ROCK_SIZE_SCALE : rock.size
-    const targetSnapSize = closestObject.isHammerShaped ? closestObject.size * HAMMER_ROCK_SIZE_SCALE : closestObject.size
-    const snapDistance = rockSnapSize * 0.95 + targetSnapSize * 0.95 + OBJECT_SNAP_GAP
-
-    // Calculate the new position where the rock would snap
-    const newX = closestObject.x + Math.cos(snapAngle) * snapDistance
-    const newY = closestObject.y + Math.sin(snapAngle) * snapDistance
+    const newX = snappedPosition.x
+    const newY = snappedPosition.y
 
     // Check if player would get stuck
     const { player } = gameState
@@ -184,6 +177,9 @@ function settleRockOnLand(rock, allRocks, allBoxes) {
   }
 
   snapRockToNearestTileCenter(rock)
+  if (rock.isHammerShaped) {
+    rock.rotation = 0
+  }
 
   if (isRockOverlappingAnyObject(rock, allRocks, allBoxes)) {
     moveRockToNearestFreeTile(rock, allRocks, allBoxes)
@@ -245,15 +241,27 @@ function isRockOverlappingAnyObject(rock, allRocks, allBoxes) {
 }
 
 function isRockOverlappingAnyObjectAt(x, y, rock, allRocks, allBoxes) {
-  const rockSize = rock.isHammerShaped ? rock.size * HAMMER_ROCK_SIZE_SCALE : rock.size
+  const candidateTile = getSnappedTileCoords(x, y)
+  const movingIsGridWall = Boolean(rock.isHammerShaped)
+  const movingHalfSize = movingIsGridWall ? TILE_SIZE * 0.5 : rock.size * 0.95
 
   for (const otherRock of allRocks) {
     if (!otherRock || otherRock === rock) {
       continue
     }
 
-    const otherSize = otherRock.isHammerShaped ? otherRock.size * HAMMER_ROCK_SIZE_SCALE : otherRock.size
-    const minDistance = rockSize * 0.95 + otherSize * 0.95 + OBJECT_SNAP_GAP
+    const otherIsGridWall = Boolean(otherRock.isHammerShaped)
+
+    if (movingIsGridWall && otherIsGridWall) {
+      const otherTile = getSnappedTileCoords(otherRock.x, otherRock.y)
+      if (otherTile.tileX === candidateTile.tileX && otherTile.tileY === candidateTile.tileY) {
+        return true
+      }
+      continue
+    }
+
+    const otherHalfSize = otherIsGridWall ? TILE_SIZE * 0.5 : otherRock.size * 0.95
+    const minDistance = movingHalfSize + otherHalfSize + OBJECT_SNAP_GAP
     if (getDistance(x, y, otherRock.x, otherRock.y) < minDistance) {
       return true
     }
@@ -264,13 +272,31 @@ function isRockOverlappingAnyObjectAt(x, y, rock, allRocks, allBoxes) {
       continue
     }
 
-    const minDistance = rockSize * 0.95 + box.size * 0.95 + OBJECT_SNAP_GAP
+    const boxIsGridWall = Boolean(box.isSledgeCube || box.isSledgeSpiked)
+
+    if (movingIsGridWall && boxIsGridWall) {
+      const boxTile = getSnappedTileCoords(box.x, box.y)
+      if (boxTile.tileX === candidateTile.tileX && boxTile.tileY === candidateTile.tileY) {
+        return true
+      }
+      continue
+    }
+
+    const boxHalfSize = boxIsGridWall ? TILE_SIZE * 0.5 : box.size * 0.95
+    const minDistance = movingHalfSize + boxHalfSize + OBJECT_SNAP_GAP
     if (getDistance(x, y, box.x, box.y) < minDistance) {
       return true
     }
   }
 
   return false
+}
+
+function getSnappedTileCoords(x, y) {
+  return {
+    tileX: Math.round((x - TILE_SIZE / 2) / TILE_SIZE),
+    tileY: Math.round((y - TILE_SIZE / 2) / TILE_SIZE),
+  }
 }
 
 function moveRockToNearestFreeTile(rock, allRocks, allBoxes) {
@@ -314,6 +340,95 @@ function moveRockToNearestFreeTile(rock, allRocks, allBoxes) {
   }
 }
 
+function findAdjacentTileSnapPositionForRock(rock, anchorObject, allRocks, allBoxes) {
+  if (!rock || !anchorObject) {
+    return null
+  }
+
+  const rockIsGridWall = Boolean(rock.isHammerShaped)
+  const anchorIsGridWall = Boolean(anchorObject.isHammerShaped || anchorObject.isSledgeCube || anchorObject.isSledgeSpiked)
+
+  if (!rockIsGridWall || !anchorIsGridWall) {
+    const movingHalfSize = rockIsGridWall ? TILE_SIZE * 0.5 : rock.size * 0.95
+    const anchorHalfSize = anchorIsGridWall ? TILE_SIZE * 0.5 : (anchorObject.size || TILE_SIZE * 0.5) * 0.95
+    const snapDistance = movingHalfSize + anchorHalfSize + OBJECT_SNAP_GAP
+
+    const candidates = [
+      { x: anchorObject.x + snapDistance, y: anchorObject.y },
+      { x: anchorObject.x - snapDistance, y: anchorObject.y },
+      { x: anchorObject.x, y: anchorObject.y + snapDistance },
+      { x: anchorObject.x, y: anchorObject.y - snapDistance },
+    ]
+
+    let best = null
+    let bestDistance = Number.POSITIVE_INFINITY
+
+    for (const candidate of candidates) {
+      if (!canPlaceRockAtPosition(candidate.x, candidate.y, rock, allRocks, allBoxes)) {
+        continue
+      }
+
+      const distance = getDistance(rock.x, rock.y, candidate.x, candidate.y)
+      if (distance < bestDistance) {
+        bestDistance = distance
+        best = candidate
+      }
+    }
+
+    return best
+  }
+
+  const anchorTileX = Math.round((anchorObject.x - TILE_SIZE / 2) / TILE_SIZE)
+  const anchorTileY = Math.round((anchorObject.y - TILE_SIZE / 2) / TILE_SIZE)
+
+  const candidates = [
+    { tileX: anchorTileX + 1, tileY: anchorTileY },
+    { tileX: anchorTileX - 1, tileY: anchorTileY },
+    { tileX: anchorTileX, tileY: anchorTileY + 1 },
+    { tileX: anchorTileX, tileY: anchorTileY - 1 },
+  ]
+
+  let best = null
+  let bestDistance = Number.POSITIVE_INFINITY
+
+  for (const candidate of candidates) {
+    if (!isTileAvailableForRock(candidate.tileX, candidate.tileY, rock, allRocks, allBoxes)) {
+      continue
+    }
+
+    const x = candidate.tileX * TILE_SIZE + TILE_SIZE / 2
+    const y = candidate.tileY * TILE_SIZE + TILE_SIZE / 2
+    const distance = getDistance(rock.x, rock.y, x, y)
+
+    if (distance < bestDistance) {
+      bestDistance = distance
+      best = { x, y }
+    }
+  }
+
+  return best
+}
+
+function canPlaceRockAtPosition(x, y, rock, allRocks, allBoxes) {
+  const { terrain } = gameState
+  if (!terrain || terrain.length === 0 || terrain[0].length === 0) {
+    return false
+  }
+
+  const tileX = Math.floor(x / TILE_SIZE)
+  const tileY = Math.floor(y / TILE_SIZE)
+
+  if (tileY < 0 || tileY >= terrain.length || tileX < 0 || tileX >= terrain[0].length) {
+    return false
+  }
+
+  if (terrain[tileY][tileX] === 0) {
+    return false
+  }
+
+  return !isRockOverlappingAnyObjectAt(x, y, rock, allRocks, allBoxes)
+}
+
 function drawRockShape(ctx, rock) {
   ctx.fillStyle = "#7f8c8d"
 
@@ -327,6 +442,8 @@ function drawRockShape(ctx, rock) {
     ctx.fillRect(-rockBlockSize * 0.34, -rockBlockSize * 0.06, rockBlockSize * 0.68, rockBlockSize * 0.16)
     ctx.fillStyle = "#9aa8a8"
     ctx.fillRect(-rockBlockSize * 0.4, -rockBlockSize * 0.4, rockBlockSize * 0.26, rockBlockSize * 0.14)
+
+    drawRockModuleOuterEdges(ctx, rock, halfBlockSize)
     return
   }
 
@@ -379,6 +496,81 @@ function drawRockShape(ctx, rock) {
   ctx.fill()
 }
 
+function drawRockModuleOuterEdges(ctx, rock, halfSize) {
+  const neighbors = getWallModuleNeighborMaskForRock(rock)
+
+  ctx.save()
+  ctx.strokeStyle = "rgba(36, 44, 48, 0.58)"
+  ctx.lineWidth = 1
+
+  if (!neighbors.top) {
+    ctx.beginPath()
+    ctx.moveTo(-halfSize, -halfSize)
+    ctx.lineTo(halfSize, -halfSize)
+    ctx.stroke()
+  }
+
+  if (!neighbors.right) {
+    ctx.beginPath()
+    ctx.moveTo(halfSize, -halfSize)
+    ctx.lineTo(halfSize, halfSize)
+    ctx.stroke()
+  }
+
+  if (!neighbors.bottom) {
+    ctx.beginPath()
+    ctx.moveTo(-halfSize, halfSize)
+    ctx.lineTo(halfSize, halfSize)
+    ctx.stroke()
+  }
+
+  if (!neighbors.left) {
+    ctx.beginPath()
+    ctx.moveTo(-halfSize, -halfSize)
+    ctx.lineTo(-halfSize, halfSize)
+    ctx.stroke()
+  }
+
+  ctx.restore()
+}
+
+function getWallModuleNeighborMaskForRock(rock) {
+  const { tileX, tileY } = getSnappedTileCoords(rock.x, rock.y)
+
+  return {
+    top: isWallModuleAtTile(tileX, tileY - 1, rock),
+    right: isWallModuleAtTile(tileX + 1, tileY, rock),
+    bottom: isWallModuleAtTile(tileX, tileY + 1, rock),
+    left: isWallModuleAtTile(tileX - 1, tileY, rock),
+  }
+}
+
+function isWallModuleAtTile(tileX, tileY, selfObject) {
+  for (const rock of gameState.rocks || []) {
+    if (!rock || rock === selfObject || !rock.isHammerShaped) {
+      continue
+    }
+
+    const tile = getSnappedTileCoords(rock.x, rock.y)
+    if (tile.tileX === tileX && tile.tileY === tileY) {
+      return true
+    }
+  }
+
+  for (const box of gameState.woodenBoxes || []) {
+    if (!box || box === selfObject || box.isBeingThrown || box.isFloating || !(box.isSledgeCube || box.isSledgeSpiked)) {
+      continue
+    }
+
+    const tile = getSnappedTileCoords(box.x, box.y)
+    if (tile.tileX === tileX && tile.tileY === tileY) {
+      return true
+    }
+  }
+
+  return false
+}
+
 // Modify the drawAndUpdateRocks function to use normal shadow scale
 export function drawAndUpdateRocks() {
   try {
@@ -402,8 +594,7 @@ export function drawAndUpdateRocks() {
       }
 
       if (rock.isHammerShaped) {
-        const rockBlockSize = rock.size * HAMMER_ROCK_SIZE_SCALE
-        createShadow(ctx, screenX, screenY, rockBlockSize, "rectangle", { width: rockBlockSize, height: rockBlockSize, radius: 4 }, 0, 1.0)
+        // Skip shadow for tile wall modules so blocks visually touch.
       } else if (rock.texture === 0) {
         // Rounded rock shadow
         createShadow(ctx, screenX, screenY, rock.size, "circle", null, 0, 1.0)
@@ -446,8 +637,7 @@ export function drawGrabbedRock() {
   const screenY = rockY - camera.y
 
   if (grabbedRock.isHammerShaped) {
-    const rockBlockSize = grabbedRock.size * HAMMER_ROCK_SIZE_SCALE
-    createShadow(ctx, screenX, screenY, rockBlockSize, "rectangle", { width: rockBlockSize, height: rockBlockSize, radius: 4 }, 0, 0.95)
+    // Skip shadow for tile wall modules so placement preview matches final contact.
   } else if (grabbedRock.texture === 0) {
     // Rounded rock shadow
     createShadow(ctx, screenX, screenY, grabbedRock.size, "circle", null, 0, 0.95)
