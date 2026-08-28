@@ -2,6 +2,7 @@ import { gameState } from "./game-state.js"
 import { refreshWorldForNewDay } from "./game-maintenance.js"
 import { clearAllEnemies, spawnImmediateNightBlackEnemies } from "../entities/enemies.js"
 import { roofAreas } from "../entities/wooden-boxes.js"
+import { TILE_SIZE } from "./constants.js"
 
 const TRANSITION_DURATION = 30 * 1000
 
@@ -200,14 +201,16 @@ export function drawDayNightOverlay() {
 
   drawShelterLightCutouts(overlayCtx, camera, player)
 
-  const playerLight = overlayCtx.createRadialGradient(screenX, screenY, 0, screenX, screenY, lighting.lightRadius)
+  const playerLightRadius = Math.max(lighting.lightRadius, TILE_SIZE * 1.5)
+  const playerLight = overlayCtx.createRadialGradient(screenX, screenY, 0, screenX, screenY, playerLightRadius)
   playerLight.addColorStop(0, "rgba(0, 0, 0, 1)")
-  playerLight.addColorStop(0.22, "rgba(0, 0, 0, 0.96)")
-  playerLight.addColorStop(0.58, "rgba(0, 0, 0, 0.46)")
+  playerLight.addColorStop(0.18, "rgba(0, 0, 0, 0.95)")
+  playerLight.addColorStop(0.48, "rgba(0, 0, 0, 0.4)")
+  playerLight.addColorStop(0.8, "rgba(0, 0, 0, 0.12)")
   playerLight.addColorStop(1, "rgba(0, 0, 0, 0)")
   overlayCtx.fillStyle = playerLight
   overlayCtx.beginPath()
-  overlayCtx.arc(screenX, screenY, lighting.lightRadius, 0, Math.PI * 2)
+  overlayCtx.arc(screenX, screenY, playerLightRadius, 0, Math.PI * 2)
   overlayCtx.fill()
 
   drawExplosionLightBursts(overlayCtx, camera)
@@ -216,10 +219,11 @@ export function drawDayNightOverlay() {
   overlayCtx.translate(screenX, screenY)
   overlayCtx.rotate(player.direction)
 
-  const beamGradient = overlayCtx.createLinearGradient(0, 0, lighting.beamLength, 0)
+  const beamGradient = overlayCtx.createLinearGradient(0, 0, lighting.beamLength * 1.2, 0)
   beamGradient.addColorStop(0, "rgba(0, 0, 0, 1)")
-  beamGradient.addColorStop(0.14, "rgba(0, 0, 0, 0.98)")
-  beamGradient.addColorStop(0.4, "rgba(0, 0, 0, 0.62)")
+  beamGradient.addColorStop(0.18, "rgba(0, 0, 0, 0.92)")
+  beamGradient.addColorStop(0.42, "rgba(0, 0, 0, 0.56)")
+  beamGradient.addColorStop(0.7, "rgba(0, 0, 0, 0.18)")
   beamGradient.addColorStop(1, "rgba(0, 0, 0, 0)")
   overlayCtx.fillStyle = beamGradient
   overlayCtx.beginPath()
@@ -334,18 +338,32 @@ function drawShelterLightCutouts(overlayCtx, camera, player) {
   })
 
   for (const roof of roofAreas) {
-    const centerX = roof.x + roof.width * 0.5 - camera.x
-    const centerY = roof.y + roof.height * 0.5 - camera.y
-    const radius = Math.max(roof.width, roof.height) * 0.8 + 40
-    const roofGlow = overlayCtx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius)
-    roofGlow.addColorStop(0, "rgba(0, 0, 0, 1)")
-    roofGlow.addColorStop(0.25, "rgba(0, 0, 0, 0.7)")
-    roofGlow.addColorStop(0.6, "rgba(0, 0, 0, 0.2)")
-    roofGlow.addColorStop(1, "rgba(0, 0, 0, 0)")
-    overlayCtx.fillStyle = roofGlow
-    overlayCtx.beginPath()
-    overlayCtx.arc(centerX, centerY, radius, 0, Math.PI * 2)
-    overlayCtx.fill()
+    const roofX = roof.x - camera.x
+    const roofY = roof.y - camera.y
+    const roofCenterX = roofX + roof.width * 0.5
+    const roofCenterY = roofY + roof.height * 0.5
+    const roofHaloMargin = TILE_SIZE * 2
+    const roofEdgeGlowRadius = Math.max(roof.width, roof.height) * 0.7 + roofHaloMargin
+
+    overlayCtx.fillStyle = "rgba(0, 0, 0, 1)"
+    overlayCtx.fillRect(roofX, roofY, roof.width, roof.height)
+
+    const edgeGlow = overlayCtx.createRadialGradient(
+      roofCenterX,
+      roofCenterY,
+      Math.min(roof.width, roof.height) * 0.12,
+      roofCenterX,
+      roofCenterY,
+      roofEdgeGlowRadius,
+    )
+
+    edgeGlow.addColorStop(0, "rgba(0, 0, 0, 1)")
+    edgeGlow.addColorStop(0.42, "rgba(0, 0, 0, 1)")
+    edgeGlow.addColorStop(0.7, "rgba(0, 0, 0, 0.38)")
+    edgeGlow.addColorStop(1, "rgba(0, 0, 0, 0)")
+
+    overlayCtx.fillStyle = edgeGlow
+    overlayCtx.fillRect(roofX - roofHaloMargin, roofY - roofHaloMargin, roof.width + roofHaloMargin * 2, roof.height + roofHaloMargin * 2)
   }
 
   if (playerUnderRoof) {
