@@ -1598,6 +1598,43 @@ function getRoofAlpha(roof, x, y) {
   return farAlpha + (nearAlpha - farAlpha) * fadeT
 }
 
+function drawRoofTexture(ctx, roof, screenX, screenY, roofAlpha, isSolid) {
+  const tileWidth = Math.max(18, Math.min(28, roof.width / 5))
+  const tileHeight = Math.max(14, Math.min(20, roof.height / 5))
+
+  if (isSolid) {
+    ctx.strokeStyle = `rgba(98, 48, 38, ${Math.min(0.8, roofAlpha + 0.15)})`
+    ctx.lineWidth = 1.1
+
+    for (let x = screenX; x < screenX + roof.width; x += tileWidth) {
+      for (let y = screenY; y < screenY + roof.height; y += tileHeight) {
+        const x1 = x + 2
+        const y1 = y + 2
+        const w = Math.min(tileWidth - 4, roof.width - (x - screenX))
+        const h = Math.min(tileHeight - 4, roof.height - (y - screenY))
+
+        if (w <= 6 || h <= 6) continue
+
+        ctx.beginPath()
+        ctx.moveTo(x1, y1 + h * 0.2)
+        ctx.quadraticCurveTo(x1 + w * 0.5, y1 + h * 0.9, x1 + w, y1 + h * 0.2)
+        ctx.stroke()
+
+        ctx.beginPath()
+        ctx.moveTo(x1 + 3, y1 + h * 0.4)
+        ctx.lineTo(x1 + w - 3, y1 + h * 0.4)
+        ctx.stroke()
+      }
+    }
+    return
+  }
+
+  // Plain roof for basic structures: keep it visually simple and brown, with no texture overlay.
+  ctx.strokeStyle = `rgba(98, 69, 42, ${Math.min(0.35, roofAlpha + 0.05)})`
+  ctx.lineWidth = 1
+  ctx.strokeRect(screenX + 1, screenY + 1, Math.max(4, roof.width - 2), Math.max(4, roof.height - 2))
+}
+
 // Improve the drawRoofAreas function to make roofs more visually distinct with rounded corners
 function drawRoofAreas() {
   const { camera, ctx, player, dayNight } = gameState
@@ -1636,8 +1673,7 @@ function drawRoofAreas() {
       ctx.fillRect(screenX - glowRadius * 0.25, screenY - glowRadius * 0.25, roof.width + glowRadius * 0.5, roof.height + glowRadius * 0.5)
     }
 
-    ctx.fillStyle = `rgba(139, 69, 19, ${roofAlpha})`
-
+    ctx.save()
     ctx.beginPath()
     ctx.moveTo(screenX + cornerRadius, screenY)
     ctx.lineTo(screenX + roof.width - cornerRadius, screenY)
@@ -1655,7 +1691,12 @@ function drawRoofAreas() {
     ctx.lineTo(screenX, screenY + cornerRadius)
     ctx.arcTo(screenX, screenY, screenX + cornerRadius, screenY, cornerRadius)
     ctx.closePath()
-    ctx.fill()
+    ctx.clip()
+
+    ctx.fillStyle = roof.isSolid ? `rgba(155, 92, 68, ${roofAlpha})` : `rgba(119, 82, 45, ${roofAlpha})`
+    ctx.fillRect(screenX, screenY, roof.width, roof.height)
+    drawRoofTexture(ctx, roof, screenX, screenY, roofAlpha, roof.isSolid)
+    ctx.restore()
 
     ctx.strokeStyle = roof.isSolid ? "rgba(139, 69, 19, 0.35)" : "rgba(139, 69, 19, 0.18)"
     ctx.lineWidth = 1.5
@@ -1710,8 +1751,14 @@ function drawRoofAreasLightweight(ctx, camera, player) {
       continue
     }
 
-    ctx.fillStyle = `rgba(128, 76, 32, ${alpha <= 0.002 ? 0.08 : alpha})`
+    ctx.save()
+    ctx.beginPath()
+    ctx.rect(screenX, screenY, roof.width, roof.height)
+    ctx.clip()
+    ctx.fillStyle = roof.isSolid ? `rgba(155, 92, 68, ${alpha <= 0.002 ? 0.08 : alpha})` : `rgba(119, 82, 45, ${alpha <= 0.002 ? 0.08 : alpha})`
     ctx.fillRect(screenX, screenY, roof.width, roof.height)
+    drawRoofTexture(ctx, roof, screenX, screenY, alpha <= 0.002 ? 0.08 : alpha, roof.isSolid)
+    ctx.restore()
 
     ctx.strokeStyle = roof.isSolid ? "rgba(98, 58, 24, 0.18)" : "rgba(98, 58, 24, 0.12)"
     ctx.lineWidth = 1
@@ -1908,7 +1955,7 @@ function drawAndUpdateSplashEffects() {
 }
 
 // Draw the wooden box base
-function drawWoodenBox(ctx, box) {
+export function drawWoodenBox(ctx, box) {
   if (box.isSledgeCube) {
     drawSolidBrownCube(ctx, box)
     return

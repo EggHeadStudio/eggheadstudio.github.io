@@ -12,10 +12,14 @@ import {
   CAR_DRIFT_FACTOR,
   BOAT_COUNT,
   MAX_BOATS,
+  BOAT_TOW_CAP,
+  BOAT_TOW_SLOWDOWN_MULTIPLIER,
+  BOAT_TOW_SMOKE_ALPHA,
 } from "../core/constants.js"
 import { getDistance } from "../utils/math-utils.js"
 import { findNearestSafePlayerPosition } from "../utils/player-position-utils.js"
 import { triggerGameOver } from "../core/game.js"
+import { drawWoodenBox } from "./wooden-boxes.js"
 import { isSpawnPositionClear, isWaterPosition } from "../utils/spawn-utils.js"
 
 const BOAT_FLOAT_BOB = 2.5
@@ -81,8 +85,238 @@ function createBoat(x, y) {
     floatOffset: 0,
     bowWaves: [],
     foamTrail: [],
+    towedBoxes: [],
     isBroken: false,
   }
+}
+
+function isBoatAtLand(boat) {
+  const tileX = Math.floor(boat.x / TILE_SIZE)
+  const tileY = Math.floor(boat.y / TILE_SIZE)
+  return tileX >= 0 && tileY >= 0 && tileY < gameState.terrain.length && tileX < gameState.terrain[0].length && gameState.terrain[tileY][tileX] !== TERRAIN_TYPES.WATER
+}
+
+function getTowSlotOffset(index, count) {
+  const spread = Math.min(20, 6 + count * 2.5)
+  const offsetSide = (index - (count - 1) / 2) * spread
+  return { x: -Math.cos(Math.PI / 2 + 0.3) * offsetSide, y: Math.sin(Math.PI / 2 + 0.3) * offsetSide }
+}
+
+function isTowEligibleBox(box) {
+  if (!box || box.isBeingThrown || box.isTowedByBoat) {
+    return false
+  }
+
+  if (box.isFloating) {
+    return true
+  }
+
+  const { terrain } = gameState
+  const tileX = Math.floor(box.x / TILE_SIZE)
+  const tileY = Math.floor(box.y / TILE_SIZE)
+
+  if (tileX < 0 || tileY < 0 || tileY >= terrain.length || tileX >= terrain[0].length) {
+    return false
+  }
+
+  if (terrain[tileY][tileX] === TERRAIN_TYPES.WATER) {
+    return false
+  }
+
+  for (let dy = -1; dy <= 1; dy++) {
+    for (let dx = -1; dx <= 1; dx++) {
+      const neighborX = tileX + dx
+      const neighborY = tileY + dy
+      if (neighborX < 0 || neighborY < 0 || neighborY >= terrain.length || neighborX >= terrain[0].length) {
+        continue
+      }
+      if (terrain[neighborY][neighborX] === TERRAIN_TYPES.WATER) {
+        return true
+      }
+    }
+  }
+
+  return false
+}
+
+function updateBoatTow(boat) {
+  if (!boat || boat.isBroken) {
+    return
+  }
+
+  const { woodenBoxes } = gameState
+  const maxBoxes = BOAT_TOW_CAP
+
+  for (let i = woodenBoxes.length - 1; i >= 0; i--) {
+    const box = woodenBoxes[i]
+    if (!isTowEligibleBox(box)) {
+      continue
+    }
+
+    const distance = getDistance(boat.x, boat.y, box.x, box.y)
+    const towRange = boat.size * 1.25 + box.size * 1.45
+    if (boat.towedBoxes.length < maxBoxes && distance < towRange) {
+      box.isTowedByBoat = boat
+      box.towedIndex = boat.towedBoxes.length
+      boat.towedBoxes.push(box)
+      woodenBoxes.splice(i, 1)
+    }
+  }
+
+  const fullLoad = boat.towedBoxes.length >= maxBoxes
+  if (fullLoad) {
+    const slowdown = BOAT_TOW_SLOWDOWN_MULTIPLIER
+    boat.currentSpeed *= slowdown
+    if (boat.currentSpeed < 0.5) {
+      boat.currentSpeed = 0.5
+    }
+  }
+
+  for (let i = 0; i < boat.towedBoxes.length; i++) {
+    const box = boat.towedBoxes[i]
+    if (!box) continue
+
+    const aheadAngle = boat.direction + Math.PI
+    const slotOffset = getTowSlotOffset(i, boat.towedBoxes.length)
+    const targetX = boat.x + Math.cos(aheadAngle) * (boat.size * 0.8 + 18 + i * 16) + Math.cos(boat.direction + Math.PI / 2) * slotOffset.x
+    const targetY = boat.y + Math.sin(aheadAngle) * (boat.size * 0.8 + 18 + i * 16) + Math.sin(boat.direction + Math.PI / 2) * slotOffset.y
+
+    const moveStrength = boat.towedBoxes.length >= maxBoxes ? 0.18 : 0.32
+    box.x += (targetX - box.x) * moveStrength
+    box.y += (targetY - box.y) * moveStrength
+    box.isFloating = true
+    box.floatAngle = boat.direction + Math.PI
+    box.floatOffset = 0
+  }
+}
+
+function dropTowedBoxes(boat) {
+  if (!boat || !Array.isArray(boat.towedBoxes) || boat.towedBoxes.length === 0) {
+    return
+  }
+
+  const { terrain } = gameState
+  const centerX = boat.x
+  const centerY = boat.y
+  const dropped = []
+
+  for (let i = 0; i < boat.towedBoxes.length; i++) {
+    const box = boat.towedBoxes[i]
+    if (!box) continue
+
+    let placed = false
+    const searchSteps = 18
+    let landCandidate = null
+    let waterCandidate = null
+    let nearestLandForWater = null
+
+    for (let step = 0; step < searchSteps; step++) {
+      const angle = (Math.PI * 2 * step) / searchSteps + (Math.random() * Math.PI) / 7
+      const dist = 35 + step * 12 + Math.random() * 16
+      const candidateX = centerX + Math.cos(angle) * dist
+      const candidateY = centerY + Math.sin(angle) * dist
+      const tileX = Math.floor(candidateX / TILE_SIZE)
+      const tileY = Math.floor(candidateY / TILE_SIZE)
+
+      if (tileX < 0 || tileY < 0 || tileY >= terrain.length || tileX >= terrain[0].length) {
+        continue
+      }
+
+      const tileType = terrain[tileY][tileX]
+      const isClear = !gameState.woodenBoxes.some((otherBox) => {
+        if (!otherBox || otherBox === box || otherBox.isBeingThrown || otherBox.isTowedByBoat) return false
+        return getDistance(candidateX, candidateY, otherBox.x, otherBox.y) < box.size + otherBox.size * 1.1
+      })
+
+      if (tileType !== TERRAIN_TYPES.WATER && isClear) {
+        landCandidate = { x: candidateX, y: candidateY }
+        break
+      }
+
+      if (tileType === TERRAIN_TYPES.WATER && isClear) {
+        waterCandidate = { x: candidateX, y: candidateY }
+        nearestLandForWater = findNearestLandTile(candidateX, candidateY, 6)
+      }
+    }
+
+    if (landCandidate) {
+      box.x = landCandidate.x
+      box.y = landCandidate.y
+      box.isFloating = false
+      box.floatAngle = 0
+      box.floatOffset = 0
+      box.isTowedByBoat = null
+      box.towedIndex = null
+      box.rotation = 0
+      gameState.woodenBoxes.push(box)
+      placed = true
+    } else if (waterCandidate) {
+      box.x = waterCandidate.x
+      box.y = waterCandidate.y
+      box.isFloating = true
+      box.floatAngle = nearestLandForWater ? Math.atan2(nearestLandForWater.y - box.y, nearestLandForWater.x - box.x) : (Math.random() * Math.PI * 2)
+      box.floatOffset = 0
+      box.isTowedByBoat = null
+      box.towedIndex = null
+      box.rotation = 0
+      gameState.woodenBoxes.push(box)
+      placed = true
+    }
+
+    if (!placed) {
+      box.x = centerX + (Math.random() - 0.5) * 40
+      box.y = centerY + (Math.random() - 0.5) * 40
+      box.isFloating = true
+      box.floatAngle = Math.random() * Math.PI * 2
+      box.floatOffset = 0
+      box.isTowedByBoat = null
+      box.towedIndex = null
+      box.rotation = 0
+      gameState.woodenBoxes.push(box)
+    }
+
+    dropped.push(box)
+  }
+
+  boat.towedBoxes = []
+  return dropped
+}
+
+function drawBoatTowedBoxes(ctx, boat, camera) {
+  if (!Array.isArray(boat.towedBoxes) || boat.towedBoxes.length === 0) {
+    return
+  }
+
+  const towStartX = boat.x + Math.cos(boat.direction + Math.PI) * (boat.size * 0.8)
+  const towStartY = boat.y + Math.sin(boat.direction + Math.PI) * (boat.size * 0.8)
+
+  ctx.save()
+  ctx.setLineDash([5, 5])
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.65)"
+  ctx.lineWidth = 1.5
+
+  for (const box of boat.towedBoxes) {
+    const lineEndX = box.x - camera.x
+    const lineEndY = box.y - camera.y
+    const lineStartX = towStartX - camera.x + Math.cos(boat.direction + Math.PI / 2) * (box.towedIndex || 0) * 6
+    const lineStartY = towStartY - camera.y + Math.sin(boat.direction + Math.PI / 2) * (box.towedIndex || 0) * 6
+
+    ctx.beginPath()
+    ctx.moveTo(lineStartX, lineStartY)
+    ctx.lineTo(lineEndX, lineEndY)
+    ctx.stroke()
+
+    const screenX = box.x - camera.x
+    const screenY = box.y - camera.y
+
+    ctx.save()
+    ctx.translate(screenX, screenY)
+    ctx.rotate(box.rotation || 0)
+    drawWoodenBox(ctx, box)
+    ctx.restore()
+  }
+
+  ctx.restore()
 }
 
 function getBoatCollisionRadius(boat) {
@@ -110,7 +344,7 @@ function canBoxMoveTo(box, x, y, pushingBoat) {
   }
 
   for (const otherBox of gameState.woodenBoxes) {
-    if (otherBox === box || !otherBox.isFloating || otherBox.isBeingThrown) {
+    if (otherBox === box || !otherBox.isFloating || otherBox.isBeingThrown || otherBox.isTowedByBoat) {
       continue
     }
 
@@ -156,7 +390,7 @@ function canBoatOccupyPosition(boat, x, y, ignoredBoat = null) {
   }
 
   for (const box of gameState.woodenBoxes) {
-    if (!box.isFloating || box.isBeingThrown) {
+    if (!box.isFloating || box.isBeingThrown || box.isTowedByBoat) {
       continue
     }
 
@@ -218,7 +452,7 @@ function resolveBoatMovement(boat, newX, newY, movementAngle, options = {}) {
   }
 
   for (const box of gameState.woodenBoxes) {
-    if (!box.isFloating || box.isBeingThrown) {
+    if (!box.isFloating || box.isBeingThrown || box.isTowedByBoat) {
       continue
     }
 
@@ -279,6 +513,8 @@ export function exitBoat() {
       boat.direction,
     ],
   })
+
+  dropTowedBoxes(boat)
 
   gameState.isInCar = false
   gameState.drivingCar = null
@@ -376,6 +612,7 @@ export function drawAndUpdateBoats() {
     drawBoatHull(ctx, boat)
 
     ctx.restore()
+    drawBoatTowedBoxes(ctx, boat, camera)
 
     if (!isInCar && getDistance(player.x, player.y, boat.x, boat.y) < CAR_INTERACTION_RANGE) {
       drawBoatPrompt(ctx, screenX, screenY)
@@ -438,6 +675,7 @@ function updateBoatPosition(boat) {
   })
 
   if (movementResult.moved) {
+    updateBoatTow(boat)
     gameState.player.x = boat.x
     gameState.player.y = boat.y
     spawnBoatWake(boat, turningAmount)
@@ -490,6 +728,8 @@ function updateBoatDrift(boat) {
     pushForceScale: 0.7,
   })
 
+  updateBoatTow(boat)
+
   if (!driftResult.moved) {
     boat.currentSpeed = 0
     boat.velocity.x = 0
@@ -533,7 +773,7 @@ function drawBoatEffects(ctx, boat, camera) {
   for (const foam of boat.foamTrail) {
     ctx.save()
     ctx.globalAlpha = foam.alpha
-    ctx.fillStyle = "rgba(245, 248, 252, 0.95)"
+    ctx.fillStyle = foam.color || "rgba(245, 248, 252, 0.95)"
     ctx.beginPath()
     ctx.arc(foam.x - camera.x, foam.y - camera.y, foam.size, 0, Math.PI * 2)
     ctx.fill()
@@ -621,13 +861,15 @@ function spawnBoatWake(boat, turningAmount) {
   const spread = boat.size * 0.18
 
   if (Math.random() < 0.55) {
+    const fullLoad = boat.towedBoxes.length >= BOAT_TOW_CAP
     boat.foamTrail.push({
       x: boat.x + Math.cos(sternAngle) * sternDistance + (Math.random() - 0.5) * spread,
       y: boat.y + Math.sin(sternAngle) * sternDistance + (Math.random() - 0.5) * spread,
       vx: -boat.velocity.x * 0.08 + (Math.random() - 0.5) * 0.35,
       vy: -boat.velocity.y * 0.08 + (Math.random() - 0.5) * 0.35,
       size: 3 + Math.random() * 3 + turningAmount * 2,
-      alpha: 0.72,
+      alpha: fullLoad ? BOAT_TOW_SMOKE_ALPHA : 0.72,
+      color: fullLoad ? "rgba(60, 52, 46, 0.9)" : "rgba(245, 248, 252, 0.95)",
     })
   }
 

@@ -229,7 +229,9 @@ export function handleCanvasTouchStart(e) {
     return
   }
 
-  if (gameState.isInCar) {
+  const canUseShovelFromBoat = gameState.isInCar && gameState.drivingCar?.vehicleType === "boat" && gameState.selectedTool === "shovel"
+
+  if (gameState.isInCar && !canUseShovelFromBoat) {
     return
   }
 

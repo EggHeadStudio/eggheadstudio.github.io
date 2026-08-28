@@ -12,6 +12,23 @@ function tileNoise(x, y, index) {
   return value - Math.floor(value)
 }
 
+function getDigAnimationForTile(tileX, tileY) {
+  const animations = gameState.digAnimations || []
+  return animations.find((animation) => animation.tileX === tileX && animation.tileY === tileY) || null
+}
+
+function getDigAnimationAlpha(animation) {
+  const elapsed = Date.now() - animation.startedAt
+  const progress = Math.min(1, elapsed / (animation.duration || 500))
+  const reveal = 1 - progress
+
+  if (animation.mode === "fill") {
+    return 0.22 + reveal * 0.78
+  }
+
+  return 0.12 + progress * 0.88
+}
+
 // Draw terrain
 export function drawTerrain() {
   const { terrain, camera, ctx } = gameState
@@ -35,6 +52,11 @@ export function drawTerrain() {
         const terrainType = terrain[y][x]
         const screenX = x * TILE_SIZE - camera.x
         const screenY = y * TILE_SIZE - camera.y
+        const tileAnimation = getDigAnimationForTile(x, y)
+        const tileAlpha = tileAnimation ? getDigAnimationAlpha(tileAnimation) : 1
+
+        ctx.save()
+        ctx.globalAlpha = tileAlpha
 
         // Draw terrain tile
         ctx.fillStyle = getTerrainColor(terrainType)
@@ -42,7 +64,6 @@ export function drawTerrain() {
 
         // Add texture/detail to terrain
         ctx.fillStyle = adjustColorBrightness(getTerrainColor(terrainType), -10)
-        ctx.save()
 
         if (terrainType === 0) {
           // TERRAIN_TYPES.WATER
@@ -158,6 +179,10 @@ export function drawTerrain() {
     }
   }
 
+  if (Array.isArray(gameState.digAnimations)) {
+    gameState.digAnimations = gameState.digAnimations.filter((animation) => Date.now() - animation.startedAt < (animation.duration || 1000))
+  }
+
   // Second pass: holes are painted after every terrain tile, so grass detail
   // from neighbouring tiles can never stick out over a dug hole. This replaces
   // a per-tile clip() which was far too expensive to run on mobile GPUs.
@@ -175,7 +200,13 @@ export function drawTerrain() {
 function drawPendingDigOverlay(ctx, time) {
   const pendingDigTile = gameState.pendingDigTile
 
-  if (!pendingDigTile || !gameState.hasShovel || gameState.selectedTool !== "shovel" || gameState.isInCar) {
+  if (
+    !pendingDigTile ||
+    !gameState.hasShovel ||
+    gameState.selectedTool !== "shovel" ||
+    gameState.isInCar ||
+    (gameState.player?.shovelDig && Date.now() - gameState.player.shovelDig.startedAt < (gameState.player.shovelDig.duration || 1000))
+  ) {
     return
   }
 
@@ -203,6 +234,12 @@ function drawPendingDigOverlay(ctx, time) {
 }
 
 function drawHoleTile(ctx, screenX, screenY, flooded, tileX, tileY, time) {
+  const hole = gameState.dugHoles?.[`${tileX},${tileY}`] || null
+  const revealProgress = hole ? Math.min(1, (Date.now() - (hole.createdAt || Date.now())) / 1000) : 1
+
+  ctx.save()
+  ctx.globalAlpha = revealProgress
+
   if (flooded) {
     // Flooded holes look exactly like water tiles.
     ctx.fillStyle = getTerrainColor(0)
@@ -225,6 +262,7 @@ function drawHoleTile(ctx, screenX, screenY, flooded, tileX, tileY, time) {
       ctx.lineWidth = 1
       ctx.stroke()
     }
+    ctx.restore()
     return
   }
 
@@ -238,4 +276,5 @@ function drawHoleTile(ctx, screenX, screenY, flooded, tileX, tileY, time) {
   // Front inner wall for depth, still covering full tile footprint.
   ctx.fillStyle = "#2a2f34"
   ctx.fillRect(screenX + 2, screenY + TILE_SIZE * 0.68, TILE_SIZE - 4, TILE_SIZE * 0.28)
+  ctx.restore()
 }

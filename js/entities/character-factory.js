@@ -1,5 +1,5 @@
 // Character factory for creating different character types
-import { PLAYER_SIZE, PLAYER_SPEED, CHARACTER_ATTRIBUTE_BUDGET } from "../core/constants.js"
+import { PLAYER_SIZE, PLAYER_SPEED } from "../core/constants.js"
 
 // Character types with their default properties
 const CHARACTER_TYPES = {
@@ -198,8 +198,6 @@ export const CHARACTER_CUSTOMIZATION_RULES = {
   strength: { min: 1, max: 5 },
 }
 
-const BUDGETED_STAT_KEYS = ["health", "speed", "strength"]
-
 function clamp(value, min, max, fallback) {
   const parsedValue = Number(value)
 
@@ -227,38 +225,6 @@ function isValidColor(value) {
   return CSS.supports("color", trimmedValue)
 }
 
-function applyCharacterStatBudget(stats, preferredKey = null) {
-  const normalizedStats = { ...stats }
-  const preferred = BUDGETED_STAT_KEYS.includes(preferredKey) ? preferredKey : null
-  const reductionOrder = preferred
-    ? [...BUDGETED_STAT_KEYS.filter((key) => key !== preferred), preferred]
-    : BUDGETED_STAT_KEYS.slice()
-
-  let total = BUDGETED_STAT_KEYS.reduce((sum, key) => sum + normalizedStats[key], 0)
-
-  while (total > CHARACTER_ATTRIBUTE_BUDGET) {
-    let candidateKey = null
-    let candidateSlack = -1
-
-    for (const key of reductionOrder) {
-      const slack = normalizedStats[key] - CHARACTER_CUSTOMIZATION_RULES[key].min
-      if (slack > candidateSlack && slack > 0) {
-        candidateKey = key
-        candidateSlack = slack
-      }
-    }
-
-    if (!candidateKey) {
-      break
-    }
-
-    normalizedStats[candidateKey] -= 1
-    total -= 1
-  }
-
-  return normalizedStats
-}
-
 export function normalizeCharacterCustomization(customization = {}, type = "default", preferredStatKey = null) {
   const baseCharacter = CHARACTER_TYPES[type] || CHARACTER_TYPES.default
 
@@ -284,7 +250,7 @@ export function normalizeCharacterCustomization(customization = {}, type = "defa
     ),
   }
 
-  return applyCharacterStatBudget(clampedStats, preferredStatKey)
+  return clampedStats
 }
 
 export function getCharacterCustomizationDefaults(type = "default") {
@@ -325,7 +291,8 @@ export function createCharacter(type = "default", customProps = {}) {
     // Always include animation properties
     isMoving: false,
     animationTime: 0,
-    throwingApple: null, // Add throwing apple animation state
+    throwingApple: null,
+    shovelDig: null,
     // Character type for reference
     characterType: type,
   }

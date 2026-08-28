@@ -38,10 +38,30 @@ function isTileWithinTerrain(tileX, tileY) {
   return tileY >= 0 && tileY < terrain.length && tileX >= 0 && tileX < terrain[0].length
 }
 
+function isBoatWaterDigTile(tileX, tileY) {
+  if (!gameState.isInCar || gameState.drivingCar?.vehicleType !== "boat") {
+    return false
+  }
+
+  if (!isTileWithinTerrain(tileX, tileY)) {
+    return false
+  }
+
+  return gameState.terrain[tileY][tileX] === TERRAIN_TYPES.WATER
+}
+
+function isWaterDigTile(tileX, tileY) {
+  if (!isTileWithinTerrain(tileX, tileY)) {
+    return false
+  }
+
+  return gameState.terrain[tileY][tileX] === TERRAIN_TYPES.WATER
+}
+
 function isHoleTraversableTerrain(tileX, tileY) {
   const { terrain } = gameState
   const terrainType = terrain[tileY][tileX]
-  return terrainType !== TERRAIN_TYPES.WATER
+  return terrainType !== TERRAIN_TYPES.WATER || isWaterDigTile(tileX, tileY)
 }
 
 function getTileFromWorldPosition(worldX, worldY) {
@@ -54,7 +74,8 @@ function getTileFromWorldPosition(worldX, worldY) {
 function isTileWithinDigReach(tileX, tileY, reachMultiplier = DESKTOP_DIG_REACH_MULTIPLIER) {
   const tileCenterX = tileX * TILE_SIZE + TILE_SIZE / 2
   const tileCenterY = tileY * TILE_SIZE + TILE_SIZE / 2
-  const maxDigDistance = TILE_SIZE * reachMultiplier
+  const boatReachBoost = gameState.isInCar && gameState.drivingCar?.vehicleType === "boat" ? 0.7 : 0
+  const maxDigDistance = TILE_SIZE * (reachMultiplier + boatReachBoost)
   return getDistance(gameState.player.x, gameState.player.y, tileCenterX, tileCenterY) <= maxDigDistance
 }
 
@@ -164,13 +185,63 @@ export function isWaterLikeWorldPosition(worldX, worldY) {
   return isWaterLikeTile(tileX, tileY)
 }
 
+export function isShovelActionLocked() {
+  const now = Date.now()
+  const activeDig = gameState.player?.shovelDig
+  const animationLock = activeDig && now - activeDig.startedAt < (activeDig.duration || 1000)
+  const cooldownLock = now < (gameState.shovelActionLockUntil || 0)
+  return Boolean(animationLock || cooldownLock)
+}
+
+function triggerShovelDigAnimation(tileX, tileY, mode = "dig", duration = 500) {
+  const now = Date.now()
+  const animation = {
+    tileX,
+    tileY,
+    mode,
+    startedAt: now,
+    duration,
+  }
+
+  if (!Array.isArray(gameState.digAnimations)) {
+    gameState.digAnimations = []
+  }
+
+  gameState.digAnimations.push(animation)
+  gameState.shovelActionLockUntil = now + duration
+
+  if (gameState.player) {
+    gameState.player.shovelDig = {
+      startedAt: now,
+      duration,
+      tileX,
+      tileY,
+      mode,
+    }
+  }
+}
+
 export function digHoleAtTile(tileX, tileY) {
   if (!isTileWithinTerrain(tileX, tileY) || !isHoleTraversableTerrain(tileX, tileY)) {
     return false
   }
 
   const key = holeKey(tileX, tileY)
-  if (gameState.dugHoles[key]) {
+  const existingHole = gameState.dugHoles[key]
+
+  if (isWaterDigTile(tileX, tileY)) {
+    gameState.terrain[tileY][tileX] = TERRAIN_TYPES.DIRT
+    return true
+  }
+
+  if (existingHole && existingHole.flooded) {
+    delete gameState.dugHoles[key]
+    gameState.terrain[tileY][tileX] = TERRAIN_TYPES.DIRT
+    updateFloodForAdjacentHoleComponents(tileX, tileY)
+    return true
+  }
+
+  if (existingHole) {
     return false
   }
 
@@ -202,12 +273,30 @@ export function fillHoleAtTile(tileX, tileY) {
 
 function digOrFillHoleAtTile(tileX, tileY) {
   const hole = getHoleAtTile(tileX, tileY)
+  const isWaterTile = isWaterDigTile(tileX, tileY)
 
-  if (hole && !hole.flooded) {
-    return fillHoleAtTile(tileX, tileY)
+  if (hole && hole.flooded) {
+    const cleared = digHoleAtTile(tileX, tileY)
+    if (cleared) {
+      triggerShovelDigAnimation(tileX, tileY, "fill", 500)
+    }
+    return cleared
   }
 
-  return digHoleAtTile(tileX, tileY)
+  if (hole && !hole.flooded) {
+    const filled = fillHoleAtTile(tileX, tileY)
+    if (filled) {
+      triggerShovelDigAnimation(tileX, tileY, "fill")
+    }
+    return filled
+  }
+
+  const dug = digHoleAtTile(tileX, tileY)
+  if (dug) {
+    const duration = isWaterTile ? 900 : 500
+    triggerShovelDigAnimation(tileX, tileY, "dig", duration)
+  }
+  return dug
 }
 
 function canSelectDigTile(tileX, tileY, reachMultiplier = DESKTOP_DIG_REACH_MULTIPLIER) {
@@ -231,13 +320,20 @@ function isSamePendingDigTile(tileX, tileY) {
 }
 
 export function queueOrDigHoleAtScreenPosition(screenX, screenY, options = {}) {
-  if (!gameState.hasShovel || gameState.selectedTool !== "shovel" || gameState.isInCar) {
+  if (isShovelActionLocked()) {
+    clearPendingDigTarget()
+    return { consumed: true, didDig: false, activated: false }
+  }
+
+  const isVehicleBlock = gameState.isInCar && gameState.drivingCar?.vehicleType !== "boat"
+  if (!gameState.hasShovel || gameState.selectedTool !== "shovel" || isVehicleBlock) {
     clearPendingDigTarget()
     return { consumed: false, didDig: false, activated: false }
   }
 
   const { mobile = false } = options
-  const reachMultiplier = mobile ? MOBILE_DIG_REACH_MULTIPLIER : DESKTOP_DIG_REACH_MULTIPLIER
+  const boatReachMultiplier = gameState.isInCar && gameState.drivingCar?.vehicleType === "boat" ? 1.1 : 0
+  const reachMultiplier = mobile ? MOBILE_DIG_REACH_MULTIPLIER + boatReachMultiplier : DESKTOP_DIG_REACH_MULTIPLIER + boatReachMultiplier
   const worldX = screenX + gameState.camera.x
   const worldY = screenY + gameState.camera.y
   const { tileX, tileY } = getTileFromWorldPosition(worldX, worldY)
@@ -258,13 +354,20 @@ export function queueOrDigHoleAtScreenPosition(screenX, screenY, options = {}) {
 }
 
 export function tryDigHoleAtWorldPosition(worldX, worldY) {
-  if (!gameState.hasShovel || gameState.selectedTool !== "shovel" || gameState.isInCar) {
+  if (isShovelActionLocked()) {
+    return false
+  }
+
+  const isVehicleBlock = gameState.isInCar && gameState.drivingCar?.vehicleType !== "boat"
+  if (!gameState.hasShovel || gameState.selectedTool !== "shovel" || isVehicleBlock) {
     return false
   }
 
   const { tileX, tileY } = getTileFromWorldPosition(worldX, worldY)
+  const tileIsWater = isWaterDigTile(tileX, tileY)
+  const boatReachMultiplier = gameState.isInCar && gameState.drivingCar?.vehicleType === "boat" ? 1.1 : 0
 
-  if (!canSelectDigTile(tileX, tileY, DESKTOP_DIG_REACH_MULTIPLIER)) {
+  if (!canSelectDigTile(tileX, tileY, DESKTOP_DIG_REACH_MULTIPLIER + boatReachMultiplier) && !tileIsWater) {
     return false
   }
 

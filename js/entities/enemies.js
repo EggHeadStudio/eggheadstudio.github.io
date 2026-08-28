@@ -590,6 +590,27 @@ function drawEnemyBruises(ctx, enemy, screenX, screenY, sizeScale = 1) {
   }
 }
 
+function isTileAdjacentToWater(tileX, tileY) {
+  const { terrain } = gameState
+
+  for (let offsetY = -1; offsetY <= 1; offsetY++) {
+    for (let offsetX = -1; offsetX <= 1; offsetX++) {
+      const neighborX = tileX + offsetX
+      const neighborY = tileY + offsetY
+
+      if (neighborX < 0 || neighborY < 0 || neighborY >= terrain.length || neighborX >= terrain[0].length) {
+        continue
+      }
+
+      if (isWaterLikeTile(neighborX, neighborY)) {
+        return true
+      }
+    }
+  }
+
+  return false
+}
+
 function canEnemyMoveToPosition(enemy, x, y, options = {}) {
   const { allowWater = false } = options
   const { terrain, rocks, woodenBoxes } = gameState
@@ -1056,6 +1077,9 @@ export function updateEnemyMovement(enemy, canSeePlayer) {
 
     const playerTileX = Math.floor(player.x / TILE_SIZE)
     const playerTileY = Math.floor(player.y / TILE_SIZE)
+    const enemyTileX = Math.floor(enemy.x / TILE_SIZE)
+    const enemyTileY = Math.floor(enemy.y / TILE_SIZE)
+
     const isChasingBoatOnWater =
       gameState.isInCar &&
       gameState.drivingCar?.vehicleType === "boat" &&
@@ -1065,12 +1089,19 @@ export function updateEnemyMovement(enemy, canSeePlayer) {
       playerTileY < terrain.length &&
       isWaterLikeTile(playerTileX, playerTileY)
 
-    const chaseSpeed = isChasingBoatOnWater ? enemy.swimSpeed : enemy.chaseSpeed
-    enemy.isSwimming = isChasingBoatOnWater
+    const shouldAllowWaterForChase =
+      isChasingBoatOnWater ||
+      (enemyTileX >= 0 && enemyTileY >= 0 && isWaterLikeTile(enemyTileX, enemyTileY)) ||
+      (playerTileX >= 0 && playerTileY >= 0 && isWaterLikeTile(playerTileX, playerTileY)) ||
+      isTileAdjacentToWater(playerTileX, playerTileY) ||
+      isTileAdjacentToWater(enemyTileX, enemyTileY)
+
+    const chaseSpeed = shouldAllowWaterForChase ? enemy.swimSpeed : enemy.chaseSpeed
+    enemy.isSwimming = shouldAllowWaterForChase
     const moveEnemyAtAngle = (angle) => {
       const targetX = enemy.x + Math.cos(angle) * chaseSpeed
       const targetY = enemy.y + Math.sin(angle) * chaseSpeed
-      const moveCheck = canEnemyMoveToPosition(enemy, targetX, targetY, { allowWater: isChasingBoatOnWater })
+      const moveCheck = canEnemyMoveToPosition(enemy, targetX, targetY, { allowWater: shouldAllowWaterForChase })
 
       if (!moveCheck.canMove) {
         return moveCheck

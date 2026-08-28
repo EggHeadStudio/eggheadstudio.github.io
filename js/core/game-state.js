@@ -95,7 +95,9 @@ export const gameState = {
   selectedTool: "none",
   dugHoles: {},
   pendingDigTile: null,
-  
+  digAnimations: [],
+  shovelActionLockUntil: 0,
+
   // Car state
   isInCar: false,
   drivingCar: null,

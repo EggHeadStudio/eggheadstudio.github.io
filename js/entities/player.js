@@ -1275,6 +1275,30 @@ function drawBackpack(ctx, x, y, player) {
 }
 
 // Draw the player's hands
+function drawShovelDirtBurst(ctx, x, y, direction, age, player) {
+  if (!player || age <= 0 || age > 1000) {
+    return
+  }
+
+  const burstStart = 120
+  const activeAge = age - burstStart
+  if (activeAge < 0 || activeAge > 620) {
+    return
+  }
+
+  for (let i = 0; i < 8; i++) {
+    const jitter = Math.sin(player.x * 0.31 + player.y * 0.27 + i * 11.7 + age * 0.05) * 8
+    const spread = 12 + i * 2.2 + activeAge * 0.08
+    const angle = direction + 0.6 + i * 0.65 + jitter * 0.02
+    const particleX = x + Math.cos(angle) * spread
+    const particleY = y + Math.sin(angle) * spread
+    const opacity = 1 - activeAge / 620
+
+    ctx.fillStyle = `rgba(134, 94, 52, ${Math.max(0, opacity)})`
+    ctx.fillRect(particleX, particleY, 3 + (i % 3), 3 + ((i + 1) % 2))
+  }
+}
+
 function drawHands(ctx, x, y, player) {
   try {
     const { keys, isGrabbing, isInCar, drivingCar, isMobile, joystickActive, joystickDistance } = gameState;
@@ -1470,7 +1494,28 @@ function drawHands(ctx, x, y, player) {
       const sawArmStretch = gameState.selectedTool === "saw" && Boolean(gameState.hasSaw)
         ? sawSwing
         : 0
-      
+
+      const shovelDigAge = player.shovelDig ? Date.now() - player.shovelDig.startedAt : 0
+      const shovelDigDuration = player.shovelDig?.duration || 500
+      const shovelSwingProgress = gameState.selectedTool === "shovel" && Boolean(gameState.hasShovel) && shovelDigAge > 0 && shovelDigAge < shovelDigDuration
+        ? Math.min(1, shovelDigAge / Math.max(1, shovelDigDuration))
+        : 0
+      const hasSelectedDigTarget = Boolean(gameState.pendingDigTile)
+      const selectionProgress = hasSelectedDigTarget
+        ? Math.min(1, (Date.now() - gameState.pendingDigTile.activatedAt) / 170)
+        : 0
+      const digPass = shovelSwingProgress > 0 ? Math.sin(shovelSwingProgress * Math.PI) : 0
+      const shovelSwingPush = shovelSwingProgress > 0 ? digPass * 22 : 0
+      const shovelTurnAmount = shovelSwingProgress > 0
+        ? Math.PI + digPass * 0.8
+        : hasSelectedDigTarget
+          ? Math.PI * (selectionProgress)
+          : 0
+
+      if (gameState.selectedTool === "shovel" && Boolean(gameState.hasShovel) && shovelDigAge > 0 && shovelDigAge < shovelDigDuration) {
+        drawShovelDirtBurst(ctx, x, y, player.direction, shovelDigAge, player)
+      }
+
       const rightHandX = x + Math.cos(handAngle1) * (handDistance + breathingFactor) + 
                          (isMovingForward ? Math.cos(player.direction) * handOffset : 0) +
                          Math.cos(player.direction) * transitionLift;
@@ -1483,12 +1528,18 @@ function drawHands(ctx, x, y, player) {
                         Math.cos(player.direction) * transitionLift +
                         (gameState.selectedTool === "saw" && Boolean(gameState.hasSaw)
                           ? Math.cos(player.direction) * sawArmStretch
+                          : 0) +
+                        (gameState.selectedTool === "shovel" && Boolean(gameState.hasShovel) && shovelDigAge > 0
+                          ? Math.cos(player.direction) * shovelSwingPush
                           : 0);
       const leftHandY = y + Math.sin(handAngle2) * (handDistance + breathingFactor) + 
                         (isMovingForward ? Math.sin(player.direction) * -handOffset : 0) +
                         Math.sin(player.direction) * transitionLift +
                         (gameState.selectedTool === "saw" && Boolean(gameState.hasSaw)
                           ? Math.sin(player.direction) * sawArmStretch
+                          : 0) +
+                        (gameState.selectedTool === "shovel" && Boolean(gameState.hasShovel) && shovelDigAge > 0
+                          ? Math.sin(player.direction) * shovelSwingPush
                           : 0);
 
       // Draw hands (light gray)
@@ -1602,10 +1653,26 @@ function drawEquippedHandItems(ctx, player, rightHandX, rightHandY, leftHandX, l
     const handleWidth = Math.max(4.2, HAND_SIZE * 0.32)
     const bladeWidth = HAND_SIZE * 2.55
     const bladeHeight = HAND_SIZE * 2.95
+    const shovelDigAge = player.shovelDig ? Date.now() - player.shovelDig.startedAt : 0
+    const shovelDigDuration = player.shovelDig?.duration || 500
+    const shovelSwingProgress = shovelDigAge > 0 && shovelDigAge < shovelDigDuration
+      ? Math.min(1, shovelDigAge / Math.max(1, shovelDigDuration))
+      : 0
+    const hasSelectedDigTarget = Boolean(gameState.pendingDigTile)
+    const selectionProgress = hasSelectedDigTarget
+      ? Math.min(1, (Date.now() - gameState.pendingDigTile.activatedAt) / 170)
+      : 0
+    const digPass = shovelSwingProgress > 0 ? Math.sin(shovelSwingProgress * Math.PI) : 0
+    let shovelTurnAmount = 0
+    if (shovelSwingProgress > 0) {
+      shovelTurnAmount = Math.PI + digPass * 0.8
+    } else if (hasSelectedDigTarget) {
+      shovelTurnAmount = Math.PI * selectionProgress
+    }
 
     ctx.save()
     ctx.translate(leftHandX, leftHandY)
-    ctx.rotate(player.direction - Math.PI / 2)
+    ctx.rotate(player.direction - Math.PI / 2 + shovelTurnAmount)
 
     ctx.save()
     ctx.translate(1.6, 1.8)

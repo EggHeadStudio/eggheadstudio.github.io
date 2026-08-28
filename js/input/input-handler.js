@@ -7,7 +7,7 @@ import { tryGrabWoodenBox, releaseWoodenBox } from "../entities/wooden-boxes.js"
 import { tryGrabEnemy, releaseEnemy } from "../entities/enemies.js"
 import { checkCarInteraction, enterCar, exitCar } from "../entities/cars.js" // Import car interaction functions
 import { checkBoatInteraction, enterBoat, exitBoat } from "../entities/boats.js"
-import { queueOrDigHoleAtScreenPosition } from "../entities/shovels.js"
+import { queueOrDigHoleAtScreenPosition, isShovelActionLocked } from "../entities/shovels.js"
 import { tryUseSawOnTreeAtScreenPosition } from "../entities/trees.js"
 
 // Set up event listeners for keyboard and mouse
@@ -148,11 +148,19 @@ export function handleMouseDown(e) {
     gameState.mousePosition.x = pointerX
     gameState.mousePosition.y = pointerY
 
-    // Left mouse button - only throw apple if not in a car
-    if (!gameState.isInCar) {
+    const canUseShovelFromBoat = gameState.isInCar && gameState.drivingCar?.vehicleType === "boat" && gameState.selectedTool === "shovel"
+
+    // Left mouse button - only throw apple if not in a car, unless we are digging from a boat.
+    if (!gameState.isInCar || canUseShovelFromBoat) {
       if (gameState.selectedTool === "shovel") {
-        queueOrDigHoleAtScreenPosition(pointerX, pointerY, { mobile: false })
-        return
+        if (isShovelActionLocked()) {
+          return
+        }
+
+        const shovelResult = queueOrDigHoleAtScreenPosition(pointerX, pointerY, { mobile: false })
+        if (shovelResult.consumed && (shovelResult.activated || shovelResult.didDig)) {
+          return
+        }
       }
 
       if (gameState.selectedTool === "saw") {
@@ -161,7 +169,9 @@ export function handleMouseDown(e) {
         }
       }
 
-      throwApple()
+      if (!canUseShovelFromBoat) {
+        throwApple()
+      }
     }
   }
 }
