@@ -6,6 +6,15 @@ import {
   WOODEN_BOX_THROW_MULTIPLIER,
   WOODEN_BOX_FLOAT_SPEED,
   WOODEN_BOX_SNAP_DISTANCE,
+  MAX_WOODEN_BOXES,
+  ROOF_FAR_ALPHA,
+  ROOF_NEAR_ALPHA,
+  ROOF_UNDER_ALPHA,
+  ROOF_FADE_DISTANCE,
+  ROOF_EMIT_LIGHT_RADIUS,
+  ROOF_EMIT_LIGHT_ALPHA,
+  ROOF_PLAYER_LIGHT_RADIUS,
+  ROOF_PLAYER_LIGHT_ALPHA,
 } from "../core/constants.js"
 import { getDistance } from "../utils/math-utils.js"
 import { isPlayerPositionClear, movePlayerToNearestSafePosition } from "../utils/player-position-utils.js"
@@ -28,8 +37,15 @@ const MIN_PLAYER_SNAP_CLEARANCE = 8
 // Generate wooden boxes
 export function generateWoodenBoxes(count) {
   const { terrain, woodenBoxes, bombs, apples, enemies, rocks, player } = gameState
+  const remainingCapacity = Math.max(0, MAX_WOODEN_BOXES - woodenBoxes.length)
 
-  for (let i = 0; i < count; i++) {
+  if (remainingCapacity <= 0) {
+    return
+  }
+
+  const boxesToSpawn = Math.min(count, remainingCapacity)
+
+  for (let i = 0; i < boxesToSpawn; i++) {
     const woodenBox = createWoodenBox(
       Math.random() * (terrain[0].length * TILE_SIZE),
       Math.random() * (terrain.length * TILE_SIZE),
@@ -1324,18 +1340,10 @@ function detectRoofAreas() {
   // Clear previous roof areas
   roofAreas = []
 
-  // Skip if there are no objects to form roofs
-  if ((!woodenBoxes || woodenBoxes.length === 0) && (!rocks || rocks.length === 0)) {
-    return
-  }
-
-  // Create a combined array of building objects (both boxes and rocks)
   const buildingObjects = []
 
-  // Add wooden boxes
   if (woodenBoxes && woodenBoxes.length > 0) {
     woodenBoxes.forEach((box) => {
-      // Skip floating boxes - they can't form roofs
       if (!box.isFloating && !box.isBeingThrown) {
         buildingObjects.push({
           ...box,
@@ -1345,10 +1353,8 @@ function detectRoofAreas() {
     })
   }
 
-  // Add rocks
   if (rocks && rocks.length > 0) {
     rocks.forEach((rock) => {
-      // Skip rocks being carried
       if (rock !== gameState.grabbedRock) {
         buildingObjects.push({
           ...rock,
@@ -1358,30 +1364,22 @@ function detectRoofAreas() {
     })
   }
 
-  // Skip if there are too few objects to form a roof (need at least 3)
   if (buildingObjects.length < 3) return
 
-  // Find all snapped object groups
   const objectGroups = findSnappedObjectGroups(buildingObjects)
 
-  // For each group, check if they form a U-shape or other valid roof structure
   for (const group of objectGroups) {
-    if (group.length < 3) continue // Need at least 3 objects
+    if (group.length < 3) continue
 
-    // Find potential U-shapes
     const uShapes = findUShapes(group)
 
-    // Add valid U-shapes as roof areas, but prevent overlaps
     for (const newRoof of uShapes) {
       let shouldAdd = true
 
-      // Check for overlapping roofs and merge or skip as needed
       for (let i = roofAreas.length - 1; i >= 0; i--) {
         const existingRoof = roofAreas[i]
 
-        // Check if roofs overlap significantly
         if (roofsOverlap(newRoof, existingRoof)) {
-          // If they overlap, merge them instead of adding both
           mergeRoofs(existingRoof, newRoof)
           shouldAdd = false
           break
@@ -1451,6 +1449,7 @@ function mergeRoofs(roof1, roof2) {
   roof1.y = y
   roof1.width = width
   roof1.height = height
+  roof1.isSolid = Boolean(roof1.isSolid || roof2.isSolid)
 
   // Keep the most recent creation time
   roof1.createdAt = Math.max(roof1.createdAt, roof2.createdAt)
@@ -1495,13 +1494,23 @@ function findSnappedObjectGroups(objects) {
   return groups
 }
 
+function countRoofSides(objectGroup, minX, maxX, minY, maxY) {
+  const sideThreshold = TILE_SIZE * 0.7
+  let sideCount = 0
+
+  if (objectGroup.some((obj) => Math.abs(obj.x - minX) < obj.size * 1.1 + sideThreshold)) sideCount++
+  if (objectGroup.some((obj) => Math.abs(obj.x - maxX) < obj.size * 1.1 + sideThreshold)) sideCount++
+  if (objectGroup.some((obj) => Math.abs(obj.y - minY) < obj.size * 1.1 + sideThreshold)) sideCount++
+  if (objectGroup.some((obj) => Math.abs(obj.y - maxY) < obj.size * 1.1 + sideThreshold)) sideCount++
+
+  return sideCount
+}
+
 // Find U-shapes in a group of objects
 function findUShapes(objectGroup) {
   const uShapes = []
 
-  // Try each object as a potential corner
   for (const cornerObj of objectGroup) {
-    // Find objects aligned horizontally with this corner (within a reasonable tolerance)
     const horizontalObjects = objectGroup.filter(
       (obj) =>
         obj !== cornerObj &&
@@ -1509,7 +1518,6 @@ function findUShapes(objectGroup) {
         Math.abs(obj.x - cornerObj.x) > obj.size * 0.5,
     )
 
-    // Find objects aligned vertically with this corner
     const verticalObjects = objectGroup.filter(
       (obj) =>
         obj !== cornerObj &&
@@ -1517,9 +1525,7 @@ function findUShapes(objectGroup) {
         Math.abs(obj.y - cornerObj.y) > obj.size * 0.5,
     )
 
-    // Need at least one object in each direction to form a U
     if (horizontalObjects.length > 0 && verticalObjects.length > 0) {
-      // Find the furthest object in each direction
       const furthestHorizontal = horizontalObjects.reduce(
         (furthest, obj) => (Math.abs(obj.x - cornerObj.x) > Math.abs(furthest.x - cornerObj.x) ? obj : furthest),
         horizontalObjects[0],
@@ -1530,13 +1536,17 @@ function findUShapes(objectGroup) {
         verticalObjects[0],
       )
 
-      // Calculate the roof area with some padding
       const minX = Math.min(cornerObj.x, furthestHorizontal.x, furthestVertical.x) - cornerObj.size * 0.6
       const maxX = Math.max(cornerObj.x, furthestHorizontal.x, furthestVertical.x) + cornerObj.size * 0.6
       const minY = Math.min(cornerObj.y, furthestHorizontal.y, furthestVertical.y) - cornerObj.size * 0.6
       const maxY = Math.max(cornerObj.y, furthestHorizontal.y, furthestVertical.y) + cornerObj.size * 0.6
+      const sideCount = countRoofSides(objectGroup, minX, maxX, minY, maxY)
+      const hasSledgeWallModule = objectGroup.some((obj) => isGridWallBox(obj) || isGridWallRock(obj))
 
-      // Create a roof area
+      if (sideCount < 3) {
+        continue
+      }
+
       uShapes.push({
         x: minX,
         y: minY,
@@ -1544,7 +1554,8 @@ function findUShapes(objectGroup) {
         height: maxY - minY,
         createdAt: Date.now(),
         type: "u-shape",
-        cornerRadius: 15, // Add corner radius for rounded corners
+        cornerRadius: 15,
+        isSolid: hasSledgeWallModule && sideCount >= 3,
       })
     }
   }
@@ -1552,9 +1563,44 @@ function findUShapes(objectGroup) {
   return uShapes
 }
 
+function getRoofFadeDistance(roof, x, y) {
+  if (isPointUnderRoof(x, y, roof)) {
+    return 0
+  }
+
+  const closestX = Math.min(Math.max(x, roof.x), roof.x + roof.width)
+  const closestY = Math.min(Math.max(y, roof.y), roof.y + roof.height)
+  const dx = x - closestX
+  const dy = y - closestY
+
+  if (x >= roof.x && x <= roof.x + roof.width && y >= roof.y && y <= roof.y + roof.height) {
+    return 0
+  }
+
+  return Math.hypot(dx, dy)
+}
+
+function getRoofAlpha(roof, x, y) {
+  const isPlayerUnderRoof = isPointUnderRoof(x, y, roof)
+  if (isPlayerUnderRoof) {
+    return ROOF_UNDER_ALPHA
+  }
+
+  const distanceToRoof = getRoofFadeDistance(roof, x, y)
+  const farAlpha = roof.isSolid ? ROOF_FAR_ALPHA : ROOF_FAR_ALPHA * 0.52
+  const nearAlpha = roof.isSolid ? ROOF_NEAR_ALPHA : ROOF_NEAR_ALPHA * 0.8
+
+  if (distanceToRoof >= ROOF_FADE_DISTANCE) {
+    return farAlpha
+  }
+
+  const fadeT = 1 - distanceToRoof / ROOF_FADE_DISTANCE
+  return farAlpha + (nearAlpha - farAlpha) * fadeT
+}
+
 // Improve the drawRoofAreas function to make roofs more visually distinct with rounded corners
 function drawRoofAreas() {
-  const { camera, ctx, player } = gameState
+  const { camera, ctx, player, dayNight } = gameState
 
   if (gameState.lightweightMode) {
     drawRoofAreasLightweight(ctx, camera, player)
@@ -1564,12 +1610,34 @@ function drawRoofAreas() {
   for (const roof of roofAreas) {
     const screenX = roof.x - camera.x
     const screenY = roof.y - camera.y
-    const cornerRadius = roof.cornerRadius || 15 // Default to 15px if not specified
+    const cornerRadius = roof.cornerRadius || 15
+    const isPlayerUnderRoof = isPointUnderRoof(player.x, player.y, roof)
+    const isNightPhase = dayNight && ["night", "duskToNight", "nightToDawn"].includes(dayNight.currentPhase)
+    const roofAlpha = getRoofAlpha(roof, player.x, player.y)
 
-    // Draw an even more transparent roof so the structure underneath remains clearly visible.
-    ctx.fillStyle = "rgba(139, 69, 19, 0.12)"
+    if (roofAlpha <= 0.002 && !isPlayerUnderRoof) {
+      continue
+    }
 
-    // Draw rounded rectangle
+    if (roof.isSolid && isNightPhase && roofAlpha > 0.002) {
+      const glowRadius = Math.max(roof.width, roof.height) * 0.5 + ROOF_EMIT_LIGHT_RADIUS
+      const glow = ctx.createRadialGradient(
+        screenX + roof.width * 0.5,
+        screenY + roof.height * 0.5,
+        0,
+        screenX + roof.width * 0.5,
+        screenY + roof.height * 0.5,
+        glowRadius,
+      )
+      glow.addColorStop(0, `rgba(255, 212, 138, ${ROOF_EMIT_LIGHT_ALPHA})`)
+      glow.addColorStop(0.5, `rgba(255, 212, 138, ${ROOF_EMIT_LIGHT_ALPHA * 0.4})`)
+      glow.addColorStop(1, "rgba(255, 212, 138, 0)")
+      ctx.fillStyle = glow
+      ctx.fillRect(screenX - glowRadius * 0.25, screenY - glowRadius * 0.25, roof.width + glowRadius * 0.5, roof.height + glowRadius * 0.5)
+    }
+
+    ctx.fillStyle = `rgba(139, 69, 19, ${roofAlpha})`
+
     ctx.beginPath()
     ctx.moveTo(screenX + cornerRadius, screenY)
     ctx.lineTo(screenX + roof.width - cornerRadius, screenY)
@@ -1589,55 +1657,8 @@ function drawRoofAreas() {
     ctx.closePath()
     ctx.fill()
 
-    // Draw subtle grid pattern for visual interest
-    ctx.strokeStyle = "rgba(139, 69, 19, 0.18)"
-    ctx.lineWidth = 1
-
-    // Different patterns for different roof types
-    const gridSize = roof.type === "u-shape" ? 20 : 15
-
-    // Create a clipping path for the grid lines to stay within the rounded rectangle
-    ctx.save()
-    ctx.beginPath()
-    ctx.moveTo(screenX + cornerRadius, screenY)
-    ctx.lineTo(screenX + roof.width - cornerRadius, screenY)
-    ctx.arcTo(screenX + roof.width, screenY, screenX + roof.width, screenY + cornerRadius, cornerRadius)
-    ctx.lineTo(screenX + roof.width, screenY + roof.height - cornerRadius)
-    ctx.arcTo(
-      screenX + roof.width,
-      screenY + roof.height,
-      screenX + roof.width - cornerRadius,
-      screenY + roof.height,
-      cornerRadius,
-    )
-    ctx.lineTo(screenX + cornerRadius, screenY + roof.height)
-    ctx.arcTo(screenX, screenY + roof.height, screenX, screenY + roof.height - cornerRadius, cornerRadius)
-    ctx.lineTo(screenX, screenY + cornerRadius)
-    ctx.arcTo(screenX, screenY, screenX + cornerRadius, screenY, cornerRadius)
-    ctx.closePath()
-    ctx.clip()
-
-    // Horizontal lines
-    for (let y = 0; y < roof.height; y += gridSize) {
-      ctx.beginPath()
-      ctx.moveTo(screenX, screenY + y)
-      ctx.lineTo(screenX + roof.width, screenY + y)
-      ctx.stroke()
-    }
-
-    // Vertical lines
-    for (let x = 0; x < roof.width; x += gridSize) {
-      ctx.beginPath()
-      ctx.moveTo(screenX + x, screenY)
-      ctx.lineTo(screenX + x, screenY + roof.height)
-      ctx.stroke()
-    }
-
-    ctx.restore() // Restore context after clipping
-
-    // Add a subtle border with rounded corners
-    ctx.strokeStyle = "rgba(139, 69, 19, 0.2)"
-    ctx.lineWidth = 2
+    ctx.strokeStyle = roof.isSolid ? "rgba(139, 69, 19, 0.35)" : "rgba(139, 69, 19, 0.18)"
+    ctx.lineWidth = 1.5
     ctx.beginPath()
     ctx.moveTo(screenX + cornerRadius, screenY)
     ctx.lineTo(screenX + roof.width - cornerRadius, screenY)
@@ -1657,9 +1678,22 @@ function drawRoofAreas() {
     ctx.closePath()
     ctx.stroke()
 
-    // Check if player is under this roof
-    if (isPointUnderRoof(player.x, player.y, roof)) {
-      // Draw shadow over player to show they're under the roof
+    if (isNightPhase && roof.isSolid && roofAlpha > 0.002) {
+      const glowRect = ctx.createRadialGradient(
+        screenX + roof.width * 0.5,
+        screenY + roof.height * 0.5,
+        0,
+        screenX + roof.width * 0.5,
+        screenY + roof.height * 0.5,
+        Math.max(roof.width, roof.height),
+      )
+      glowRect.addColorStop(0, "rgba(255, 224, 154, 0.24)")
+      glowRect.addColorStop(1, "rgba(255, 224, 154, 0)")
+      ctx.fillStyle = glowRect
+      ctx.fillRect(screenX - roof.width * 0.2, screenY - roof.height * 0.2, roof.width * 1.4, roof.height * 1.4)
+    }
+
+    if (isPlayerUnderRoof) {
       drawPlayerRoofShadow(ctx, player, camera)
     }
   }
@@ -1669,16 +1703,21 @@ function drawRoofAreasLightweight(ctx, camera, player) {
   for (const roof of roofAreas) {
     const screenX = roof.x - camera.x
     const screenY = roof.y - camera.y
+    const isPlayerUnderRoof = isPointUnderRoof(player.x, player.y, roof)
+    const alpha = getRoofAlpha(roof, player.x, player.y)
 
-    // Cheap roof pass: keep it subtle and nearly see-through so the structure beneath stays visible.
-    ctx.fillStyle = "rgba(128, 76, 32, 0.08)"
+    if (alpha <= 0.002 && !isPlayerUnderRoof) {
+      continue
+    }
+
+    ctx.fillStyle = `rgba(128, 76, 32, ${alpha <= 0.002 ? 0.08 : alpha})`
     ctx.fillRect(screenX, screenY, roof.width, roof.height)
 
-    ctx.strokeStyle = "rgba(98, 58, 24, 0.16)"
+    ctx.strokeStyle = roof.isSolid ? "rgba(98, 58, 24, 0.18)" : "rgba(98, 58, 24, 0.12)"
     ctx.lineWidth = 1
     ctx.strokeRect(screenX, screenY, roof.width, roof.height)
 
-    if (isPointUnderRoof(player.x, player.y, roof)) {
+    if (isPlayerUnderRoof) {
       drawPlayerRoofShadow(ctx, player, camera)
     }
   }
@@ -1689,10 +1728,14 @@ function drawPlayerRoofShadow(ctx, player, camera) {
   const screenX = player.x - camera.x
   const screenY = player.y - camera.y
 
-  // Draw a semi-transparent shadow over the player
-  ctx.fillStyle = "rgba(0, 0, 0, 0.2)"
+  const light = ctx.createRadialGradient(screenX, screenY, 0, screenX, screenY, ROOF_PLAYER_LIGHT_RADIUS)
+  light.addColorStop(0, `rgba(255, 233, 160, ${ROOF_PLAYER_LIGHT_ALPHA})`)
+  light.addColorStop(0.5, `rgba(255, 233, 160, ${ROOF_PLAYER_LIGHT_ALPHA * 0.45})`)
+  light.addColorStop(1, "rgba(255, 233, 160, 0)")
+
+  ctx.fillStyle = light
   ctx.beginPath()
-  ctx.arc(screenX, screenY, player.size * 1.2, 0, Math.PI * 2)
+  ctx.arc(screenX, screenY, ROOF_PLAYER_LIGHT_RADIUS, 0, Math.PI * 2)
   ctx.fill()
 }
 

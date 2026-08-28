@@ -1,7 +1,7 @@
 // Car entity
 import { gameState } from "../core/game-state.js"
 import { getDistance } from "../utils/math-utils.js"
-import { TILE_SIZE, TERRAIN_TYPES, CAR_COUNT } from "../core/constants.js"
+import { TILE_SIZE, TERRAIN_TYPES, CAR_COUNT, MAX_CARS } from "../core/constants.js"
 import { findNearestSafePlayerPosition } from "../utils/player-position-utils.js"
 import { isSpawnPositionClear } from "../utils/spawn-utils.js"
 import { isHoleBlockingCarPosition } from "./shovels.js"
@@ -27,12 +27,12 @@ export function generateCars(count, spawnNearPlayer = false, options = {}) {
   }
 
   // If we already have the maximum number of cars, don't spawn more
-  if (!ignoreLimit && gameState.cars.length >= CAR_COUNT) {
+  if (!ignoreLimit && gameState.cars.length >= MAX_CARS) {
     return;
   }
 
   // Calculate how many cars to actually spawn based on the limit
-  const carsToSpawn = ignoreLimit ? count : Math.min(count, CAR_COUNT - gameState.cars.length);
+  const carsToSpawn = ignoreLimit ? count : Math.min(count, MAX_CARS - gameState.cars.length);
   
   // Handle spawning a car near the player if requested
   if (spawnNearPlayer && player && carsToSpawn > 0) {

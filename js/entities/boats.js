@@ -11,6 +11,7 @@ import {
   CAR_DECELERATION,
   CAR_DRIFT_FACTOR,
   BOAT_COUNT,
+  MAX_BOATS,
 } from "../core/constants.js"
 import { getDistance } from "../utils/math-utils.js"
 import { findNearestSafePlayerPosition } from "../utils/player-position-utils.js"
@@ -28,7 +29,7 @@ export function generateBoats(count, options = {}) {
     gameState.boats = []
   }
 
-  const boatsToSpawn = ignoreLimit ? count : Math.min(count, BOAT_COUNT - gameState.boats.length)
+  const boatsToSpawn = ignoreLimit ? count : Math.min(count, MAX_BOATS - gameState.boats.length)
 
   for (let i = 0; i < boatsToSpawn; i++) {
     let placed = false

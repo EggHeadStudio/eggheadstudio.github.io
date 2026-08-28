@@ -9,6 +9,7 @@ import {
   ROCK_RUBBLE_MIN_PER_PATCH,
   ROCK_RUBBLE_MAX_PER_PATCH,
   ROCK_RUBBLE_RADIUS,
+  MAX_ROCKS,
 } from "../core/constants.js"
 import { getDistance } from "../utils/math-utils.js"
 import { isPlayerPositionClear, movePlayerToNearestSafePosition } from "../utils/player-position-utils.js"
@@ -26,8 +27,15 @@ const MIN_PLAYER_SNAP_CLEARANCE = 6
 // Generate rocks
 export function generateRocks(count) {
   const { terrain, rocks, bombs, apples, enemies, player } = gameState
+  const remainingCapacity = Math.max(0, MAX_ROCKS - rocks.length)
 
-  for (let i = 0; i < count; i++) {
+  if (remainingCapacity <= 0) {
+    return
+  }
+
+  const rocksToSpawn = Math.min(count, remainingCapacity)
+
+  for (let i = 0; i < rocksToSpawn; i++) {
     const rock = {
       x: Math.random() * (terrain[0].length * TILE_SIZE),
       y: Math.random() * (terrain.length * TILE_SIZE),

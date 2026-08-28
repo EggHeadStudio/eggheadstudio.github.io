@@ -1,5 +1,5 @@
 import { gameState } from "../core/game-state.js"
-import { SAW_COUNT, SAW_SIZE, TILE_SIZE, SPAWN_SAW_NEAR_PLAYER } from "../core/constants.js"
+import { SAW_COUNT, SAW_SIZE, TILE_SIZE, SPAWN_SAW_NEAR_PLAYER, MAX_SAWS } from "../core/constants.js"
 import { getDistance } from "../utils/math-utils.js"
 import { createShadow } from "../utils/rendering-utils.js"
 import { updateSawIndicator } from "../ui/ui-manager.js"
@@ -7,15 +7,22 @@ import { isSpawnPositionClear } from "../utils/spawn-utils.js"
 
 export function generateSaws(count = SAW_COUNT) {
   const { terrain, player, saws } = gameState
+  const remainingCapacity = Math.max(0, MAX_SAWS - saws.length)
 
-  if (count > 0 && SPAWN_SAW_NEAR_PLAYER) {
+  if (remainingCapacity <= 0) {
+    return
+  }
+
+  const sawsToSpawn = Math.min(count, remainingCapacity)
+
+  if (sawsToSpawn > 0 && SPAWN_SAW_NEAR_PLAYER) {
     const nearbySaw = createNearbySaw(player, saws)
     if (nearbySaw) {
       saws.push(nearbySaw)
     }
   }
 
-  for (let i = saws.length; i < count; i++) {
+  for (let i = saws.length; i < sawsToSpawn; i++) {
     let placed = false
     let attempts = 0
 

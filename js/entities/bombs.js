@@ -1,6 +1,6 @@
 // Bomb entity
 import { gameState } from "../core/game-state.js"
-import { BOMB_SIZE, TILE_SIZE } from "../core/constants.js"
+import { BOMB_SIZE, TILE_SIZE, MAX_BOMBS } from "../core/constants.js"
 import { getDistance } from "../utils/math-utils.js"
 import { createShadow, roundRect } from "../utils/rendering-utils.js"
 import { isPlayerPositionClear, movePlayerToNearestSafePosition } from "../utils/player-position-utils.js"
@@ -12,8 +12,15 @@ import { updateBombCounter } from "../ui/ui-manager.js"
 // Generate bombs
 export function generateBombs(count) {
   const { terrain, bombs } = gameState
+  const remainingCapacity = Math.max(0, MAX_BOMBS - bombs.length)
 
-  for (let i = 0; i < count; i++) {
+  if (remainingCapacity <= 0) {
+    return
+  }
+
+  const bombsToSpawn = Math.min(count, remainingCapacity)
+
+  for (let i = 0; i < bombsToSpawn; i++) {
     const bomb = {
       x: Math.random() * (terrain[0].length * TILE_SIZE),
       y: Math.random() * (terrain.length * TILE_SIZE),

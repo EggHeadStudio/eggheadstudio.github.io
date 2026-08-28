@@ -1,6 +1,6 @@
 // Apple entity
 import { gameState } from "../core/game-state.js"
-import { APPLE_SIZE, TILE_SIZE, APPLE_THROW_SPEED } from "../core/constants.js"
+import { APPLE_SIZE, TILE_SIZE, APPLE_THROW_SPEED, MAX_APPLES } from "../core/constants.js"
 import { getDistance } from "../utils/math-utils.js"
 import { createShadow } from "../utils/rendering-utils.js"
 import { updateAppleCounter } from "../ui/ui-manager.js"
@@ -13,8 +13,15 @@ import { isSpawnPositionClear } from "../utils/spawn-utils.js"
 export function generateApples(count, options = {}) {
   const { player, terrain, apples } = gameState
   const { spawnNearPlayer = true } = options
+  const remainingCapacity = Math.max(0, MAX_APPLES - apples.length)
 
-  for (let i = 0; i < count; i++) {
+  if (remainingCapacity <= 0) {
+    return
+  }
+
+  const applesToSpawn = Math.min(count, remainingCapacity)
+
+  for (let i = 0; i < applesToSpawn; i++) {
     const apple = {
       x: 0,
       y: 0,

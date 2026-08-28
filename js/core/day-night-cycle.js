@@ -1,6 +1,7 @@
 import { gameState } from "./game-state.js"
 import { refreshWorldForNewDay } from "./game-maintenance.js"
-import { spawnImmediateNightBlackEnemies } from "../entities/enemies.js"
+import { clearAllEnemies, spawnImmediateNightBlackEnemies } from "../entities/enemies.js"
+import { roofAreas } from "../entities/wooden-boxes.js"
 
 const TRANSITION_DURATION = 30 * 1000
 
@@ -115,6 +116,11 @@ export function updateDayNightCycle() {
         spawnImmediateNightBlackEnemies()
       }
 
+      if (previousPhase && previousPhase !== segment.key && segment.key === "dawn") {
+        clearAllEnemies({ spawnCleanupEffects: true })
+        gameState.lastEnemySpawnTime = Date.now()
+      }
+
       if (previousPhase && previousPhase !== segment.key && segment.key === "dusk") {
         refreshWorldForNewDay("dusk")
       }
@@ -191,6 +197,8 @@ export function drawDayNightOverlay() {
   }
 
   overlayCtx.globalCompositeOperation = "destination-out"
+
+  drawShelterLightCutouts(overlayCtx, camera, player)
 
   const playerLight = overlayCtx.createRadialGradient(screenX, screenY, 0, screenX, screenY, lighting.lightRadius)
   playerLight.addColorStop(0, "rgba(0, 0, 0, 1)")
@@ -309,6 +317,50 @@ function formatPhaseLabel(phase) {
 
 function lerp(start, end, progress) {
   return start + (end - start) * progress
+}
+
+function drawShelterLightCutouts(overlayCtx, camera, player) {
+  if (!Array.isArray(roofAreas) || roofAreas.length === 0) {
+    return
+  }
+
+  const playerUnderRoof = roofAreas.some((roof) => {
+    return (
+      player.x >= roof.x &&
+      player.x <= roof.x + roof.width &&
+      player.y >= roof.y &&
+      player.y <= roof.y + roof.height
+    )
+  })
+
+  for (const roof of roofAreas) {
+    const centerX = roof.x + roof.width * 0.5 - camera.x
+    const centerY = roof.y + roof.height * 0.5 - camera.y
+    const radius = Math.max(roof.width, roof.height) * 0.8 + 40
+    const roofGlow = overlayCtx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius)
+    roofGlow.addColorStop(0, "rgba(0, 0, 0, 1)")
+    roofGlow.addColorStop(0.25, "rgba(0, 0, 0, 0.7)")
+    roofGlow.addColorStop(0.6, "rgba(0, 0, 0, 0.2)")
+    roofGlow.addColorStop(1, "rgba(0, 0, 0, 0)")
+    overlayCtx.fillStyle = roofGlow
+    overlayCtx.beginPath()
+    overlayCtx.arc(centerX, centerY, radius, 0, Math.PI * 2)
+    overlayCtx.fill()
+  }
+
+  if (playerUnderRoof) {
+    const playerX = player.x - camera.x
+    const playerY = player.y - camera.y
+    const playerGlow = overlayCtx.createRadialGradient(playerX, playerY, 0, playerX, playerY, 180)
+    playerGlow.addColorStop(0, "rgba(0, 0, 0, 1)")
+    playerGlow.addColorStop(0.35, "rgba(0, 0, 0, 0.75)")
+    playerGlow.addColorStop(0.7, "rgba(0, 0, 0, 0.2)")
+    playerGlow.addColorStop(1, "rgba(0, 0, 0, 0)")
+    overlayCtx.fillStyle = playerGlow
+    overlayCtx.beginPath()
+    overlayCtx.arc(playerX, playerY, 180, 0, Math.PI * 2)
+    overlayCtx.fill()
+  }
 }
 
 function drawExplosionLightBursts(overlayCtx, camera) {

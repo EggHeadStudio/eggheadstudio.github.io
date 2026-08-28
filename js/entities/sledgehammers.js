@@ -4,6 +4,7 @@ import {
   SLEDGEHAMMER_SIZE,
   TILE_SIZE,
   SPAWN_SLEDGEHAMMER_NEAR_PLAYER,
+  MAX_SLEDGEHAMMERS,
 } from "../core/constants.js"
 import { getDistance } from "../utils/math-utils.js"
 import { createShadow } from "../utils/rendering-utils.js"
@@ -12,15 +13,22 @@ import { isSpawnPositionClear } from "../utils/spawn-utils.js"
 
 export function generateSledgehammers(count = SLEDGEHAMMER_COUNT) {
   const { terrain, player, sledgehammers, rocks, woodenBoxes, bombs, cars } = gameState
+  const remainingCapacity = Math.max(0, MAX_SLEDGEHAMMERS - sledgehammers.length)
 
-  if (count > 0 && SPAWN_SLEDGEHAMMER_NEAR_PLAYER) {
+  if (remainingCapacity <= 0) {
+    return
+  }
+
+  const hammersToSpawn = Math.min(count, remainingCapacity)
+
+  if (hammersToSpawn > 0 && SPAWN_SLEDGEHAMMER_NEAR_PLAYER) {
     const nearbyHammer = createNearbySledgehammer(player, sledgehammers)
     if (nearbyHammer) {
       sledgehammers.push(nearbyHammer)
     }
   }
 
-  for (let i = sledgehammers.length; i < count; i++) {
+  for (let i = sledgehammers.length; i < hammersToSpawn; i++) {
     let placed = false
     let attempts = 0
 

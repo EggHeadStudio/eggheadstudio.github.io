@@ -475,9 +475,16 @@ export function spawnEnemies() {
   const currentTime = Date.now()
   const currentPhase = gameState.dayNight?.currentPhase || "dusk"
   const phaseConfig = getPhaseSpawnConfig(currentPhase)
+  const ambientPlan = getAmbientEnemySpawnPlan(currentPhase)
+  const totalAmbientCount = Object.values(ambientPlan).reduce((sum, value) => sum + (Number(value) || 0), 0)
+
+  if (totalAmbientCount <= 0) {
+    gameState.lastEnemySpawnTime = currentTime
+    return
+  }
 
   if (currentTime - gameState.lastEnemySpawnTime > (phaseConfig.interval || ENEMY_SPAWN_INTERVAL)) {
-    generateEnemies(getAmbientEnemySpawnPlan(currentPhase))
+    generateEnemies(ambientPlan)
     gameState.lastEnemySpawnTime = currentTime
   }
 }
