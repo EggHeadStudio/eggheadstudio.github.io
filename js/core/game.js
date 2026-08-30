@@ -28,7 +28,12 @@ import { generateBoats } from "../entities/boats.js"
 import { updateTimer } from "../ui/ui-manager.js"
 import { update } from "./game-loop.js"
 import { gameState } from "./game-state.js"
-import { createCharacter, normalizeCharacterCustomization } from "../entities/character-factory.js"
+import {
+  createCharacter,
+  isSpecialHeroOnlyMode,
+  normalizeCharacterCustomization,
+  resolveSpecialCharacterFromUrl,
+} from "../entities/character-factory.js"
 import { beginPlayerDeathSequence, PLAYER_DEATH_MENU_DELAY } from "../entities/player.js"
 import { initializeDayNightCycle } from "./day-night-cycle.js"
 import { resetHud, setHudVisibility, updateKillCounter } from "../ui/ui-manager.js"
@@ -50,9 +55,21 @@ const TIMESTAMP_KEYS = new Set([
 ])
 
 export function createDefaultGameConfig() {
+  const search = typeof window !== "undefined" ? window.location.search : ""
+  const hostname = typeof window !== "undefined" ? window.location.hostname : ""
+  const specialCharacter = resolveSpecialCharacterFromUrl(search)
+  const specialHeroOnlyMode = isSpecialHeroOnlyMode(search, hostname)
+
+  const defaultCharacterType = specialCharacter?.characterType || "default"
+
   return {
-    characterType: "default",
-    characterAttributes: normalizeCharacterCustomization(),
+    characterType: defaultCharacterType,
+    characterAttributes: normalizeCharacterCustomization(
+      specialCharacter?.characterAttributes || {},
+      defaultCharacterType,
+    ),
+    specialHeroId: specialCharacter?.specialHeroId || (specialHeroOnlyMode ? defaultCharacterType : null),
+    specialCharacter: specialCharacter?.specialCharacter || null,
     startPhase: "dawn",
     lightweightMode: false,
     mapSize: WORLD_MAP_SIZE,

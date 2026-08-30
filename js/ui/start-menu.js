@@ -6,6 +6,8 @@ import {
   getCharacterTypeLabel,
   getCharacterTypeProperties,
   getSelectableCharacterTypes,
+  getSpecialCharacterConfig,
+  isSpecialHeroOnlyMode,
   normalizeCharacterCustomization,
 } from "../entities/character-factory.js"
 import { drawCharacterPreview } from "../entities/player.js"
@@ -179,6 +181,33 @@ function openPausedMenu() {
   }
 }
 
+function buildAccessContext() {
+  const hostname = (typeof window !== "undefined" ? window.location.hostname : "").toLowerCase()
+  const specialConfig = getSpecialCharacterConfig(gameState.startupConfig.specialHeroId)
+  const specialMode = isSpecialHeroOnlyMode(
+    typeof window !== "undefined" ? window.location.search : "",
+    hostname,
+  )
+
+  if (specialConfig) {
+    return {
+      mode: "special",
+      kicker: "EggHead Studio",
+      title: `${specialConfig.label} • Special Edition`,
+      description: `This route is bound to ${specialConfig.label}. Open the card below to begin with this hero.`,
+      specialMode,
+    }
+  }
+
+  return {
+    mode: "default",
+    kicker: MENU_COPY.start.kicker,
+    title: MENU_COPY.start.title,
+    description: MENU_COPY.start.description,
+    specialMode,
+  }
+}
+
 function renderMenuState() {
   const startMenu = document.getElementById("startMenu")
   const menuKicker = document.querySelector(".menu-kicker")
@@ -187,14 +216,15 @@ function renderMenuState() {
   const resumeButton = document.getElementById("resumeGameButton")
   const newGameButton = document.getElementById("newGameButton")
   const menuState = MENU_COPY[gameState.menuMode] || MENU_COPY.start
+  const accessContext = buildAccessContext()
 
   if (!startMenu || !menuKicker || !menuTitle || !menuDescription || !resumeButton || !newGameButton) {
     return
   }
 
-  menuKicker.textContent = menuState.kicker
-  menuTitle.textContent = menuState.title
-  menuDescription.textContent = menuState.description
+  menuKicker.textContent = accessContext.kicker || menuState.kicker
+  menuTitle.textContent = accessContext.title || menuState.title
+  menuDescription.textContent = accessContext.description || menuState.description
   resumeButton.hidden = !(gameState.isStarted && gameState.isPaused && !gameState.gameOver && gameState.menuMode === "pause")
   newGameButton.textContent = gameState.isStarted ? "Start New Game" : "Start Game"
   startMenu.classList.toggle("game-over-mode", gameState.menuMode === "gameover")
@@ -204,7 +234,12 @@ function renderCharacterOptions() {
   const optionsContainer = document.getElementById("characterOptions")
   optionsContainer.innerHTML = ""
 
-  for (const characterType of getSelectableCharacterTypes()) {
+  const specialHeroId = gameState.startupConfig.specialHeroId
+  const availableCharacterTypes = specialHeroId
+    ? [getCharacterTypeProperties(specialHeroId)?.characterType || specialHeroId]
+    : getSelectableCharacterTypes()
+
+  for (const characterType of availableCharacterTypes) {
     const button = document.createElement("button")
     button.type = "button"
     button.className = "menu-option"
@@ -216,6 +251,14 @@ function renderCharacterOptions() {
     `
 
     button.addEventListener("click", () => {
+      if (specialHeroId) {
+        gameState.startupConfig.characterType = characterType
+        gameState.startupConfig.characterAttributes = getCharacterCustomizationDefaults(characterType)
+        updateActiveOption("character", characterType)
+        renderCharacterPreview(characterType)
+        return
+      }
+
       gameState.startupConfig.characterType = characterType
       gameState.startupConfig.characterAttributes = getCharacterCustomizationDefaults(characterType)
       updateActiveOption("character", characterType)
@@ -278,67 +321,93 @@ function renderCharacterPreview(characterType) {
     ...baseProperties,
     ...customProperties,
   }
+  const specialConfig = getSpecialCharacterConfig(gameState.startupConfig.specialHeroId || characterType)
+  const isSpecialHeroMode = Boolean(gameState.startupConfig.specialHeroId)
+  const heroBanner = specialConfig && specialConfig.characterType === characterType
+    ? `
+      <div class="special-character-banner">
+        <span class="special-character-badge">Special Edition</span>
+        <strong>${specialConfig.title}</strong>
+        <small>${specialConfig.rarity} • ${specialConfig.perk}</small>
+      </div>
+    `
+    : ""
 
   gameState.startupConfig.characterAttributes = customProperties
 
   preview.innerHTML = `
-    <div class="character-preview-figure">
-      <canvas id="characterPreviewCanvas" class="character-preview-avatar" role="img" aria-label="${getCharacterTypeLabel(characterType)} preview"></canvas>
-      <div>
-        <strong>${getCharacterTypeLabel(characterType)}</strong>
-        <p>Customize your character before starting. Values outside the allowed ranges are automatically corrected.</p>
+    <div class="special-hero-card">
+      <div class="special-hero-card-header">
+        <div class="special-hero-portrait-wrap">
+          <canvas id="characterPreviewCanvas" class="character-preview-avatar" role="img" aria-label="${getCharacterTypeLabel(characterType)} preview"></canvas>
+        </div>
+        <div class="special-hero-card-copy">
+          <span class="special-hero-eyebrow">${specialConfig ? specialConfig.rarity : "Hero"}</span>
+          <h3>${specialConfig ? specialConfig.label : getCharacterTypeLabel(characterType)}</h3>
+          ${heroBanner}
+        </div>
       </div>
-    </div>
-    <div class="character-customization-controls">
-      <label class="customization-field color-field">
-        <span>Color</span>
-        <div class="color-control-group">
-          <input id="characterColorPicker" type="color" value="${toColorPickerValue(properties.color)}" aria-label="Character color picker">
-          <input id="characterColorInput" type="text" value="${escapeHtml(properties.color)}" placeholder="Any CSS color (name, hex, rgb)">
-        </div>
-      </label>
 
-      <label class="customization-field">
-        <span>Health (${CHARACTER_CUSTOMIZATION_RULES.health.min}-${CHARACTER_CUSTOMIZATION_RULES.health.max})</span>
-        <div class="stat-control-group">
-          <input id="characterHealthRange" type="range" min="${CHARACTER_CUSTOMIZATION_RULES.health.min}" max="${CHARACTER_CUSTOMIZATION_RULES.health.max}" step="1" value="${properties.health}">
-          <input id="characterHealthNumber" type="number" min="${CHARACTER_CUSTOMIZATION_RULES.health.min}" max="${CHARACTER_CUSTOMIZATION_RULES.health.max}" step="1" value="${properties.health}">
-        </div>
-      </label>
-
-      <label class="customization-field">
-        <span>Speed (${CHARACTER_CUSTOMIZATION_RULES.speed.min}-${CHARACTER_CUSTOMIZATION_RULES.speed.max})</span>
-        <div class="stat-control-group">
-          <input id="characterSpeedRange" type="range" min="${CHARACTER_CUSTOMIZATION_RULES.speed.min}" max="${CHARACTER_CUSTOMIZATION_RULES.speed.max}" step="1" value="${properties.speed}">
-          <input id="characterSpeedNumber" type="number" min="${CHARACTER_CUSTOMIZATION_RULES.speed.min}" max="${CHARACTER_CUSTOMIZATION_RULES.speed.max}" step="1" value="${properties.speed}">
-        </div>
-      </label>
-
-      <label class="customization-field">
-        <span>Strength (${CHARACTER_CUSTOMIZATION_RULES.strength.min}-${CHARACTER_CUSTOMIZATION_RULES.strength.max})</span>
-        <div class="stat-control-group">
-          <input id="characterStrengthRange" type="range" min="${CHARACTER_CUSTOMIZATION_RULES.strength.min}" max="${CHARACTER_CUSTOMIZATION_RULES.strength.max}" step="1" value="${properties.strength}">
-          <input id="characterStrengthNumber" type="number" min="${CHARACTER_CUSTOMIZATION_RULES.strength.min}" max="${CHARACTER_CUSTOMIZATION_RULES.strength.max}" step="1" value="${properties.strength}">
-        </div>
-      </label>
-    </div>
-    <div class="character-preview-stats">
-      <div>
-        <strong>Health</strong>
-        <span id="characterHealthValue">${properties.health}</span>
+      <div class="special-hero-description">
+        <p>${specialConfig && specialConfig.characterType === characterType ? specialConfig.description : "Customize your character before starting. Values outside the allowed ranges are automatically corrected."}</p>
       </div>
-      <div>
-        <strong>Speed</strong>
-        <span id="characterSpeedValue">${properties.speed.toFixed(1)}</span>
-      </div>
-      <div>
-        <strong>Strength</strong>
-        <span id="characterStrengthValue">${properties.strength.toFixed(1)}</span>
+
+      ${isSpecialHeroMode ? "" : `
+        <div class="character-customization-controls">
+          <label class="customization-field color-field">
+            <span>Color</span>
+            <div class="color-control-group">
+              <input id="characterColorPicker" type="color" value="${toColorPickerValue(properties.color)}" aria-label="Character color picker">
+              <input id="characterColorInput" type="text" value="${escapeHtml(properties.color)}" placeholder="Any CSS color (name, hex, rgb)">
+            </div>
+          </label>
+
+          <label class="customization-field">
+            <span>Health (${CHARACTER_CUSTOMIZATION_RULES.health.min}-${CHARACTER_CUSTOMIZATION_RULES.health.max})</span>
+            <div class="stat-control-group">
+              <input id="characterHealthRange" type="range" min="${CHARACTER_CUSTOMIZATION_RULES.health.min}" max="${CHARACTER_CUSTOMIZATION_RULES.health.max}" step="1" value="${properties.health}">
+              <input id="characterHealthNumber" type="number" min="${CHARACTER_CUSTOMIZATION_RULES.health.min}" max="${CHARACTER_CUSTOMIZATION_RULES.health.max}" step="1" value="${properties.health}">
+            </div>
+          </label>
+
+          <label class="customization-field">
+            <span>Speed (${CHARACTER_CUSTOMIZATION_RULES.speed.min}-${CHARACTER_CUSTOMIZATION_RULES.speed.max})</span>
+            <div class="stat-control-group">
+              <input id="characterSpeedRange" type="range" min="${CHARACTER_CUSTOMIZATION_RULES.speed.min}" max="${CHARACTER_CUSTOMIZATION_RULES.speed.max}" step="1" value="${properties.speed}">
+              <input id="characterSpeedNumber" type="number" min="${CHARACTER_CUSTOMIZATION_RULES.speed.min}" max="${CHARACTER_CUSTOMIZATION_RULES.speed.max}" step="1" value="${properties.speed}">
+            </div>
+          </label>
+
+          <label class="customization-field">
+            <span>Strength (${CHARACTER_CUSTOMIZATION_RULES.strength.min}-${CHARACTER_CUSTOMIZATION_RULES.strength.max})</span>
+            <div class="stat-control-group">
+              <input id="characterStrengthRange" type="range" min="${CHARACTER_CUSTOMIZATION_RULES.strength.min}" max="${CHARACTER_CUSTOMIZATION_RULES.strength.max}" step="1" value="${properties.strength}">
+              <input id="characterStrengthNumber" type="number" min="${CHARACTER_CUSTOMIZATION_RULES.strength.min}" max="${CHARACTER_CUSTOMIZATION_RULES.strength.max}" step="1" value="${properties.strength}">
+            </div>
+          </label>
+        </div>
+      `}
+
+      <div class="character-preview-stats">
+        <div>
+          <strong>Health</strong>
+          <span id="characterHealthValue">${properties.health}</span>
+        </div>
+        <div>
+          <strong>Speed</strong>
+          <span id="characterSpeedValue">${properties.speed.toFixed(1)}</span>
+        </div>
+        <div>
+          <strong>Strength</strong>
+          <span id="characterStrengthValue">${properties.strength.toFixed(1)}</span>
+        </div>
       </div>
     </div>
   `
 
-  setupCharacterCustomizationControls(characterType)
+  if (!isSpecialHeroMode) {
+    setupCharacterCustomizationControls(characterType)
+  }
   startCharacterPreviewAnimation(characterType)
 }
 

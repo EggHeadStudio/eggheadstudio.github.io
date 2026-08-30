@@ -178,7 +178,55 @@ const CHARACTER_TYPES = {
   },
 }
 
-const SELECTABLE_CHARACTER_TYPES = ["default", "rasse", "iida", "andrus", "lidia", "elli", "niko", "mara", "taro"]
+const SELECTABLE_CHARACTER_TYPES = ["default", "rasse", "iida", "niko"]
+
+const SPECIAL_CHARACTER_DEFINITIONS = {
+  mara: {
+    heroId: "mara",
+    characterType: "mara",
+    label: "Mara",
+    title: "Ashen Warden",
+    rarity: "Legendary",
+    description: "A calm strategist with a measured stance and a sharp eye for danger.",
+    perk: "Reads every fight before it happens.",
+  },
+  taro: {
+    heroId: "taro",
+    characterType: "taro",
+    label: "Taro",
+    title: "Glassrunner",
+    rarity: "Legendary",
+    description: "Fast decisions, clean exits, and a cool head while everything breaks around him.",
+    perk: "Fast decisions, cleaner exits, zero drama.",
+  },
+  andrus: {
+    heroId: "andrus",
+    characterType: "andrus",
+    label: "Andrus",
+    title: "Stonebound Scout",
+    rarity: "Legendary",
+    description: "A grounded survivor who keeps moving even when the ground shifts underfoot.",
+    perk: "Stays calm and steady under pressure.",
+  },
+  lidia: {
+    heroId: "lidia",
+    characterType: "lidia",
+    label: "Lidia",
+    title: "Velvet Current",
+    rarity: "Legendary",
+    description: "Quick to read a room and even quicker to move when the plan changes.",
+    perk: "Keeps momentum while others hesitate.",
+  },
+  elli: {
+    heroId: "elli",
+    characterType: "elli",
+    label: "Elli",
+    title: "Moonstep",
+    rarity: "Legendary",
+    description: "A poised, careful traveler who moves with intent and grace.",
+    perk: "Sees every angle before taking the first step.",
+  },
+}
 
 const CHARACTER_DISPLAY_LABELS = {
   default: "Bold",
@@ -312,6 +360,46 @@ export function getSelectableCharacterTypes() {
 
 export function getCharacterTypeLabel(type) {
   return CHARACTER_DISPLAY_LABELS[type] || CHARACTER_DISPLAY_LABELS.default
+}
+
+export function getSpecialCharacterConfig(heroId) {
+  if (!heroId || typeof heroId !== "string") {
+    return null
+  }
+
+  const normalizedId = heroId.trim().toLowerCase()
+  return SPECIAL_CHARACTER_DEFINITIONS[normalizedId] || null
+}
+
+export function resolveSpecialCharacterFromUrl(search = "") {
+  const urlSearch = typeof search === "string" ? search : String(search || "")
+  const searchString = urlSearch.startsWith("?") ? urlSearch.slice(1) : urlSearch
+  const params = new URLSearchParams(searchString)
+  const heroId = params.get("hero") || params.get("character") || params.get("special")
+  const specialConfig = getSpecialCharacterConfig(heroId)
+
+  if (!specialConfig) {
+    return null
+  }
+
+  const characterType = specialConfig.characterType
+  return {
+    characterType,
+    specialHeroId: specialConfig.heroId,
+    specialCharacter: specialConfig,
+    characterAttributes: getCharacterCustomizationDefaults(characterType),
+  }
+}
+
+export function isSpecialHeroOnlyMode(search = "", hostname = "") {
+  const currentSearch = typeof search === "string" ? search : String(search || "")
+  const currentHostname = typeof hostname === "string" ? hostname.toLowerCase() : ""
+
+  if (resolveSpecialCharacterFromUrl(currentSearch)) {
+    return true
+  }
+
+  return Boolean(currentHostname && currentHostname.includes("eggheadstudio.fi") && currentSearch.includes("hero="))
 }
 
 /**
