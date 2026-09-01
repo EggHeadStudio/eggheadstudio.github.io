@@ -2,29 +2,19 @@
 import {
   PLAYER_SIZE,
   PLAYER_SPEED,
-  ROCK_COUNT,
-  WOODEN_BOX_COUNT,
-  CAR_COUNT,
-  BOAT_COUNT,
   WORLD_MAP_SIZE,
   MOBILE_VIEWPORT_SCALE,
-  INITIAL_BOMB_COUNT,
-  INITIAL_APPLE_COUNT,
 } from "./constants.js"
 import { setupEventListeners } from "../input/input-handler.js"
 import { detectMobile, setupMobileControls } from "../input/mobile-controls.js"
 import { generateTerrain } from "../terrain/terrain-generator.js"
-import { generateBombs } from "../entities/bombs.js"
-import { generateRocks } from "../entities/rocks.js"
+import { populateWorldAroundPlayer } from "../world/world-population.js"
 import { generateTrees } from "../entities/trees.js"
 import { generateEnemies, getInitialEnemySpawnPlan } from "../entities/enemies.js"
-import { generateApples } from "../entities/apples.js"
 import { generateSledgehammers } from "../entities/sledgehammers.js"
 import { generateShovels } from "../entities/shovels.js"
 import { generateSaws } from "../entities/saws.js"
-import { generateWoodenBoxes } from "../entities/wooden-boxes.js" // Import wooden boxes generator
 import { generateCars } from "../entities/cars.js" // Import cars generator
-import { generateBoats } from "../entities/boats.js"
 import { updateTimer } from "../ui/ui-manager.js"
 import { update } from "./game-loop.js"
 import { gameState } from "./game-state.js"
@@ -195,38 +185,25 @@ export function init(config = gameState.startupConfig) {
   // Generate initial terrain
   generateTerrain(normalizedConfig.mapSize)
 
-  // Grow trees across the forest tiles before other props claim the space
+  // Populate trees in the loaded chunks before anything else is placed, so
+  // crates and rocks know where the forests are.
   generateTrees()
 
-  // Generate initial wooden boxes
-  generateWoodenBoxes(WOODEN_BOX_COUNT)
-
-  // Generate initial bombs
-  generateBombs(INITIAL_BOMB_COUNT)
-
-  // Generate initial rocks and clustered rubble patches
-  generateRocks(ROCK_COUNT)
+  // Fill the chunks around the player with rocks, crates, apples, bombs,
+  // vehicles and the occasional tool. Every chunk the player walks into later
+  // is stocked the same way, so the world never runs out of content.
+  populateWorldAroundPlayer()
 
   // Generate initial enemies
   generateEnemies(getInitialEnemySpawnPlan(normalizedConfig.startPhase))
 
-  // Generate initial apples
-  generateApples(INITIAL_APPLE_COUNT, { spawnNearPlayer: false })
+  // Place one starter tool of each kind within reach of the player
+  generateSledgehammers(1)
+  generateShovels(1)
+  generateSaws(1)
 
-  // Generate sledgehammers
-  generateSledgehammers()
-
-  // Generate shovels
-  generateShovels()
-
-  // Generate saws
-  generateSaws()
-
-  // Generate initial cars - one near player, the rest randomly distributed
-  generateCars(CAR_COUNT - 1, true); // First parameter is number of cars to place randomly, second parameter true = spawn one near player
-
-  // Generate boats in water
-  generateBoats(BOAT_COUNT)
+  // One car parked near the player to get going with
+  generateCars(1, true)
 
   // Set up event listeners
   setupEventListeners()

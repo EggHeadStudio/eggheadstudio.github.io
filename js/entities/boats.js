@@ -21,6 +21,7 @@ import { findNearestSafePlayerPosition } from "../utils/player-position-utils.js
 import { triggerGameOver } from "../core/game.js"
 import { drawWoodenBox } from "./wooden-boxes.js"
 import { isSpawnPositionClear, isWaterPosition } from "../utils/spawn-utils.js"
+import { getRandomLoadedWorldPosition } from "../world/world-manager.js"
 
 const BOAT_FLOAT_BOB = 2.5
 const BOAT_WAKE_LIFETIME = 420
@@ -42,8 +43,9 @@ export function generateBoats(count, options = {}) {
     while (!placed && attempts < 120) {
       attempts++
 
-      const x = Math.random() * (terrain[0].length * TILE_SIZE)
-      const y = Math.random() * (terrain.length * TILE_SIZE)
+      const position = getRandomLoadedWorldPosition(280)
+      const x = position.x
+      const y = position.y
       const tileX = Math.floor(x / TILE_SIZE)
       const tileY = Math.floor(y / TILE_SIZE)
 
@@ -70,7 +72,7 @@ export function generateBoats(count, options = {}) {
   }
 }
 
-function createBoat(x, y) {
+export function createBoat(x, y) {
   return {
     x,
     y,

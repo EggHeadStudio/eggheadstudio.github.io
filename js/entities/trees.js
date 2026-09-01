@@ -7,6 +7,7 @@ import {
   TREE_HIT_POINTS,
   TREE_MIN_SPACING,
   TREE_TILE_FILL_CHANCE,
+  TREE_MAX_ACTIVE,
   TREE_MAX_APPLES,
   TREE_APPLE_VALUE,
   APPLE_SIZE,
@@ -16,20 +17,72 @@ import { createShadow } from "../utils/rendering-utils.js"
 import { isSpawnPositionClear } from "../utils/spawn-utils.js"
 import { movePlayerToNearestSafePosition } from "../utils/player-position-utils.js"
 import { createTrunk } from "./wooden-boxes.js"
+import {
+  drainPendingChunkKeys,
+  shouldGenerateTreesForChunk,
+  registerChunkTreeGeneration,
+  scheduleWorldSave,
+} from "../world/world-manager.js"
 
 // Collision is based on the trunk, not the canopy, so forests stay walkable.
 const TRUNK_COLLISION_FACTOR = 0.3
 
-// Generate trees across the forest tiles of the map
-export function generateTrees() {
-  const { terrain, trees } = gameState
+function treeTileKey(x, y) {
+  return `${Math.floor(x / TILE_SIZE)},${Math.floor(y / TILE_SIZE)}`
+}
 
-  if (!terrain || terrain.length === 0 || !trees) {
-    return
+function rememberChoppedTreeTile(x, y) {
+  if (!gameState.choppedTreeTiles) {
+    gameState.choppedTreeTiles = {}
   }
 
-  for (let tileY = 0; tileY < terrain.length; tileY++) {
-    for (let tileX = 0; tileX < terrain[0].length; tileX++) {
+  gameState.choppedTreeTiles[treeTileKey(x, y)] = 1
+  scheduleWorldSave()
+}
+
+// Forests far behind the player are stored away by the world streamer, so a
+// tree only ever has to be grown once per chunk.
+function parseChunkKey(chunkKey) {
+  const [chunkX, chunkY] = chunkKey.split(",").map(Number)
+  return { chunkX, chunkY }
+}
+
+function generateTreesForChunk(chunkX, chunkY) {
+  const { terrain, trees } = gameState
+
+  if (!terrain || !trees) {
+    return true
+  }
+
+  const worldMap = gameState.worldMap
+  if (!worldMap || !shouldGenerateTreesForChunk(`${chunkX},${chunkY}`)) {
+    return true
+  }
+
+  // While the tree budget is full the chunk is left alone so it can grow its
+  // forest later, instead of being recorded as an empty one forever.
+  if (trees.length >= TREE_MAX_ACTIVE) {
+    return false
+  }
+
+  registerChunkTreeGeneration(`${chunkX},${chunkY}`)
+
+  const startTileX = chunkX * worldMap.chunkSize
+  const startTileY = chunkY * worldMap.chunkSize
+  const endTileX = Math.min(startTileX + worldMap.chunkSize, terrain[0].length)
+  const endTileY = Math.min(startTileY + worldMap.chunkSize, terrain.length)
+
+  // Spacing only matters against trees that are already close by, so collect
+  // them once instead of scanning the whole forest for every candidate tile.
+  const minX = startTileX * TILE_SIZE - TREE_MIN_SPACING
+  const maxX = endTileX * TILE_SIZE + TREE_MIN_SPACING
+  const minY = startTileY * TILE_SIZE - TREE_MIN_SPACING
+  const maxY = endTileY * TILE_SIZE + TREE_MIN_SPACING
+  const nearbyTrees = trees.filter((tree) => tree.x >= minX && tree.x <= maxX && tree.y >= minY && tree.y <= maxY)
+  const choppedTiles = gameState.choppedTreeTiles || {}
+
+  for (let tileY = startTileY; tileY < endTileY; tileY++) {
+    for (let tileX = startTileX; tileX < endTileX; tileX++) {
       if (terrain[tileY][tileX] !== TERRAIN_TYPES.FOREST) {
         continue
       }
@@ -38,22 +91,55 @@ export function generateTrees() {
         continue
       }
 
-      // Jitter inside the tile so the forest does not look like a grid
+      if (choppedTiles[`${tileX},${tileY}`]) {
+        continue
+      }
+
+      if (trees.length >= TREE_MAX_ACTIVE) {
+        return true
+      }
+
       const x = tileX * TILE_SIZE + TILE_SIZE * (0.2 + Math.random() * 0.6)
       const y = tileY * TILE_SIZE + TILE_SIZE * (0.2 + Math.random() * 0.6)
 
-      if (canPlaceTreeAt(x, y)) {
-        trees.push(createTree(x, y))
+      if (canPlaceTreeAt(x, y, nearbyTrees)) {
+        const tree = createTree(x, y)
+        trees.push(tree)
+        nearbyTrees.push(tree)
       }
+    }
+  }
+
+  return true
+}
+
+// Chunks that could not be grown yet wait here for the next pass.
+const deferredTreeChunkKeys = []
+
+// Generate trees in the chunks that are currently loaded.
+export function generateTrees() {
+  const pendingChunkKeys = drainPendingChunkKeys()
+  const queue = deferredTreeChunkKeys.splice(0, deferredTreeChunkKeys.length).concat(pendingChunkKeys)
+
+  if (queue.length === 0) {
+    return
+  }
+
+  for (const chunkKey of queue) {
+    const { chunkX, chunkY } = parseChunkKey(chunkKey)
+
+    if (!generateTreesForChunk(chunkX, chunkY)) {
+      deferredTreeChunkKeys.push(chunkKey)
     }
   }
 }
 
 // Trees must keep enough distance from each other for the player to pass between
-function canPlaceTreeAt(x, y) {
+function canPlaceTreeAt(x, y, candidateTrees) {
   const { trees, player } = gameState
+  const comparisonTrees = candidateTrees || trees
 
-  for (const tree of trees) {
+  for (const tree of comparisonTrees) {
     if (getDistance(x, y, tree.x, tree.y) < TREE_MIN_SPACING) {
       return false
     }
@@ -231,6 +317,10 @@ function chopDownTree(tree) {
   }
 
   gameState.trees.splice(index, 1)
+
+  // Chopped tiles are remembered forever, so a forest that is recycled while
+  // the player is far away never grows back over a tree they already cut.
+  rememberChoppedTreeTile(tree.x, tree.y)
 
   createTreeDestructionEffect(tree)
 

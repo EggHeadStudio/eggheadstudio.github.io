@@ -4,6 +4,7 @@ import { getDistance } from "../utils/math-utils.js"
 import { TILE_SIZE, TERRAIN_TYPES, CAR_COUNT, MAX_CARS } from "../core/constants.js"
 import { findNearestSafePlayerPosition } from "../utils/player-position-utils.js"
 import { isSpawnPositionClear } from "../utils/spawn-utils.js"
+import { getRandomLoadedWorldPosition } from "../world/world-manager.js"
 import { isHoleBlockingCarPosition } from "./shovels.js"
 import { isTreeBlocking } from "./trees.js"
 
@@ -15,6 +16,35 @@ export const CAR_DECELERATION = 0.2 // How quickly the car slows down
 export const CAR_DRIFT_FACTOR = 0.85 // How much the car drifts (lower = more drift)
 export const CAR_INTERACTION_RANGE = 80
 export const CAR_MAX_HEALTH = 3
+
+// Ground the cars can drive on. Sand and gravel behave like grass.
+const DRIVABLE_TERRAIN = [TERRAIN_TYPES.GRASS, TERRAIN_TYPES.DIRT, TERRAIN_TYPES.SAND, TERRAIN_TYPES.GRAVEL]
+
+// Create a single car.
+export function createCar(x, y) {
+  return {
+    x,
+    y,
+    size: CAR_SIZE,
+    health: CAR_MAX_HEALTH,
+    lastHit: 0,
+    direction: Math.random() * Math.PI * 2, // Random direction
+    wheelRotation: 0,
+    animationTime: 0,
+    dustParticles: [],
+    velocity: { x: 0, y: 0 },
+    currentSpeed: 0,
+  }
+}
+
+// Public position check used by the chunk populator.
+export function canPlaceCarAt(x, y, minDistanceToOtherCars = 300) {
+  const { terrain, rocks, woodenBoxes, bombs } = gameState
+  const tileX = Math.floor(x / TILE_SIZE)
+  const tileY = Math.floor(y / TILE_SIZE)
+
+  return isValidCarPosition(x, y, tileX, tileY, terrain, rocks, woodenBoxes, bombs, gameState.cars || [], minDistanceToOtherCars)
+}
 
 // Generate initial cars
 export function generateCars(count, spawnNearPlayer = false, options = {}) {
@@ -33,6 +63,7 @@ export function generateCars(count, spawnNearPlayer = false, options = {}) {
 
   // Calculate how many cars to actually spawn based on the limit
   const carsToSpawn = ignoreLimit ? count : Math.min(count, MAX_CARS - gameState.cars.length);
+  let remainingToSpawn = carsToSpawn;
   
   // Handle spawning a car near the player if requested
   if (spawnNearPlayer && player && carsToSpawn > 0) {
@@ -63,27 +94,15 @@ export function generateCars(count, spawnNearPlayer = false, options = {}) {
     
     if (validPosition) {
       // Create a car near player
-      gameState.cars.push({
-        x,
-        y,
-        size: CAR_SIZE,
-        health: CAR_MAX_HEALTH,
-        lastHit: 0,
-        direction: Math.random() * Math.PI * 2, // Random direction
-        wheelRotation: 0,
-        animationTime: 0,
-        dustParticles: [],
-        velocity: {x: 0, y: 0},  // Add velocity property
-        currentSpeed: 0          // Current scalar speed
-      });
-      
-      // Reduce the count for remaining cars to spawn
-      count = carsToSpawn - 1;
+      gameState.cars.push(createCar(x, y));
+
+      // The nearby car counts towards the requested total
+      remainingToSpawn = carsToSpawn - 1;
     }
   }
   
   // Generate remaining cars
-  for (let i = 0; i < carsToSpawn; i++) {
+  for (let i = 0; i < remainingToSpawn; i++) {
     // Find a valid position for the car on grass or dirt
     let validPosition = false;
     let x, y, tileX, tileY;
@@ -92,9 +111,10 @@ export function generateCars(count, spawnNearPlayer = false, options = {}) {
     while (!validPosition && attempts < 50) {
       attempts++;
       
-      // Random position within a larger world area
-      x = Math.random() * (terrain[0].length * TILE_SIZE);
-      y = Math.random() * (terrain.length * TILE_SIZE);
+      // Random position inside the streamed area around the player
+      const position = getRandomLoadedWorldPosition(300);
+      x = position.x;
+      y = position.y;
       
       tileX = Math.floor(x / TILE_SIZE);
       tileY = Math.floor(y / TILE_SIZE);
@@ -107,19 +127,7 @@ export function generateCars(count, spawnNearPlayer = false, options = {}) {
     
     if (validPosition) {
       // Create a new car
-      gameState.cars.push({
-        x,
-        y,
-        size: CAR_SIZE,
-        health: CAR_MAX_HEALTH,
-        lastHit: 0,
-        direction: Math.random() * Math.PI * 2, // Random direction
-        wheelRotation: 0,
-        animationTime: 0,
-        dustParticles: [],
-        velocity: {x: 0, y: 0},  // Add velocity property
-        currentSpeed: 0          // Current scalar speed
-      });
+      gameState.cars.push(createCar(x, y));
     }
   }
 }
@@ -131,8 +139,8 @@ function isValidCarPosition(x, y, tileX, tileY, terrain, rocks, woodenBoxes, bom
     return false;
   }
   
-  // Check terrain (must be on grass or dirt)
-  if (terrain[tileY][tileX] !== TERRAIN_TYPES.GRASS && terrain[tileY][tileX] !== TERRAIN_TYPES.DIRT) {
+  // Check terrain (cars drive on any solid ground, never on water)
+  if (!DRIVABLE_TERRAIN.includes(terrain[tileY][tileX])) {
     return false;
   }
 

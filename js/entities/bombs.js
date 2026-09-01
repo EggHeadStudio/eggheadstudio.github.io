@@ -1,6 +1,6 @@
 // Bomb entity
 import { gameState } from "../core/game-state.js"
-import { BOMB_SIZE, TILE_SIZE, MAX_BOMBS } from "../core/constants.js"
+import { BOMB_SIZE, TILE_SIZE, MAX_BOMBS, SPAWN_ATTEMPT_LIMIT } from "../core/constants.js"
 import { getDistance } from "../utils/math-utils.js"
 import { createShadow, roundRect } from "../utils/rendering-utils.js"
 import { isPlayerPositionClear, movePlayerToNearestSafePosition } from "../utils/player-position-utils.js"
@@ -8,10 +8,23 @@ import { createExplosion } from "./explosions.js"
 import { getRandomColor } from "../utils/color-utils.js"
 import { isSpawnPositionClear } from "../utils/spawn-utils.js"
 import { updateBombCounter } from "../ui/ui-manager.js"
+import { getRandomLoadedWorldPosition } from "../world/world-manager.js"
+
+// Create a single bomb pickup.
+export function createBomb(x, y) {
+  return {
+    x,
+    y,
+    size: BOMB_SIZE,
+    color: getRandomColor(),
+    countdown: null,
+    exploding: false,
+  }
+}
 
 // Generate bombs
 export function generateBombs(count) {
-  const { terrain, bombs } = gameState
+  const { bombs } = gameState
   const remainingCapacity = Math.max(0, MAX_BOMBS - bombs.length)
 
   if (remainingCapacity <= 0) {
@@ -21,24 +34,26 @@ export function generateBombs(count) {
   const bombsToSpawn = Math.min(count, remainingCapacity)
 
   for (let i = 0; i < bombsToSpawn; i++) {
-    const bomb = {
-      x: Math.random() * (terrain[0].length * TILE_SIZE),
-      y: Math.random() * (terrain.length * TILE_SIZE),
-      size: BOMB_SIZE,
-      color: getRandomColor(),
-      countdown: null,
-      exploding: false,
-    }
+    let placed = false
+    let attempts = 0
 
-    if (
-      isSpawnPositionClear(bomb.x, bomb.y, bomb.size, {
-        requireLand: true,
-        playerDistanceBuffer: 120,
-      })
-    ) {
-      bombs.push(bomb)
-    } else {
-      i-- // Try again
+    // Bounded retries: the streamed world is only generated around the player,
+    // so an unlimited retry loop would be able to spin forever.
+    while (!placed && attempts < SPAWN_ATTEMPT_LIMIT) {
+      attempts++
+
+      const position = getRandomLoadedWorldPosition(140)
+      const bomb = createBomb(position.x, position.y)
+
+      if (
+        isSpawnPositionClear(bomb.x, bomb.y, bomb.size, {
+          requireLand: true,
+          playerDistanceBuffer: 120,
+        })
+      ) {
+        bombs.push(bomb)
+        placed = true
+      }
     }
   }
 }

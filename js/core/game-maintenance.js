@@ -3,30 +3,35 @@ import { gameState } from "./game-state.js"
 import { generateApples } from "../entities/apples.js"
 import { generateBombs } from "../entities/bombs.js"
 import { generateWoodenBoxes } from "../entities/wooden-boxes.js" // Import wooden boxes generator
-import { generateRocks } from "../entities/rocks.js"
 import { generateTrees } from "../entities/trees.js"
-import { generateCars } from "../entities/cars.js"
-import { generateBoats } from "../entities/boats.js"
-import { generateSledgehammers } from "../entities/sledgehammers.js"
 import { clearAllEnemies, generateEnemies, getInitialEnemySpawnPlan } from "../entities/enemies.js"
+import { ensureWorldChunksAroundWorldPosition } from "../world/world-manager.js"
+import { streamWorldEntities } from "../world/world-population.js"
 import {
   APPLE_RESPAWN_THRESHOLD,
   APPLE_RESPAWN_BATCH,
   BOMB_RESPAWN_THRESHOLD,
   BOMB_RESPAWN_BATCH,
-  INITIAL_BOMB_COUNT,
   INITIAL_APPLE_COUNT,
-  ROCK_COUNT,
+  INITIAL_BOMB_COUNT,
   WOODEN_BOX_RESPAWN_THRESHOLD,
   WOODEN_BOX_RESPAWN_BATCH,
-  WOODEN_BOX_COUNT,
-  CAR_COUNT,
-  BOAT_COUNT,
-  SLEDGEHAMMER_COUNT,
 } from "./constants.js"
 
 // Maintain game elements (generate more as needed)
 export function maintainGameElements() {
+  const { player } = gameState
+
+  if (player) {
+    ensureWorldChunksAroundWorldPosition(player.x, player.y)
+  }
+
+  generateTrees()
+
+  // Stock the chunks the player just walked into and store away the ones left
+  // behind. Only does real work when the player crosses a chunk border.
+  streamWorldEntities()
+
   // Generate more apples if needed
   if (gameState.apples.length < APPLE_RESPAWN_THRESHOLD) {
     generateApples(APPLE_RESPAWN_BATCH)
@@ -49,13 +54,13 @@ export function maintainGameElements() {
 export function refreshWorldForNewDay(startPhase = "dusk") {
   clearAllEnemies({ spawnCleanupEffects: true })
   generateTrees()
-  generateRocks(ROCK_COUNT)
-  generateWoodenBoxes(WOODEN_BOX_COUNT)
-  generateBombs(INITIAL_BOMB_COUNT)
-  generateCars(CAR_COUNT - 1, true, { ignoreLimit: true })
-  generateBoats(BOAT_COUNT, { ignoreLimit: true })
+
+  // Make sure the area around the player is stocked, then refill the things
+  // that get used up. Everything else stays exactly as the player left it.
+  streamWorldEntities({ force: true })
   generateApples(INITIAL_APPLE_COUNT, { spawnNearPlayer: false })
-  generateSledgehammers(SLEDGEHAMMER_COUNT)
+  generateBombs(INITIAL_BOMB_COUNT)
+
   generateEnemies(getInitialEnemySpawnPlan(startPhase))
   gameState.lastEnemySpawnTime = Date.now()
 }

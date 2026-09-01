@@ -1,8 +1,10 @@
 // Enemy entity
 import { gameState } from "../core/game-state.js"
+import { getRandomLoadedWorldPosition } from "../world/world-manager.js"
 import {
   ENEMY_SIZE,
   TILE_SIZE,
+  SPAWN_ATTEMPT_LIMIT,
   ENEMY_SPAWN_INTERVAL,
   ENEMY_SPAWN_BATCH_RED,
   ENEMY_SPAWN_BATCH_YELLOW,
@@ -376,28 +378,31 @@ function drawEnemy(ctx, enemy, camera) {
 
 // Generate enemies
 export function generateEnemies(countOrPlan) {
-  const { terrain, enemies } = gameState
+  const { enemies } = gameState
   const spawnPlan = typeof countOrPlan === "number" ? { red: countOrPlan } : countOrPlan
 
   for (const [type, requestedCount] of Object.entries(spawnPlan)) {
     const count = Math.max(0, requestedCount || 0)
 
     for (let i = 0; i < count; i++) {
-      const enemy = createEnemy(
-        type,
-        Math.random() * (terrain[0].length * TILE_SIZE),
-        Math.random() * (terrain.length * TILE_SIZE),
-      )
+      let placed = false
+      let attempts = 0
 
-      if (
-        isSpawnPositionClear(enemy.x, enemy.y, enemy.size, {
-          requireLand: true,
-          playerDistanceBuffer: 300,
-        })
-      ) {
-        enemies.push(enemy)
-      } else {
-        i--
+      while (!placed && attempts < SPAWN_ATTEMPT_LIMIT) {
+        attempts++
+
+        const position = getRandomLoadedWorldPosition(320)
+        const enemy = createEnemy(type, position.x, position.y)
+
+        if (
+          isSpawnPositionClear(enemy.x, enemy.y, enemy.size, {
+            requireLand: true,
+            playerDistanceBuffer: 300,
+          })
+        ) {
+          enemies.push(enemy)
+          placed = true
+        }
       }
     }
   }

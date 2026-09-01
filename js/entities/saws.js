@@ -4,6 +4,16 @@ import { getDistance } from "../utils/math-utils.js"
 import { createShadow } from "../utils/rendering-utils.js"
 import { updateSawIndicator } from "../ui/ui-manager.js"
 import { isSpawnPositionClear } from "../utils/spawn-utils.js"
+import { getRandomLoadedWorldPosition } from "../world/world-manager.js"
+
+export function createSaw(x, y) {
+  return {
+    x,
+    y,
+    size: SAW_SIZE,
+    rotation: (Math.random() - 0.5) * 0.5,
+  }
+}
 
 export function generateSaws(count = SAW_COUNT) {
   const { terrain, player, saws } = gameState
@@ -29,9 +39,10 @@ export function generateSaws(count = SAW_COUNT) {
     while (!placed && attempts < 80) {
       attempts++
 
+      const position = getRandomLoadedWorldPosition(200)
       const saw = {
-        x: Math.random() * (terrain[0].length * TILE_SIZE),
-        y: Math.random() * (terrain.length * TILE_SIZE),
+        x: position.x,
+        y: position.y,
         size: SAW_SIZE,
         rotation: (Math.random() - 0.5) * 0.5,
       }

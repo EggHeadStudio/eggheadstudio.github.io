@@ -1,92 +1,43 @@
 // Terrain generation
 import { gameState } from "../core/game-state.js"
 import { TILE_SIZE, WORLD_MAP_SIZE } from "../core/constants.js"
+import { ensureWorldChunksAroundWorldPosition, initializeWorldTerrain } from "../world/world-manager.js"
 
 // Generate procedural terrain
 export function generateTerrain(mapSize = WORLD_MAP_SIZE) {
-  gameState.terrain = []
+  initializeWorldTerrain(mapSize)
 
-  // First pass: Generate basic terrain with improved water distribution
-  for (let y = 0; y < mapSize; y++) {
-    gameState.terrain[y] = new Uint8Array(mapSize)
-    for (let x = 0; x < mapSize; x++) {
-      // Use a different noise approach for more consistent water bodies
-      const nx = x / mapSize - 0.5
-      const ny = y / mapSize - 0.5
+  // Place the player in a safe starting position near the middle of the world.
+  const startCenterX = Math.floor(mapSize / 2)
+  const startCenterY = Math.floor(mapSize / 2)
 
-      // Create larger coherent patterns
-      const noise1 = Math.sin(nx * 6) * Math.cos(ny * 6)
-      const noise2 = Math.sin((nx + ny) * 8) * 0.3
-      const noise3 = Math.cos((nx - ny) * 7) * 0.2
-      const noise = noise1 + noise2 + noise3
+  ensureWorldChunksAroundWorldPosition(startCenterX * TILE_SIZE, startCenterY * TILE_SIZE)
 
-      // Assign terrain types with thresholds that create fewer, more coherent water bodies
-      if (noise < -0.6) {
-        gameState.terrain[y][x] = 0 // TERRAIN_TYPES.WATER
-      } else if (noise < 0.2) {
-        gameState.terrain[y][x] = 1 // TERRAIN_TYPES.GRASS
-      } else {
-        gameState.terrain[y][x] = 2 // TERRAIN_TYPES.FOREST
-      }
-    }
-  }
+  let startX = startCenterX
+  let startY = startCenterY
 
-  // Second pass: Clean up water bodies to make them more consistent
-  for (let y = 1; y < mapSize - 1; y++) {
-    for (let x = 1; x < mapSize - 1; x++) {
-      // If this is water, check surroundings
-      if (gameState.terrain[y][x] === 0) {
-        // TERRAIN_TYPES.WATER
-        // Count water neighbors (8-way)
-        let waterNeighbors = 0
-        for (let dy = -1; dy <= 1; dy++) {
-          for (let dx = -1; dx <= 1; dx++) {
-            if (dx === 0 && dy === 0) continue
-            if (gameState.terrain[y + dy][x + dx] === 0) {
-              // TERRAIN_TYPES.WATER
-              waterNeighbors++
-            }
-          }
+  // Search outward through the generated chunks instead of retrying forever.
+  outer: for (let radius = 0; radius < 40; radius++) {
+    for (let offsetY = -radius; offsetY <= radius; offsetY++) {
+      for (let offsetX = -radius; offsetX <= radius; offsetX++) {
+        const tileX = startCenterX + offsetX
+        const tileY = startCenterY + offsetY
+
+        if (tileX < 0 || tileY < 0 || tileX >= mapSize || tileY >= mapSize) {
+          continue
         }
 
-        // If isolated water or nearly isolated, convert to land
-        if (waterNeighbors <= 2) {
-          gameState.terrain[y][x] = 1 // TERRAIN_TYPES.GRASS
-        }
-      }
-      // If this is land, but surrounded by water, consider making it water
-      else if (gameState.terrain[y][x] !== 0) {
-        // TERRAIN_TYPES.WATER
-        let waterNeighbors = 0
-        for (let dy = -1; dy <= 1; dy++) {
-          for (let dx = -1; dx <= 1; dx++) {
-            if (dx === 0 && dy === 0) continue
-            if (gameState.terrain[y + dy][x + dx] === 0) {
-              // TERRAIN_TYPES.WATER
-              waterNeighbors++
-            }
-          }
-        }
-
-        // If mostly surrounded by water, convert to water
-        if (waterNeighbors >= 6) {
-          gameState.terrain[y][x] = 0 // TERRAIN_TYPES.WATER
+        if (gameState.terrain[tileY][tileX] !== 0) {
+          startX = tileX
+          startY = tileY
+          break outer
         }
       }
     }
   }
 
-  // Place player in a safe starting position
-  let safeStart = false
-  while (!safeStart) {
-    const startX = Math.floor(mapSize / 2) + Math.floor(Math.random() * 20) - 10
-    const startY = Math.floor(mapSize / 2) + Math.floor(Math.random() * 20) - 10
+  gameState.player.x = startX * TILE_SIZE + TILE_SIZE / 2
+  gameState.player.y = startY * TILE_SIZE + TILE_SIZE / 2
 
-    if (gameState.terrain[startY][startX] !== 0) {
-      // TERRAIN_TYPES.WATER
-      gameState.player.x = startX * TILE_SIZE + TILE_SIZE / 2
-      gameState.player.y = startY * TILE_SIZE + TILE_SIZE / 2
-      safeStart = true
-    }
-  }
+  ensureWorldChunksAroundWorldPosition(gameState.player.x, gameState.player.y)
 }

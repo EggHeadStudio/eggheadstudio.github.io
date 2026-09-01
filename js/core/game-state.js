@@ -65,6 +65,7 @@ export const gameState = {
   // Game entities
   player: null,
   terrain: [],
+  worldMap: null,
   bombs: [],
   enemies: [],
   apples: [],

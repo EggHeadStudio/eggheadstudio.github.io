@@ -1,7 +1,53 @@
 // Game constants
 export const TILE_SIZE = 40
-export const WORLD_SIZE_MULTIPLIER = 1
+export const WORLD_SIZE_MULTIPLIER = 8
 export const WORLD_MAP_SIZE = 240 * WORLD_SIZE_MULTIPLIER
+// Entities now stream in around the player, so content density is tuned for the
+// active area instead of the total world size.
+export const WORLD_CONTENT_MULTIPLIER = 1
+export const WORLD_CHUNK_SIZE_TILES = 32
+export const WORLD_CHUNK_PRELOAD_RADIUS = 2
+export const WORLD_CHUNK_KEEP_RADIUS = 3
+// Upper bound on placement retries for any world spawn loop.
+export const SPAWN_ATTEMPT_LIMIT = 40
+export const WORLD_SAVE_KEY = "small-game-world-state-v1"
+export const WORLD_SEED = 1337
+
+// --- World shape -----------------------------------------------------------
+// The world is built from smooth fractal noise fields, so lakes, seas and
+// forests come out as large natural regions instead of scattered tiles.
+// All levels are 0..1 thresholds; scales are in tiles (bigger = bigger regions).
+export const WORLD_ELEVATION_SCALE = 190 // Size of continents, seas and lakes
+export const WORLD_ELEVATION_OCTAVES = 4 // Detail added to coastlines
+export const WORLD_WATER_LEVEL = 0.4 // Below this is water. Raise for more sea.
+export const WORLD_SHORE_BAND = 0.05 // Sand ring around every water mass
+export const WORLD_RIVER_SCALE = 420 // Length/width of river systems
+export const WORLD_RIVER_WIDTH = 0.02 // Set to 0 to remove rivers entirely
+export const WORLD_RIVER_MAX_ELEVATION = 0.24 // Rivers stop before high ground
+export const WORLD_MOISTURE_SCALE = 140 // Size of forest regions
+export const WORLD_FOREST_LEVEL = 0.52 // Above this moisture is forest
+export const WORLD_GRAVEL_SCALE = 110 // Size of gravel fields
+export const WORLD_GRAVEL_LEVEL = 0.63 // Above this is gravel (rock country)
+
+// --- Per-chunk content density ---------------------------------------------
+// A chunk is WORLD_CHUNK_SIZE_TILES squared, so these numbers control how
+// crowded the world feels no matter how far the player travels.
+export const WORLD_ENTITY_CHUNK_RADIUS = 2 // Chunks kept populated around the player
+export const WORLD_ENTITY_RELEASE_RADIUS = 3 // Chunks beyond this are stored away
+export const CHUNK_ROCK_MIN = 2
+export const CHUNK_ROCK_MAX = 4
+export const CHUNK_GRAVEL_ROCK_BONUS = 3 // Extra rocks in gravel country
+export const CHUNK_RUBBLE_CHANCE = 0.16 // Chance of a rock rubble pile per chunk
+export const CHUNK_BOX_MIN = 1
+export const CHUNK_BOX_MAX = 3
+export const CHUNK_FLOATING_BOX_MAX = 2 // Crates drifting on open water
+export const CHUNK_APPLE_MIN = 1
+export const CHUNK_APPLE_MAX = 3
+export const CHUNK_BOMB_CHANCE = 0.7
+export const CHUNK_CAR_CHANCE = 0.16
+export const CHUNK_BOAT_CHANCE = 0.55
+export const CHUNK_BOAT_MIN_WATER_TILES = 70 // Only real lakes/seas get boats
+export const CHUNK_TOOL_CHANCE = 0.07 // Chance per chunk for each rare tool
 export const MINIMAP_VISIBLE_TILES_MOBILE = 26 * 2
 export const MINIMAP_VISIBLE_TILES_DESKTOP = 40 * 2
 export const MOBILE_VIEWPORT_SCALE = 1.18
@@ -82,15 +128,15 @@ export const ENEMY_PHASE_SPAWN_CONFIG = {
 
 export const APPLE_THROW_SPEED = 8
 export const ROCK_SIZE = 50 // Slightly larger than bombs
-export const ROCK_COUNT = 120 // Initial number of rocks
-export const MAX_ROCKS = 180 // Hard cap for rocks in the world
-export const ROCK_RUBBLE_PATCH_COUNT = 3 // Number of rock piles scattered across the map
+export const ROCK_COUNT = Math.round(120 * WORLD_CONTENT_MULTIPLIER) // Initial number of rocks
+export const MAX_ROCKS = Math.round(340 * WORLD_CONTENT_MULTIPLIER) // Hard cap for rocks loaded around the player
+export const ROCK_RUBBLE_PATCH_COUNT = 6 // Number of rock piles scattered across the map
 export const ROCK_RUBBLE_MIN_PER_PATCH = 15 // Minimum rocks in each rubble patch
 export const ROCK_RUBBLE_MAX_PER_PATCH = 30 // Maximum rocks in each rubble patch
-export const ROCK_RUBBLE_RADIUS = 70 // Radius of each rubble patch
+export const ROCK_RUBBLE_RADIUS = 40 // Radius of each rubble patch
 export const WOODEN_BOX_SIZE = 45 // Size of wooden boxes
-export const WOODEN_BOX_COUNT = 120 // Initial number of wooden boxes
-export const MAX_WOODEN_BOXES = 180 // Hard cap for crates and trunks in the world
+export const WOODEN_BOX_COUNT = Math.round(120 * WORLD_CONTENT_MULTIPLIER) // Initial number of wooden boxes
+export const MAX_WOODEN_BOXES = Math.round(180 * WORLD_CONTENT_MULTIPLIER) // Hard cap for crates and trunks in the world
 export const WOODEN_BOX_THROW_MULTIPLIER = 0.3 // Reduced from 2 to 0.3 (4x reduction)
 export const WOODEN_BOX_FLOAT_SPEED = 0.5 // How fast boxes float in water
 export const WOODEN_BOX_SNAP_DISTANCE = 60 // Distance for boxes to snap to each other
@@ -98,33 +144,34 @@ export const TREE_SIZE = 44 // Canopy radius of a tree
 export const TREE_HIT_POINTS = 3 // Hits needed to chop a tree down
 export const TREE_MIN_SPACING = 95 // Keeps forests walkable between trunks
 export const TREE_TILE_FILL_CHANCE = 0.55 // Chance a forest tile gets a tree
+export const TREE_MAX_ACTIVE = 2600 // Upper bound for trees kept alive while exploring
 export const TREE_MAX_APPLES = 3 // Max apples growing on a single tree
 export const TREE_APPLE_VALUE = 1 // Apples dropped from trees are worth 1
 export const CAR_SIZE = 50 // Size of cars
 export const BOAT_SIZE = 80 // Size of boats
 export const CAR_SPEED = 8 // 2x the normal player speed (vehicles)
 export const CAR_INTERACTION_RANGE = 80 // Distance for player to interact with cars
-export const CAR_COUNT = 5 // Maximum number of cars in the game
-export const MAX_CARS = CAR_COUNT
-export const BOAT_COUNT = 5
-export const MAX_BOATS = BOAT_COUNT
+export const CAR_COUNT = Math.round(5 * WORLD_CONTENT_MULTIPLIER) // Cars spawned per fresh world
+export const MAX_CARS = Math.round(10 * WORLD_CONTENT_MULTIPLIER) // Cars loaded around the player at once
+export const BOAT_COUNT = Math.round(5 * WORLD_CONTENT_MULTIPLIER)
+export const MAX_BOATS = Math.round(10 * WORLD_CONTENT_MULTIPLIER) // Boats loaded around the player at once
 export const BOAT_TOW_CAP = 6
 export const BOAT_TOW_SLOWDOWN_MULTIPLIER = 0.82
 export const BOAT_TOW_SMOKE_ALPHA = 0.4
-export const SLEDGEHAMMER_COUNT = 5
+export const SLEDGEHAMMER_COUNT = Math.round(5 * WORLD_CONTENT_MULTIPLIER)
 export const MAX_SLEDGEHAMMERS = SLEDGEHAMMER_COUNT
-export const SHOVEL_COUNT = 5
+export const SHOVEL_COUNT = Math.round(5 * WORLD_CONTENT_MULTIPLIER)
 export const MAX_SHOVELS = SHOVEL_COUNT
-export const SAW_COUNT = 5
+export const SAW_COUNT = Math.round(5 * WORLD_CONTENT_MULTIPLIER)
 export const MAX_SAWS = SAW_COUNT
 export const SPAWN_SLEDGEHAMMER_NEAR_PLAYER = true
 export const SPAWN_SHOVEL_NEAR_PLAYER = true
 export const SPAWN_SAW_NEAR_PLAYER = true
-export const INITIAL_BOMB_COUNT = 25
-export const MAX_BOMBS = 35 // Hard cap for bombs in the world
+export const INITIAL_BOMB_COUNT = Math.round(25 * WORLD_CONTENT_MULTIPLIER)
+export const MAX_BOMBS = Math.round(35 * WORLD_CONTENT_MULTIPLIER) // Hard cap for bombs in the world
 export const INITIAL_ENEMY_COUNT = INITIAL_RED_ENEMY_COUNT + INITIAL_YELLOW_ENEMY_COUNT
-export const INITIAL_APPLE_COUNT = 40
-export const MAX_APPLES = 80 // Hard cap for apple pickups in the world
+export const INITIAL_APPLE_COUNT = Math.round(40 * WORLD_CONTENT_MULTIPLIER)
+export const MAX_APPLES = Math.round(80 * WORLD_CONTENT_MULTIPLIER) // Hard cap for apple pickups in the world
 export const APPLE_RESPAWN_THRESHOLD = 20
 export const APPLE_RESPAWN_BATCH = 5
 export const BOMB_RESPAWN_THRESHOLD = 20
@@ -142,4 +189,6 @@ export const TERRAIN_TYPES = {
   GRASS: 1,
   FOREST: 2,
   DIRT: 3,
+  SAND: 4,
+  GRAVEL: 5,
 }

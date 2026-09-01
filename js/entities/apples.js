@@ -1,6 +1,7 @@
 // Apple entity
 import { gameState } from "../core/game-state.js"
-import { APPLE_SIZE, TILE_SIZE, APPLE_THROW_SPEED, MAX_APPLES } from "../core/constants.js"
+import { APPLE_SIZE, TILE_SIZE, APPLE_THROW_SPEED, MAX_APPLES, SPAWN_ATTEMPT_LIMIT } from "../core/constants.js"
+import { getRandomLoadedWorldPosition } from "../world/world-manager.js"
 import { getDistance } from "../utils/math-utils.js"
 import { createShadow } from "../utils/rendering-utils.js"
 import { updateAppleCounter } from "../ui/ui-manager.js"
@@ -8,6 +9,17 @@ import { damageWoodenBox } from "../entities/wooden-boxes.js"
 import { incrementKillCount } from "../ui/ui-manager.js"
 import { damageEnemy } from "./enemies.js"
 import { isSpawnPositionClear } from "../utils/spawn-utils.js"
+
+// Create a single apple. Shared by the classic spawner and the chunk populator
+// so every apple in the world is built the same way.
+export function createApple(x, y) {
+  return {
+    x,
+    y,
+    size: APPLE_SIZE,
+    color: "#e74c3c",
+  }
+}
 
 // Generate apples
 export function generateApples(count, options = {}) {
@@ -22,34 +34,30 @@ export function generateApples(count, options = {}) {
   const applesToSpawn = Math.min(count, remainingCapacity)
 
   for (let i = 0; i < applesToSpawn; i++) {
-    const apple = {
-      x: 0,
-      y: 0,
-      size: APPLE_SIZE,
-      color: "#e74c3c",
-    }
+    const apple = createApple(0, 0)
 
-    if (spawnNearPlayer) {
-      const maxDistance = 1500 // Maximum distance from player
-      const angle = Math.random() * Math.PI * 2
-      const distance = Math.random() * maxDistance
+    let placed = false
+    let attempts = 0
 
-      apple.x = player.x + Math.cos(angle) * distance
-      apple.y = player.y + Math.sin(angle) * distance
-    } else {
-      apple.x = Math.random() * (terrain[0].length * TILE_SIZE)
-      apple.y = Math.random() * (terrain.length * TILE_SIZE)
-    }
+    while (!placed && attempts < SPAWN_ATTEMPT_LIMIT) {
+      attempts++
 
-    if (
-      isSpawnPositionClear(apple.x, apple.y, apple.size, {
-        requireLand: true,
-        playerDistanceBuffer: spawnNearPlayer ? 0 : 90,
-      })
-    ) {
-      apples.push(apple)
-    } else {
-      i-- // Try again
+      const position = spawnNearPlayer
+        ? getRandomLoadedWorldPosition(0, 1500)
+        : getRandomLoadedWorldPosition(120)
+
+      apple.x = position.x
+      apple.y = position.y
+
+      if (
+        isSpawnPositionClear(apple.x, apple.y, apple.size, {
+          requireLand: true,
+          playerDistanceBuffer: spawnNearPlayer ? 0 : 90,
+        })
+      ) {
+        apples.push(apple)
+        placed = true
+      }
     }
   }
 }

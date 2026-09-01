@@ -15,7 +15,9 @@ import {
   ROOF_EMIT_LIGHT_ALPHA,
   ROOF_PLAYER_LIGHT_RADIUS,
   ROOF_PLAYER_LIGHT_ALPHA,
+  SPAWN_ATTEMPT_LIMIT,
 } from "../core/constants.js"
+import { getRandomLoadedWorldPosition } from "../world/world-manager.js"
 import { getDistance } from "../utils/math-utils.js"
 import { isPlayerPositionClear, movePlayerToNearestSafePosition } from "../utils/player-position-utils.js"
 import { createShadow } from "../utils/rendering-utils.js"
@@ -46,35 +48,35 @@ export function generateWoodenBoxes(count) {
   const boxesToSpawn = Math.min(count, remainingCapacity)
 
   for (let i = 0; i < boxesToSpawn; i++) {
-    const woodenBox = createWoodenBox(
-      Math.random() * (terrain[0].length * TILE_SIZE),
-      Math.random() * (terrain.length * TILE_SIZE),
-    )
+    let placed = false
+    let attempts = 0
 
-    // Determine if the box will be placed on land or water
-    const tileX = Math.floor(woodenBox.x / TILE_SIZE)
-    const tileY = Math.floor(woodenBox.y / TILE_SIZE)
+    while (!placed && attempts < SPAWN_ATTEMPT_LIMIT) {
+      attempts++
 
-    const validPosition = isSpawnPositionClear(woodenBox.x, woodenBox.y, woodenBox.size, {
-      playerDistanceBuffer: 100,
-    })
+      const position = getRandomLoadedWorldPosition(120)
+      const woodenBox = createWoodenBox(position.x, position.y)
 
-    if (validPosition) {
-      // Set floating state if on water
-      if (isWaterPosition(woodenBox.x, woodenBox.y)) {
-        woodenBox.isFloating = true
-        woodenBox.floatAngle = Math.random() * Math.PI * 2
+      const validPosition = isSpawnPositionClear(woodenBox.x, woodenBox.y, woodenBox.size, {
+        playerDistanceBuffer: 100,
+      })
+
+      if (validPosition) {
+        // Set floating state if on water
+        if (isWaterPosition(woodenBox.x, woodenBox.y)) {
+          woodenBox.isFloating = true
+          woodenBox.floatAngle = Math.random() * Math.PI * 2
+        }
+
+        woodenBoxes.push(woodenBox)
+        placed = true
       }
-
-      woodenBoxes.push(woodenBox)
-    } else {
-      i-- // Try again
     }
   }
 }
 
 // Create a new wooden box
-function createWoodenBox(x, y) {
+export function createWoodenBox(x, y) {
   return {
     x: x,
     y: y,

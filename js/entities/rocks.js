@@ -10,7 +10,9 @@ import {
   ROCK_RUBBLE_MAX_PER_PATCH,
   ROCK_RUBBLE_RADIUS,
   MAX_ROCKS,
+  SPAWN_ATTEMPT_LIMIT,
 } from "../core/constants.js"
+import { getRandomLoadedWorldPosition } from "../world/world-manager.js"
 import { getDistance } from "../utils/math-utils.js"
 import { isPlayerPositionClear, movePlayerToNearestSafePosition } from "../utils/player-position-utils.js"
 import { createShadow } from "../utils/rendering-utils.js"
@@ -24,6 +26,19 @@ const NON_GRID_SNAP_TILE_GAP = 1
 const NON_GRID_SNAP_SPAN = TILE_SIZE * (NON_GRID_SNAP_TILE_GAP + 1)
 const MIN_PLAYER_SNAP_CLEARANCE = 6
 
+// Create a single rock. Rubble pieces are the same object with a smaller size.
+export function createRock(x, y, size = ROCK_SIZE) {
+  return {
+    x,
+    y,
+    size,
+    texture: Math.floor(Math.random() * 3), // 0, 1, or 2 for different rock textures
+    rotation: Math.random() * Math.PI * 2, // Random rotation for variety
+    snappedTo: null, // Reference to another object this rock is snapped to
+    type: "rock", // Identify this as a rock for roof detection
+  }
+}
+
 // Generate rocks
 export function generateRocks(count) {
   const { terrain, rocks, bombs, apples, enemies, player } = gameState
@@ -36,25 +51,24 @@ export function generateRocks(count) {
   const rocksToSpawn = Math.min(count, remainingCapacity)
 
   for (let i = 0; i < rocksToSpawn; i++) {
-    const rock = {
-      x: Math.random() * (terrain[0].length * TILE_SIZE),
-      y: Math.random() * (terrain.length * TILE_SIZE),
-      size: ROCK_SIZE,
-      texture: Math.floor(Math.random() * 3), // 0, 1, or 2 for different rock textures
-      rotation: Math.random() * Math.PI * 2, // Random rotation for variety
-      snappedTo: null, // Reference to another object this rock is snapped to
-      type: "rock", // Identify this as a rock for roof detection
-    }
+    let placed = false
+    let attempts = 0
 
-    const validPosition = isSpawnPositionClear(rock.x, rock.y, rock.size, {
-      requireLand: true,
-      playerDistanceBuffer: 100,
-    })
+    while (!placed && attempts < SPAWN_ATTEMPT_LIMIT) {
+      attempts++
 
-    if (validPosition) {
-      rocks.push(rock)
-    } else {
-      i-- // Try again
+      const position = getRandomLoadedWorldPosition(120)
+      const rock = createRock(position.x, position.y)
+
+      const validPosition = isSpawnPositionClear(rock.x, rock.y, rock.size, {
+        requireLand: true,
+        playerDistanceBuffer: 100,
+      })
+
+      if (validPosition) {
+        rocks.push(rock)
+        placed = true
+      }
     }
   }
 
@@ -70,18 +84,16 @@ export function generateRockRubblePatches(patchCount = ROCK_RUBBLE_PATCH_COUNT) 
 
   const mapWidth = terrain[0].length
   const mapHeight = terrain.length
-  const patchAnchors = [
-    { x: mapWidth * 0.28, y: mapHeight * 0.28 },
-    { x: mapWidth * 0.7, y: mapHeight * 0.34 },
-    { x: mapWidth * 0.58, y: mapHeight * 0.72 },
-  ]
 
   for (let patchIndex = 0; patchIndex < patchCount; patchIndex++) {
     let patchCenter = null
 
-    const anchor = patchAnchors[patchIndex] || {
-      x: 2 + Math.random() * (mapWidth - 4),
-      y: 2 + Math.random() * (mapHeight - 4),
+    // Anchor rubble fields inside the streamed area so they always land on
+    // terrain that actually exists around the player.
+    const anchorPosition = getRandomLoadedWorldPosition(320)
+    const anchor = {
+      x: anchorPosition.x / TILE_SIZE,
+      y: anchorPosition.y / TILE_SIZE,
     }
 
     for (let searchRadius = 2; searchRadius < 18 && !patchCenter; searchRadius++) {

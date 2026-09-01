@@ -11,6 +11,7 @@ import { getDistance } from "../utils/math-utils.js"
 import { createShadow } from "../utils/rendering-utils.js"
 import { updateShovelIndicator } from "../ui/ui-manager.js"
 import { isSpawnPositionClear } from "../utils/spawn-utils.js"
+import { getRandomLoadedWorldPosition } from "../world/world-manager.js"
 
 const DESKTOP_DIG_REACH_MULTIPLIER = 1.95
 const MOBILE_DIG_REACH_MULTIPLIER = 2.35
@@ -462,6 +463,15 @@ export function isHoleBlockingCarPosition(x, y, carSize) {
   return false
 }
 
+export function createShovel(x, y) {
+  return {
+    x,
+    y,
+    size: SHOVEL_SIZE,
+    rotation: (Math.random() - 0.5) * 0.6,
+  }
+}
+
 export function generateShovels(count = SHOVEL_COUNT) {
   const { terrain, player, shovels } = gameState
   const remainingCapacity = Math.max(0, MAX_SHOVELS - shovels.length)
@@ -486,9 +496,10 @@ export function generateShovels(count = SHOVEL_COUNT) {
     while (!placed && attempts < 80) {
       attempts++
 
+      const position = getRandomLoadedWorldPosition(200)
       const shovel = {
-        x: Math.random() * (terrain[0].length * TILE_SIZE),
-        y: Math.random() * (terrain.length * TILE_SIZE),
+        x: position.x,
+        y: position.y,
         size: SHOVEL_SIZE,
         rotation: (Math.random() - 0.5) * 0.6,
       }
