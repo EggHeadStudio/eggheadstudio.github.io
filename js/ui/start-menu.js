@@ -11,7 +11,9 @@ import {
   normalizeCharacterCustomization,
 } from "../entities/character-factory.js"
 import { drawCharacterPreview } from "../entities/player.js"
+import { SHOW_START_TIME_OPTIONS, SHOW_CHARACTER_CUSTOMIZATION } from "../core/constants.js"
 import { resetHud, setHudVisibility } from "./ui-manager.js"
+import { handleClaimableSectionClick, renderExplorationMapCanvas } from "./minimap.js"
 
 const PREVIEW_CANVAS_SIZE = 104
 const PREVIEW_SCALE = 0.6
@@ -24,7 +26,6 @@ const TIME_OPTIONS = [
 ]
 
 let isInitialized = false
-let minimapLongPressTimer = null
 let previewAnimationFrame = null
 let previewAnimationTime = 0
 
@@ -65,10 +66,59 @@ export function initializeStartMenu(initialConfig = createDefaultGameConfig()) {
 
   document.getElementById("resumeGameButton").addEventListener("click", () => {
     if (gameState.isStarted && gameState.isPaused && !gameState.gameOver) {
+      gameState.mapRevealOpen = false
       resumeCurrentGame()
       hideStartMenu()
     }
   })
+
+  document.getElementById("toggleMapButton").addEventListener("click", () => {
+    if (!gameState.isStarted || gameState.gameOver) {
+      return
+    }
+
+    gameState.mapRevealOpen = !gameState.mapRevealOpen
+    const mapPage = document.getElementById("explorationMapPage")
+    if (mapPage) {
+      mapPage.classList.toggle("hidden", !gameState.mapRevealOpen)
+    }
+    renderMenuState()
+
+    if (gameState.mapRevealOpen) {
+      renderExplorationMapCanvas()
+    }
+  })
+
+  document.getElementById("closeMapButton").addEventListener("click", () => {
+    gameState.mapRevealOpen = false
+    const mapPage = document.getElementById("explorationMapPage")
+    if (mapPage) {
+      mapPage.classList.add("hidden")
+    }
+    renderMenuState()
+  })
+
+  const explorationMapCanvas = document.getElementById("explorationMapCanvas")
+  if (explorationMapCanvas && !explorationMapCanvas.dataset.claimHandlerBound) {
+    explorationMapCanvas.addEventListener("click", (event) => {
+      if (!gameState.isStarted || !gameState.isPaused || !gameState.mapRevealOpen) {
+        return
+      }
+
+      const discoveredEntries = [...gameState.discoveredMap.values()]
+      if (!discoveredEntries.length) {
+        return
+      }
+
+      const clickX = (event.clientX - explorationMapCanvas.getBoundingClientRect().left) / explorationMapCanvas.clientWidth * explorationMapCanvas.clientWidth
+      const clickY = (event.clientY - explorationMapCanvas.getBoundingClientRect().top) / explorationMapCanvas.clientHeight * explorationMapCanvas.clientHeight
+      const claimed = handleClaimableSectionClick(clickX, clickY, explorationMapCanvas.clientWidth, explorationMapCanvas.clientHeight)
+      if (claimed) {
+        renderExplorationMapCanvas()
+      }
+    })
+    explorationMapCanvas.dataset.claimHandlerBound = "true"
+  }
 
   document.getElementById("newGameButton").addEventListener("click", () => {
     init({ ...gameState.startupConfig })
@@ -115,7 +165,9 @@ function syncMenuFromConfig(config) {
   }
 
   updateActiveOption("character", gameState.startupConfig.characterType)
-  updateActiveOption("time", gameState.startupConfig.startPhase)
+  if (SHOW_START_TIME_OPTIONS) {
+    updateActiveOption("time", gameState.startupConfig.startPhase)
+  }
   syncPerformanceOptions()
   renderCharacterPreview(gameState.startupConfig.characterType)
   renderMenuState()
@@ -134,10 +186,7 @@ function setupMinimapMenuTrigger() {
   }
 
   minimapFrame.addEventListener("click", handleMinimapClick)
-  minimapFrame.addEventListener("touchstart", handleMinimapTouchStart, { passive: true })
-  minimapFrame.addEventListener("touchend", clearMinimapLongPress)
-  minimapFrame.addEventListener("touchcancel", clearMinimapLongPress)
-  minimapFrame.addEventListener("touchmove", clearMinimapLongPress)
+  minimapFrame.addEventListener("touchend", handleMinimapTouchEnd, { passive: false })
 
   window.minimapMenuTriggerSet = true
 }
@@ -150,23 +199,13 @@ function handleMinimapClick() {
   openPausedMenu()
 }
 
-function handleMinimapTouchStart() {
+function handleMinimapTouchEnd(event) {
   if (!gameState.isMobile) {
     return
   }
 
-  clearMinimapLongPress()
-  minimapLongPressTimer = window.setTimeout(() => {
-    minimapLongPressTimer = null
-    openPausedMenu()
-  }, 450)
-}
-
-function clearMinimapLongPress() {
-  if (minimapLongPressTimer !== null) {
-    window.clearTimeout(minimapLongPressTimer)
-    minimapLongPressTimer = null
-  }
+  event.preventDefault()
+  openPausedMenu()
 }
 
 function openPausedMenu() {
@@ -175,6 +214,7 @@ function openPausedMenu() {
   }
 
   if (pauseCurrentGame()) {
+    gameState.mapRevealOpen = false
     gameState.menuMode = "pause"
     syncMenuFromConfig(gameState.startupConfig)
     showStartMenu()
@@ -215,10 +255,13 @@ function renderMenuState() {
   const menuDescription = document.getElementById("menuDescription")
   const resumeButton = document.getElementById("resumeGameButton")
   const newGameButton = document.getElementById("newGameButton")
+  const toggleMapButton = document.getElementById("toggleMapButton")
+  const mapPage = document.getElementById("explorationMapPage")
+  const startTimeSection = document.getElementById("startTimeSection")
   const menuState = MENU_COPY[gameState.menuMode] || MENU_COPY.start
   const accessContext = buildAccessContext()
 
-  if (!startMenu || !menuKicker || !menuTitle || !menuDescription || !resumeButton || !newGameButton) {
+  if (!startMenu || !menuKicker || !menuTitle || !menuDescription || !resumeButton || !newGameButton || !toggleMapButton || !mapPage) {
     return
   }
 
@@ -226,8 +269,17 @@ function renderMenuState() {
   menuTitle.textContent = accessContext.title || menuState.title
   menuDescription.textContent = accessContext.description || menuState.description
   resumeButton.hidden = !(gameState.isStarted && gameState.isPaused && !gameState.gameOver && gameState.menuMode === "pause")
+  toggleMapButton.hidden = !(gameState.isStarted && gameState.isPaused && !gameState.gameOver && gameState.menuMode === "pause")
   newGameButton.textContent = gameState.isStarted ? "Start New Game" : "Start Game"
+  mapPage.classList.toggle("hidden", !(gameState.isStarted && gameState.isPaused && gameState.mapRevealOpen))
+  if (startTimeSection) {
+    startTimeSection.hidden = !SHOW_START_TIME_OPTIONS
+  }
   startMenu.classList.toggle("game-over-mode", gameState.menuMode === "gameover")
+
+  if (gameState.isStarted && gameState.isPaused && gameState.mapRevealOpen) {
+    renderExplorationMapCanvas()
+  }
 }
 
 function renderCharacterOptions() {
@@ -271,7 +323,15 @@ function renderCharacterOptions() {
 
 function renderTimeOptions() {
   const optionsContainer = document.getElementById("timeOptions")
+  if (!optionsContainer) {
+    return
+  }
+
   optionsContainer.innerHTML = ""
+
+  if (!SHOW_START_TIME_OPTIONS) {
+    return
+  }
 
   for (const option of TIME_OPTIONS) {
     const button = document.createElement("button")
@@ -323,6 +383,14 @@ function renderCharacterPreview(characterType) {
   }
   const specialConfig = getSpecialCharacterConfig(gameState.startupConfig.specialHeroId || characterType)
   const isSpecialHeroMode = Boolean(gameState.startupConfig.specialHeroId)
+  const customizationDescription = "Customize your character before starting. Values outside the allowed ranges are automatically corrected."
+  const descriptionText = SHOW_CHARACTER_CUSTOMIZATION
+    ? specialConfig && specialConfig.characterType === characterType
+      ? specialConfig.description
+      : customizationDescription
+    : specialConfig && specialConfig.characterType === characterType
+      ? specialConfig.description
+      : getCharacterStyleDescription(characterType)
   const heroBanner = specialConfig && specialConfig.characterType === characterType
     ? `
       <div class="special-character-banner">
@@ -349,10 +417,10 @@ function renderCharacterPreview(characterType) {
       </div>
 
       <div class="special-hero-description">
-        <p>${specialConfig && specialConfig.characterType === characterType ? specialConfig.description : "Customize your character before starting. Values outside the allowed ranges are automatically corrected."}</p>
+        <p>${descriptionText}</p>
       </div>
 
-      ${isSpecialHeroMode ? "" : `
+      ${isSpecialHeroMode || !SHOW_CHARACTER_CUSTOMIZATION ? "" : `
         <div class="character-customization-controls">
           <label class="customization-field color-field">
             <span>Color</span>
@@ -405,7 +473,7 @@ function renderCharacterPreview(characterType) {
     </div>
   `
 
-  if (!isSpecialHeroMode) {
+  if (!isSpecialHeroMode && SHOW_CHARACTER_CUSTOMIZATION) {
     setupCharacterCustomizationControls(characterType)
   }
   startCharacterPreviewAnimation(characterType)

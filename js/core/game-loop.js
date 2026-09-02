@@ -19,7 +19,7 @@ import { drawAndUpdateExplosions } from "../entities/explosions.js"
 import { drawPlayer } from "../entities/player.js"
 import { drawDayNightOverlay, updateDayNightCycle } from "./day-night-cycle.js"
 import { maintainGameElements } from "./game-maintenance.js"
-import { drawMinimap } from "../ui/minimap.js"
+import { drawMinimap, revealNearbyWorld } from "../ui/minimap.js"
 
 // Main game update loop
 export function update() {
@@ -59,6 +59,8 @@ export function update() {
     // Update camera position
     gameState.camera.x = gameState.player.x - canvas.width / 2
     gameState.camera.y = gameState.player.y - canvas.height / 2
+
+    revealNearbyWorld()
 
     // Spawn new enemies
     if (!isPlayerDying) {

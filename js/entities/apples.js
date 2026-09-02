@@ -1,6 +1,14 @@
 // Apple entity
 import { gameState } from "../core/game-state.js"
-import { APPLE_SIZE, TILE_SIZE, APPLE_THROW_SPEED, MAX_APPLES, SPAWN_ATTEMPT_LIMIT } from "../core/constants.js"
+import {
+  APPLE_SIZE,
+  TILE_SIZE,
+  APPLE_THROW_SPEED,
+  MAX_APPLES,
+  SPAWN_ATTEMPT_LIMIT,
+  VEHICLE_APPLE_COLLISION_RADIUS_MULTIPLIER,
+  VEHICLE_APPLE_DAMAGE,
+} from "../core/constants.js"
 import { getRandomLoadedWorldPosition } from "../world/world-manager.js"
 import { getDistance } from "../utils/math-utils.js"
 import { createShadow } from "../utils/rendering-utils.js"
@@ -8,6 +16,8 @@ import { updateAppleCounter } from "../ui/ui-manager.js"
 import { damageWoodenBox } from "../entities/wooden-boxes.js"
 import { incrementKillCount } from "../ui/ui-manager.js"
 import { damageEnemy } from "./enemies.js"
+import { damageCar } from "./cars.js"
+import { damageBoat } from "./boats.js"
 import { isSpawnPositionClear } from "../utils/spawn-utils.js"
 
 // Create a single apple. Shared by the classic spawner and the chunk populator
@@ -284,7 +294,7 @@ export function drawAndUpdateApples() {
 
 // Draw and update thrown apples
 export function drawAndUpdateThrownApples() {
-  const { thrownApples, gameOver, camera, ctx, canvas, enemies, bombs, rocks, woodenBoxes } = gameState
+  const { thrownApples, gameOver, camera, ctx, canvas, enemies, bombs, rocks, woodenBoxes, cars, boats } = gameState
 
   // Draw and update apple splashes first
   drawAndUpdateAppleSplashes()
@@ -343,6 +353,40 @@ export function drawAndUpdateThrownApples() {
         i--
         hasCollided = true
 
+        break
+      }
+    }
+
+    if (hasCollided) continue
+
+    for (let j = 0; j < cars.length; j++) {
+      const car = cars[j]
+      const distance = getDistance(apple.x, apple.y, car.x, car.y)
+
+      if (distance < apple.size + car.size * VEHICLE_APPLE_COLLISION_RADIUS_MULTIPLIER) {
+        createAppleSplash(apple.x, apple.y, apple.velocityX, apple.velocityY)
+        damageCar(car, { amount: VEHICLE_APPLE_DAMAGE })
+
+        thrownApples.splice(i, 1)
+        i--
+        hasCollided = true
+        break
+      }
+    }
+
+    if (hasCollided) continue
+
+    for (let j = 0; j < boats.length; j++) {
+      const boat = boats[j]
+      const distance = getDistance(apple.x, apple.y, boat.x, boat.y)
+
+      if (distance < apple.size + boat.size * VEHICLE_APPLE_COLLISION_RADIUS_MULTIPLIER) {
+        createAppleSplash(apple.x, apple.y, apple.velocityX, apple.velocityY)
+        damageBoat(boat, { amount: VEHICLE_APPLE_DAMAGE })
+
+        thrownApples.splice(i, 1)
+        i--
+        hasCollided = true
         break
       }
     }

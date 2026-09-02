@@ -1,7 +1,41 @@
 // Car entity
 import { gameState } from "../core/game-state.js"
 import { getDistance } from "../utils/math-utils.js"
-import { TILE_SIZE, TERRAIN_TYPES, CAR_COUNT, MAX_CARS } from "../core/constants.js"
+import {
+  TILE_SIZE,
+  TERRAIN_TYPES,
+  CAR_SIZE as CAR_SIZE_CONST,
+  CAR_INTERACTION_RANGE as CAR_INTERACTION_RANGE_CONST,
+  CAR_MAX_HEALTH as CAR_MAX_HEALTH_CONST,
+  CAR_MAX_SPEED as CAR_MAX_SPEED_CONST,
+  CAR_ACCELERATION as CAR_ACCELERATION_CONST,
+  CAR_DECELERATION as CAR_DECELERATION_CONST,
+  CAR_COUNT,
+  MAX_CARS,
+  CAR_FUEL_MIN,
+  CAR_FUEL_MAX,
+  CAR_FUEL_DRAIN_FORWARD,
+  CAR_DRIFT_FACTOR,
+  CAR_MAX_STEER_ANGLE,
+  CAR_STEER_SPEED,
+  CAR_FRONT_GRIP,
+  CAR_REAR_GRIP,
+  CAR_FRONT_CORNERING_STIFFNESS,
+  CAR_REAR_CORNERING_STIFFNESS,
+  CAR_YAW_INERTIA,
+  CAR_YAW_DAMPING,
+  CAR_STEER_SENSITIVITY_FALLOFF,
+  CAR_LATERAL_DRAG,
+  CAR_POWER_OVERSTEER,
+  VEHICLE_WRECK_DESPAWN_DELAY_MS,
+} from "../core/constants.js"
+import {
+  createVehicleMotion,
+  stepVehicleMotion,
+  getMotionVelocity,
+  dampMotionAfterImpact,
+  resetVehicleMotion,
+} from "./vehicle-physics.js"
 import { findNearestSafePlayerPosition } from "../utils/player-position-utils.js"
 import { isSpawnPositionClear } from "../utils/spawn-utils.js"
 import { getRandomLoadedWorldPosition } from "../world/world-manager.js"
@@ -9,19 +43,19 @@ import { isHoleBlockingCarPosition } from "./shovels.js"
 import { isTreeBlocking } from "./trees.js"
 
 // Car constants
-export const CAR_SIZE = 65
-export const CAR_MAX_SPEED = 8 // Maximum car speed
-export const CAR_ACCELERATION = 0.25 // How quickly the car speeds up
-export const CAR_DECELERATION = 0.2 // How quickly the car slows down
-export const CAR_DRIFT_FACTOR = 0.85 // How much the car drifts (lower = more drift)
-export const CAR_INTERACTION_RANGE = 80
-export const CAR_MAX_HEALTH = 3
+export const CAR_SIZE = CAR_SIZE_CONST
+export const CAR_MAX_SPEED = CAR_MAX_SPEED_CONST
+export const CAR_ACCELERATION = CAR_ACCELERATION_CONST
+export const CAR_DECELERATION = CAR_DECELERATION_CONST
+export const CAR_INTERACTION_RANGE = CAR_INTERACTION_RANGE_CONST
+export const CAR_MAX_HEALTH = CAR_MAX_HEALTH_CONST
 
 // Ground the cars can drive on. Sand and gravel behave like grass.
 const DRIVABLE_TERRAIN = [TERRAIN_TYPES.GRASS, TERRAIN_TYPES.DIRT, TERRAIN_TYPES.SAND, TERRAIN_TYPES.GRAVEL]
 
 // Create a single car.
 export function createCar(x, y) {
+  const fuelCapacity = Math.max(CAR_FUEL_MIN, CAR_FUEL_MAX);
   return {
     x,
     y,
@@ -33,7 +67,14 @@ export function createCar(x, y) {
     animationTime: 0,
     dustParticles: [],
     velocity: { x: 0, y: 0 },
+    motion: null,
+    forwardSpeed: 0,
+    lateralSpeed: 0,
     currentSpeed: 0,
+    fuelCapacity,
+    fuel: getRandomFuelAmount(CAR_FUEL_MIN, CAR_FUEL_MAX),
+    isBroken: false,
+    wreckCleanupAt: null,
   }
 }
 
@@ -192,94 +233,83 @@ function isValidCarPosition(x, y, tileX, tileY, terrain, rocks, woodenBoxes, bom
 export function updateCarPosition(car) {
   const { player, keys, terrain, rocks, woodenBoxes, isMobile, joystickActive, joystickAngle, joystickDistance } = gameState
   
-  // Store previous direction and position to calculate drift
-  const previousDirection = car.direction;
-  const previousX = car.x;
-  const previousY = car.y;
-
-  // Calculate the input direction
-  let inputX = 0;
-  let inputY = 0;
-  let isAccelerating = false;
+  let throttleInput = 0;
 
   if (isMobile && joystickActive) {
-    // Mobile controls - use joystick input
-    inputX = Math.cos(joystickAngle) * joystickDistance;
-    inputY = Math.sin(joystickAngle) * joystickDistance;
-    isAccelerating = joystickDistance > 0.1; // Accelerate if joystick is moved
+    throttleInput = joystickDistance > 0.1 ? Math.min(1, joystickDistance) : 0;
   } else {
-    // Desktop controls - only move forward in the direction of the mouse
-    const isMovingForward = keys["ArrowUp"] || keys["w"];
-    const isMovingBackward = keys["ArrowDown"] || keys["s"];
+    const movingForward = keys["ArrowUp"] || keys["w"];
+    const movingBackward = keys["ArrowDown"] || keys["s"];
 
-    if (isMovingForward || isMovingBackward) {
-      // Move in the direction the player is facing (mouse direction)
-      const directionMultiplier = isMovingForward ? 1 : -0.7; // Slower in reverse
-      inputX = Math.cos(player.direction) * directionMultiplier;
-      inputY = Math.sin(player.direction) * directionMultiplier;
-      isAccelerating = true;
+    if (movingForward) {
+      throttleInput = 1;
+    } else if (movingBackward) {
+      throttleInput = -0.7;
     }
   }
 
-  // Update car direction to match player direction (with some smoothing)
+  if (throttleInput !== 0 && (car.fuel ?? 0) <= 0) {
+    throttleInput = 0;
+  }
+
+  if (throttleInput > 0 && (car.fuel ?? 0) > 0) {
+    const mobileDrainScale = isMobile && joystickActive ? Math.max(0.25, joystickDistance) : 1;
+    car.fuel = Math.max(0, car.fuel - CAR_FUEL_DRAIN_FORWARD * mobileDrainScale);
+  }
+
   const directionDifference = normalizeAngle(player.direction - car.direction);
-  const turnSpeed = Math.min(0.1 + (car.currentSpeed / CAR_MAX_SPEED) * 0.1, 0.2); // Faster turning at higher speeds, capped
-  car.direction += directionDifference * turnSpeed;
-  
-  // Calculate direction change for steering wheel animation
-  gameState.carDirectionChange = directionDifference;
 
-  // Update car speed with acceleration/deceleration
-  if (isAccelerating) {
-    // Accelerate
-    car.currentSpeed = Math.min(car.currentSpeed + CAR_ACCELERATION, CAR_MAX_SPEED);
-  } else {
-    // Decelerate
-    car.currentSpeed = Math.max(car.currentSpeed - CAR_DECELERATION, 0);
-  }
-  
-  // Update wheel animation time when car is moving
-  if (car.currentSpeed > 0.1) {
-    // Simple animation timing based on speed
-    car.wheelAnimationTime = (car.wheelAnimationTime || 0) + 0.1 * car.currentSpeed;
-    if (car.wheelAnimationTime > 1) car.wheelAnimationTime -= 1; // Loop between 0-1
-  }
+  // The aim direction is a STEERING request, not the car's heading. Pointing
+  // away from where the car is sliding is exactly how opposite lock works.
+  const steerInput = Math.max(-1, Math.min(1, directionDifference / CAR_MAX_STEER_ANGLE));
 
-  // Calculate forward movement vector based on car's direction
-  const forwardX = Math.cos(car.direction);
-  const forwardY = Math.sin(car.direction);
-  
-  // Calculate perpendicular vector for drift (sideways movement)
-  const sideX = Math.cos(car.direction + Math.PI/2);
-  const sideY = Math.sin(car.direction + Math.PI/2);
-  
-  // Calculate how much the car is turning for drift calculation
-  const turningAmount = Math.abs(directionDifference) * 2;
-  
-  // Current velocity with some conservation (drift)
-  if (car.velocity) {
-    // Keep some of the previous velocity (drift effect)
-    const driftInfluence = Math.min(turningAmount, 0.5); // Maximum 50% drift influence
-    
-    // Direction of drift (determined by turning)
-    const driftDirection = directionDifference > 0 ? 1 : -1;
-    
-    // Forward component
-    car.velocity.x = forwardX * car.currentSpeed;
-    car.velocity.y = forwardY * car.currentSpeed;
-    
-    // Add sideways component when turning (drift effect)
-    if (car.currentSpeed > 1 && Math.abs(directionDifference) > 0.02) {
-      car.velocity.x += sideX * driftDirection * driftInfluence * car.currentSpeed * (1 - CAR_DRIFT_FACTOR);
-      car.velocity.y += sideY * driftDirection * driftInfluence * car.currentSpeed * (1 - CAR_DRIFT_FACTOR);
+  const motion = getCarMotion(car);
+  stepVehicleMotion(
+    motion,
+    { throttle: throttleInput, steer: steerInput },
+    {
+      maxSpeed: CAR_MAX_SPEED,
+      acceleration: CAR_ACCELERATION,
+      braking: CAR_DECELERATION,
+      maxSteerAngle: CAR_MAX_STEER_ANGLE,
+      steerSpeed: CAR_STEER_SPEED,
+      frontAxle: car.size * 0.35,
+      rearAxle: car.size * 0.35,
+      yawInertia: CAR_YAW_INERTIA,
+      frontGrip: CAR_FRONT_GRIP,
+      rearGrip: CAR_REAR_GRIP,
+      frontStiffness: CAR_FRONT_CORNERING_STIFFNESS,
+      rearStiffness: CAR_REAR_CORNERING_STIFFNESS,
+      driftFactor: CAR_DRIFT_FACTOR,
+      powerOversteer: CAR_POWER_OVERSTEER,
+      lateralDrag: CAR_LATERAL_DRAG,
+      yawDamping: CAR_YAW_DAMPING,
+      steerSpeedSensitivity: CAR_STEER_SENSITIVITY_FALLOFF,
     }
-  } else {
-    // Initialize velocity if it doesn't exist
-    car.velocity = {
-      x: forwardX * car.currentSpeed,
-      y: forwardY * car.currentSpeed
-    };
+  );
+
+  car.direction = motion.heading;
+  car.forwardSpeed = motion.longitudinalSpeed;
+  car.lateralSpeed = motion.lateralSpeed;
+  car.currentSpeed = Math.hypot(motion.longitudinalSpeed, motion.lateralSpeed);
+  car.slipAngle = motion.slipAngle;
+  car.isDrifting = motion.isSliding;
+
+  // Steering wheel visual: report the real steering position, scaled so full
+  // lock still shows as a full turn of the wheel.
+  gameState.carDirectionChange = (motion.steerAngle / CAR_MAX_STEER_ANGLE) * (Math.PI / 2);
+
+  if (car.currentSpeed > 0.1) {
+    car.wheelAnimationTime = (car.wheelAnimationTime || 0) + 0.1 * car.currentSpeed;
+    if (car.wheelAnimationTime > 1) car.wheelAnimationTime -= 1;
   }
+
+  const velocity = getMotionVelocity(motion);
+  car.velocity.x = velocity.x;
+  car.velocity.y = velocity.y;
+
+  // Tyres smoke most when the car is sliding, not merely when it is turning.
+  const turningAmount = Math.min(1, Math.abs(motion.slipAngle) / 0.5);
 
   // Animation state
   if (car.currentSpeed > 0.5) {
@@ -288,7 +318,7 @@ export function updateCarPosition(car) {
     car.wheelRotation += 0.2 * car.currentSpeed; // Rotate wheels based on speed
     
     // Generate dust particles when car is moving (more when drifting)
-    const particleChance = 0.3 + (turningAmount * car.currentSpeed / CAR_MAX_SPEED) * 0.5;
+    const particleChance = 0.28 + (turningAmount * car.currentSpeed / CAR_MAX_SPEED) * 0.55;
     if (Math.random() < particleChance) {
       const angle = car.direction + Math.PI + (Math.random() - 0.5); // Behind the car with some variation
       const distanceFromCar = car.size * 0.7;
@@ -342,11 +372,28 @@ export function updateCarPosition(car) {
     player.x = car.x;
     player.y = car.y;
   } else {
-    // Collision occurred, reduce speed
-    car.currentSpeed *= 0.5;
-    car.velocity.x *= 0.5;
-    car.velocity.y *= 0.5;
+    // Collision occurred, scrub speed but keep the car's rotation state coherent
+    const motionState = getCarMotion(car);
+    dampMotionAfterImpact(motionState, 0.45);
+    car.currentSpeed = Math.hypot(motionState.longitudinalSpeed, motionState.lateralSpeed);
+    car.forwardSpeed = motionState.longitudinalSpeed;
+    car.lateralSpeed = motionState.lateralSpeed;
+    const impactVelocity = getMotionVelocity(motionState);
+    car.velocity.x = impactVelocity.x;
+    car.velocity.y = impactVelocity.y;
   }
+}
+
+// Cars created before the physics rework (or restored from a save) have no
+// motion state yet, so build it lazily from whatever they currently have.
+function getCarMotion(car) {
+  if (!car.motion) {
+    car.motion = createVehicleMotion(car.direction || 0);
+    car.motion.longitudinalSpeed = Number.isFinite(car.forwardSpeed) ? car.forwardSpeed : car.currentSpeed || 0;
+    car.motion.lateralSpeed = Number.isFinite(car.lateralSpeed) ? car.lateralSpeed : 0;
+  }
+
+  return car.motion;
 }
 
 // Helper function to check if a position is valid for a moving car
@@ -469,15 +516,26 @@ export function exitCar() {
   // Reset car-related state
   gameState.isInCar = false;
   gameState.drivingCar = null;
+
+  if (car.isBroken) {
+    markCarWreckForCleanup(car)
+  }
+
   return true;
 }
 
 // Damage car
-export function damageCar(car) {
+export function damageCar(car, options = {}) {
+  if (!car || car.health <= 0) {
+    return false
+  }
+
+  const { amount = 1, ignoreCooldown = false } = options
+
   // Only apply damage if not recently hit
-  if (Date.now() - car.lastHit < 1000) return;
+  if (!ignoreCooldown && Date.now() - car.lastHit < 1000) return false;
   
-  car.health--;
+  car.health = Math.max(0, car.health - Math.max(1, Math.round(amount)));
   car.lastHit = Date.now();
   
   // Create hit effect
@@ -497,13 +555,25 @@ export function damageCar(car) {
   if (car.health <= 0) {
     destroyCar(car);
   }
+
+  return true
 }
 
 // Destroy car
 export function destroyCar(car) {
-  // If player is in this car, eject them
-  if (gameState.isInCar && gameState.drivingCar === car) {
-    exitCar();
+  if (!car || car.isBroken) {
+    return
+  }
+
+  car.health = 0
+  car.isBroken = true
+  car.currentSpeed = 0
+  car.velocity.x = 0
+  car.velocity.y = 0
+  resetVehicleMotion(car.motion)
+
+  if (!(gameState.isInCar && gameState.drivingCar === car)) {
+    markCarWreckForCleanup(car)
   }
   
   // Create explosion effect (smaller than bombs)
@@ -519,16 +589,32 @@ export function destroyCar(car) {
     alpha: 1,
     createdAt: Date.now(),
   });
-  
-  // Remove car from the game
-  const carIndex = gameState.cars.indexOf(car);
-  if (carIndex !== -1) {
-    gameState.cars.splice(carIndex, 1);
-    
-    // Spawn a new car in a random location after a short delay
-    setTimeout(() => {
-      generateCars(1, false);
-    }, 3000); // Wait 3 seconds before spawning a new car
+}
+
+function markCarWreckForCleanup(car) {
+  car.wreckCleanupAt = Date.now() + VEHICLE_WRECK_DESPAWN_DELAY_MS
+}
+
+function removeExpiredCarWrecks() {
+  const { cars, isInCar, drivingCar } = gameState
+  if (!Array.isArray(cars) || cars.length === 0) {
+    return
+  }
+
+  const now = Date.now()
+  for (let i = cars.length - 1; i >= 0; i--) {
+    const car = cars[i]
+    if (!car?.isBroken || !car.wreckCleanupAt) {
+      continue
+    }
+
+    if (isInCar && drivingCar === car) {
+      continue
+    }
+
+    if (now >= car.wreckCleanupAt) {
+      cars.splice(i, 1)
+    }
   }
 }
 
@@ -537,12 +623,23 @@ export function drawAndUpdateCars() {
   const { ctx, cars, camera, isInCar, drivingCar, player } = gameState;
   
   if (!cars) return;
+
+  removeExpiredCarWrecks()
   
   for (const car of cars) {
     // Skip update for cars that are not being driven
     if (isInCar && drivingCar === car) {
-      // Update position for the car being driven
-      updateCarPosition(car);
+      if (car.isBroken) {
+        car.currentSpeed = 0
+        car.velocity.x = 0
+        car.velocity.y = 0
+        resetVehicleMotion(car.motion)
+        player.x = car.x
+        player.y = car.y
+      } else {
+        // Update position for the car being driven
+        updateCarPosition(car);
+      }
     } else if (car.isMoving || car.currentSpeed > 0) {
       // For non-driven cars that are moving, just update animation
       car.wheelAnimationTime = (car.wheelAnimationTime || 0) + 0.05;
@@ -614,7 +711,9 @@ export function drawAndUpdateCars() {
     ctx._currentDrawingCar = car;
 
     // Draw car body
-    if (car.health === CAR_MAX_HEALTH) {
+    if (car.isBroken) {
+      drawDamagedCarBody(ctx, 0, 0, car.size, '#4e5a4d', 2);
+    } else if (car.health === CAR_MAX_HEALTH) {
       // Undamaged car
       drawCarBody(ctx, 0, 0, car.size, '#587e55');
     } else if (car.health === 2) {
@@ -641,6 +740,10 @@ export function drawAndUpdateCars() {
     ctx._currentDrawingCar = null;
 
     ctx.restore();
+
+    if (isInCar && drivingCar === car) {
+      drawVehicleFuelBar(ctx, screenX, screenY, car.size, car.fuel, car.fuelCapacity);
+    }
     
     // If player is near this car and not in a car, draw interaction prompt
     if (!isInCar && car.health > 0) {
@@ -659,6 +762,39 @@ export function drawAndUpdateCars() {
       }
     }
   }
+}
+
+function getRandomFuelAmount(minFuel, maxFuel) {
+  const safeMin = Math.max(0, Math.min(minFuel, maxFuel));
+  const safeMax = Math.max(safeMin, Math.max(minFuel, maxFuel));
+  return safeMin + Math.random() * (safeMax - safeMin);
+}
+
+function drawVehicleFuelBar(ctx, screenX, screenY, size, fuel, fuelCapacity) {
+  const capacity = Math.max(1, fuelCapacity || 1);
+  const normalizedFuel = Math.max(0, Math.min(1, (fuel || 0) / capacity));
+  const barWidth = size * 1.4;
+  const barHeight = 8;
+  const barX = screenX - barWidth * 0.5;
+  const barY = screenY - size - 20;
+
+  ctx.save();
+  ctx.fillStyle = "rgba(0, 0, 0, 0.55)";
+  ctx.fillRect(barX - 1, barY - 1, barWidth + 2, barHeight + 2);
+
+  ctx.fillStyle = "rgba(36, 36, 36, 0.9)";
+  ctx.fillRect(barX, barY, barWidth, barHeight);
+
+  ctx.fillStyle = normalizedFuel > 0.25 ? "#69c36a" : "#e29b3b";
+  if (normalizedFuel <= 0.1) {
+    ctx.fillStyle = "#db4c3f";
+  }
+
+  ctx.fillRect(barX, barY, barWidth * normalizedFuel, barHeight);
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(barX, barY, barWidth, barHeight);
+  ctx.restore();
 }
 
 // Helper function to draw car body

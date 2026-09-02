@@ -1812,6 +1812,25 @@ export function isUnderRoof(x, y) {
   return isPointUnderRoof(x, y)
 }
 
+export function isInsideRoofBuffer(x, y, bufferTiles = 0, extraPaddingPx = 0) {
+  updateRoofAreasIfNeeded()
+
+  const bufferPx = Math.max(0, bufferTiles) * TILE_SIZE + Math.max(0, extraPaddingPx)
+
+  for (const roof of roofAreas) {
+    if (
+      x >= roof.x - bufferPx &&
+      x <= roof.x + roof.width + bufferPx &&
+      y >= roof.y - bufferPx &&
+      y <= roof.y + roof.height + bufferPx
+    ) {
+      return true
+    }
+  }
+
+  return false
+}
+
 // Add a helper function to set box floating state
 function setBoxFloating(box, isFloating) {
   box.isFloating = isFloating

@@ -50,10 +50,45 @@ export const CHUNK_BOAT_MIN_WATER_TILES = 70 // Only real lakes/seas get boats
 export const CHUNK_TOOL_CHANCE = 0.07 // Chance per chunk for each rare tool
 export const MINIMAP_VISIBLE_TILES_MOBILE = 26 * 2
 export const MINIMAP_VISIBLE_TILES_DESKTOP = 40 * 2
+export const MAP_SECTION_TILE_SIZE = 120
+export const MAP_SECTION_REVEAL_THRESHOLD = 1
+export const SHOW_START_TIME_OPTIONS = false
+export const SHOW_CHARACTER_CUSTOMIZATION = true
 export const MOBILE_VIEWPORT_SCALE = 1.18
 export const PLAYER_SIZE = 30
 export const PLAYER_HEAL_DELAY_MS = 20000
 export const PLAYER_HEAL_UNDER_ROOF_MULTIPLIER = 2
+export const CARRY_SPEED_MULTIPLIER_BY_STRENGTH = {
+  1: 0.30,
+  2: 0.45,
+  3: 0.58,
+  4: 0.75,
+  5: 1,
+}
+export const CARRY_SPEED_MULTIPLIER_BY_OBJECT_AND_STRENGTH = {
+  rock: {
+    1: 0.18,
+    2: 0.30,
+    3: 0.42,
+    4: 0.60,
+    5: 0.96,
+  },
+  enemy: {
+    1: 0.25,
+    2: 0.38,
+    3: 0.50,
+    4: 0.70,
+    5: 1,
+  },
+}
+export const ROCK_WATER_GRAVEL_RADIUS_TILES = 1
+export const SPAWN_ROOF_BUFFER_TILES = 1
+export const CAR_FUEL_MIN = 50
+export const CAR_FUEL_MAX = 100
+export const BOAT_FUEL_MIN = 50
+export const BOAT_FUEL_MAX = 100
+export const CAR_FUEL_DRAIN_FORWARD = 0.008
+export const BOAT_FUEL_DRAIN_FORWARD = 0.006
 // Roof visibility: how solid the roof looks from far away, close up, and while standing beneath it.
 export const ROOF_FAR_ALPHA = 0.9
 export const ROOF_NEAR_ALPHA = 0.4
@@ -147,10 +182,14 @@ export const TREE_TILE_FILL_CHANCE = 0.55 // Chance a forest tile gets a tree
 export const TREE_MAX_ACTIVE = 2600 // Upper bound for trees kept alive while exploring
 export const TREE_MAX_APPLES = 3 // Max apples growing on a single tree
 export const TREE_APPLE_VALUE = 1 // Apples dropped from trees are worth 1
-export const CAR_SIZE = 50 // Size of cars
+export const CAR_SIZE = 70 // Size of cars
 export const BOAT_SIZE = 80 // Size of boats
 export const CAR_SPEED = 8 // 2x the normal player speed (vehicles)
 export const CAR_INTERACTION_RANGE = 80 // Distance for player to interact with cars
+export const VEHICLE_PLAYER_COLLISION_RADIUS_MULTIPLIER = 0.34
+export const VEHICLE_APPLE_COLLISION_RADIUS_MULTIPLIER = 0.4
+export const VEHICLE_APPLE_DAMAGE = 1
+export const VEHICLE_WRECK_DESPAWN_DELAY_MS = 60000
 export const CAR_COUNT = Math.round(5 * WORLD_CONTENT_MULTIPLIER) // Cars spawned per fresh world
 export const MAX_CARS = Math.round(10 * WORLD_CONTENT_MULTIPLIER) // Cars loaded around the player at once
 export const BOAT_COUNT = Math.round(5 * WORLD_CONTENT_MULTIPLIER)
@@ -182,7 +221,41 @@ export const CAR_MAX_HEALTH = 3 // Maximum health of cars
 export const CAR_MAX_SPEED = 8 // Maximum speed for cars
 export const CAR_ACCELERATION = 0.25 // How quickly the car speeds up
 export const CAR_DECELERATION = 0.2 // How quickly the car slows down
-export const CAR_DRIFT_FACTOR = 0.85 // How much the car drifts (lower = more drift)
+
+// --- Car handling (single-track "bicycle" model) -----------------------------
+// DRIFT_FACTOR scales REAR tyre grip only. 1 = rear sticks (almost no drift),
+// low values = tail lets go early and stays out longer (lots of drift).
+export const CAR_DRIFT_FACTOR = 0.55 // How much the car drifts (lower = more drift)
+export const CAR_MAX_STEER_ANGLE = 0.62 // Max front wheel angle in radians (~35 deg)
+export const CAR_STEER_SPEED = 0.16 // How fast the wheels reach the requested angle
+export const CAR_FRONT_GRIP = 0.34 // Max lateral force the front tyres can make
+export const CAR_REAR_GRIP = 0.2 // Max lateral force the rear tyres can make (before DRIFT_FACTOR)
+export const CAR_FRONT_CORNERING_STIFFNESS = 3.2 // Front force built per radian of slip
+export const CAR_REAR_CORNERING_STIFFNESS = 2.4 // Rear force built per radian of slip
+export const CAR_YAW_INERTIA = 230 // Resistance to spinning: higher = lazier, slower slides
+export const CAR_YAW_DAMPING = 0.2 // Bleeds off rotation so a slide settles instead of spinning
+export const CAR_STEER_SENSITIVITY_FALLOFF = 0.5 // How much the usable steering range shrinks at speed
+export const CAR_LATERAL_DRAG = 0.03 // Scrubbing tyres bleed sideways speed
+export const CAR_POWER_OVERSTEER = 0.55 // How much throttle steals from rear grip (friction circle)
+
+// --- Boat handling -----------------------------------------------------------
+// Boats steer from a rudder at the STERN and have very little sideways grip,
+// so they naturally slide wide through turns (leeway) and take time to settle.
+export const BOAT_MAX_SPEED = 7.36 // Maximum speed for boats
+export const BOAT_ACCELERATION = 0.22 // How quickly the boat speeds up
+export const BOAT_DECELERATION = 0.18 // How quickly the boat slows down
+export const BOAT_DRIFT_FACTOR = 0.45 // How much the boat drifts (lower = more drift)
+export const BOAT_MAX_RUDDER_ANGLE = 0.7 // Max rudder deflection in radians
+export const BOAT_STEER_SPEED = 0.1 // How fast the rudder swings over
+export const BOAT_HULL_GRIP = 0.16 // Sideways bite of the hull/keel at the bow
+export const BOAT_RUDDER_GRIP = 0.14 // Max sideways force the rudder can make
+export const BOAT_HULL_STIFFNESS = 0.85 // Bow force built per radian of slip
+export const BOAT_RUDDER_STIFFNESS = 1.2 // Rudder force built per radian of slip
+export const BOAT_YAW_INERTIA = 260 // Boats swing lazily and keep swinging
+export const BOAT_YAW_DAMPING = 0.16 // Hull resistance to spinning
+export const BOAT_STEER_SENSITIVITY_FALLOFF = 0.35 // Rudder authority lost at speed
+export const BOAT_LATERAL_DRAG = 0.045 // Water slowly kills sideways travel
+export const BOAT_POWER_OVERSTEER = 0.3 // Throttle-induced stern slide
 
 export const TERRAIN_TYPES = {
   WATER: 0,

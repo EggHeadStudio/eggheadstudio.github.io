@@ -3,16 +3,18 @@ import { gameState } from "../core/game-state.js"
 import {
   ROCK_SIZE,
   TILE_SIZE,
+  TERRAIN_TYPES,
   WOODEN_BOX_SIZE,
   WOODEN_BOX_SNAP_DISTANCE,
   ROCK_RUBBLE_PATCH_COUNT,
   ROCK_RUBBLE_MIN_PER_PATCH,
   ROCK_RUBBLE_MAX_PER_PATCH,
   ROCK_RUBBLE_RADIUS,
+  ROCK_WATER_GRAVEL_RADIUS_TILES,
   MAX_ROCKS,
   SPAWN_ATTEMPT_LIMIT,
 } from "../core/constants.js"
-import { getRandomLoadedWorldPosition } from "../world/world-manager.js"
+import { getRandomLoadedWorldPosition, scheduleWorldSave } from "../world/world-manager.js"
 import { getDistance } from "../utils/math-utils.js"
 import { isPlayerPositionClear, movePlayerToNearestSafePosition } from "../utils/player-position-utils.js"
 import { createShadow } from "../utils/rendering-utils.js"
@@ -243,6 +245,17 @@ export function releaseRock() {
     grabbedRock.x = newX
     grabbedRock.y = newY
 
+    const dropTileX = Math.floor(newX / TILE_SIZE)
+    const dropTileY = Math.floor(newY / TILE_SIZE)
+    const convertedTileCount = convertWaterToGravelAroundTile(dropTileX, dropTileY)
+    if (convertedTileCount > 0) {
+      createRockWaterSplashEffect(newX, newY, grabbedRock.size)
+      scheduleWorldSave()
+      gameState.grabbedRock = null
+      gameState.isGrabbing = false
+      return true
+    }
+
     settleRockOnLand(grabbedRock, rocks, woodenBoxes)
 
     rocks.push(grabbedRock)
@@ -256,6 +269,122 @@ export function releaseRock() {
     return true
   }
   return false
+}
+
+function convertWaterToGravelAroundTile(centerTileX, centerTileY, radius = ROCK_WATER_GRAVEL_RADIUS_TILES) {
+  const { terrain } = gameState
+  if (!terrain || terrain.length === 0 || terrain[0].length === 0) {
+    return 0
+  }
+
+  let converted = 0
+
+  for (let offsetY = -radius; offsetY <= radius; offsetY++) {
+    const tileY = centerTileY + offsetY
+    if (tileY < 0 || tileY >= terrain.length) {
+      continue
+    }
+
+    for (let offsetX = -radius; offsetX <= radius; offsetX++) {
+      const tileX = centerTileX + offsetX
+      if (tileX < 0 || tileX >= terrain[0].length) {
+        continue
+      }
+
+      if (terrain[tileY][tileX] !== TERRAIN_TYPES.WATER) {
+        continue
+      }
+
+      terrain[tileY][tileX] = TERRAIN_TYPES.GRAVEL
+      converted++
+    }
+  }
+
+  return converted
+}
+
+function createRockWaterSplashEffect(x, y, rockSize) {
+  if (!gameState.rockSplashEffects) {
+    gameState.rockSplashEffects = []
+  }
+
+  const splashSize = Math.max(8, rockSize * 0.32)
+  const particleCount = 8
+  const particles = []
+
+  for (let i = 0; i < particleCount; i++) {
+    const angle = (Math.PI * 2 * i) / particleCount + (Math.random() - 0.5) * 0.35
+    const speed = 0.8 + Math.random() * 1.4
+    particles.push({
+      x,
+      y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed - (0.7 + Math.random() * 0.9),
+      size: 1.5 + Math.random() * 2.2,
+      alpha: 0.85,
+      life: 20 + Math.floor(Math.random() * 10),
+    })
+  }
+
+  gameState.rockSplashEffects.push({
+    x,
+    y,
+    radius: splashSize,
+    alpha: 0.7,
+    growth: 1.1,
+    life: 24,
+    particles,
+  })
+}
+
+function drawAndUpdateRockSplashEffects() {
+  const { rockSplashEffects, camera, ctx } = gameState
+  if (!Array.isArray(rockSplashEffects) || rockSplashEffects.length === 0) {
+    return
+  }
+
+  for (let i = rockSplashEffects.length - 1; i >= 0; i--) {
+    const splash = rockSplashEffects[i]
+    splash.life--
+    splash.radius += splash.growth
+    splash.alpha *= 0.92
+
+    const screenX = splash.x - camera.x
+    const screenY = splash.y - camera.y
+
+    ctx.save()
+    ctx.strokeStyle = `rgba(211, 240, 248, ${Math.max(0, splash.alpha)})`
+    ctx.lineWidth = 2
+    ctx.beginPath()
+    ctx.ellipse(screenX, screenY, splash.radius, splash.radius * 0.42, 0, 0, Math.PI * 2)
+    ctx.stroke()
+    ctx.restore()
+
+    for (let particleIndex = splash.particles.length - 1; particleIndex >= 0; particleIndex--) {
+      const particle = splash.particles[particleIndex]
+      particle.life--
+      particle.x += particle.vx
+      particle.y += particle.vy
+      particle.vy += 0.08
+      particle.alpha *= 0.9
+
+      if (particle.life <= 0 || particle.alpha <= 0.04) {
+        splash.particles.splice(particleIndex, 1)
+        continue
+      }
+
+      ctx.save()
+      ctx.fillStyle = `rgba(187, 232, 244, ${particle.alpha})`
+      ctx.beginPath()
+      ctx.arc(particle.x - camera.x, particle.y - camera.y, particle.size, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.restore()
+    }
+
+    if (splash.life <= 0 && splash.particles.length === 0) {
+      rockSplashEffects.splice(i, 1)
+    }
+  }
 }
 
 // Check if a rock should snap to another rock or box
@@ -786,6 +915,8 @@ function isWallModuleAtTile(tileX, tileY, selfObject) {
 export function drawAndUpdateRocks() {
   try {
     const { rocks, camera, ctx } = gameState
+
+    drawAndUpdateRockSplashEffects()
 
     for (let i = 0; i < rocks.length; i++) {
       const rock = rocks[i]

@@ -5,7 +5,7 @@ import { PLAYER_SIZE, PLAYER_SPEED } from "../core/constants.js"
 const CHARACTER_TYPES = {
   default: {
     size: PLAYER_SIZE * 1.1,
-    speed: 3,
+    speed: 5,
     health: 5,
     color: "#f8cc8e",
     strength: 3.0,
@@ -55,7 +55,7 @@ const CHARACTER_TYPES = {
 
   andrus: {
     size: PLAYER_SIZE,
-    speed: PLAYER_SPEED,
+    speed: 5,
     health: 4,
     color: "#cfa974",
     strength: 4.0,
@@ -95,7 +95,7 @@ const CHARACTER_TYPES = {
 
   elli: {
     size: PLAYER_SIZE,
-    speed: PLAYER_SPEED,
+    speed: 4,
     health: 4,
     color: "#cfa974",
     strength: 3.0,
@@ -116,7 +116,7 @@ const CHARACTER_TYPES = {
 
   niko: {
     size: PLAYER_SIZE,
-    speed: PLAYER_SPEED,
+    speed: 4,
     health: 5,
     color: "#ad8c53",
     strength: 3.0,
@@ -159,7 +159,7 @@ const CHARACTER_TYPES = {
 
   taro: {
     size: PLAYER_SIZE,
-    speed: PLAYER_SPEED,
+    speed: 3,
     health: 5,
     color: "#95793c",
     strength: 4.0,

@@ -6,17 +6,39 @@ import {
   WOODEN_BOX_FLOAT_SPEED,
   BOAT_SIZE,
   CAR_MAX_HEALTH,
-  CAR_MAX_SPEED,
-  CAR_ACCELERATION,
-  CAR_DECELERATION,
-  CAR_DRIFT_FACTOR,
+  BOAT_MAX_SPEED,
+  BOAT_ACCELERATION,
+  BOAT_DECELERATION,
+  BOAT_DRIFT_FACTOR,
+  BOAT_MAX_RUDDER_ANGLE,
+  BOAT_STEER_SPEED,
+  BOAT_HULL_GRIP,
+  BOAT_RUDDER_GRIP,
+  BOAT_HULL_STIFFNESS,
+  BOAT_RUDDER_STIFFNESS,
+  BOAT_YAW_INERTIA,
+  BOAT_YAW_DAMPING,
+  BOAT_STEER_SENSITIVITY_FALLOFF,
+  BOAT_LATERAL_DRAG,
+  BOAT_POWER_OVERSTEER,
   BOAT_COUNT,
   MAX_BOATS,
   BOAT_TOW_CAP,
   BOAT_TOW_SLOWDOWN_MULTIPLIER,
   BOAT_TOW_SMOKE_ALPHA,
+  BOAT_FUEL_MIN,
+  BOAT_FUEL_MAX,
+  BOAT_FUEL_DRAIN_FORWARD,
+  VEHICLE_WRECK_DESPAWN_DELAY_MS,
 } from "../core/constants.js"
 import { getDistance } from "../utils/math-utils.js"
+import {
+  createVehicleMotion,
+  stepVehicleMotion,
+  getMotionVelocity,
+  dampMotionAfterImpact,
+  resetVehicleMotion,
+} from "./vehicle-physics.js"
 import { findNearestSafePlayerPosition } from "../utils/player-position-utils.js"
 import { triggerGameOver } from "../core/game.js"
 import { drawWoodenBox } from "./wooden-boxes.js"
@@ -73,6 +95,8 @@ export function generateBoats(count, options = {}) {
 }
 
 export function createBoat(x, y) {
+  const fuelCapacity = Math.max(BOAT_FUEL_MIN, BOAT_FUEL_MAX)
+
   return {
     x,
     y,
@@ -82,6 +106,9 @@ export function createBoat(x, y) {
     lastHit: 0,
     direction: Math.random() * Math.PI * 2,
     velocity: { x: 0, y: 0 },
+    motion: null,
+    forwardSpeed: 0,
+    lateralSpeed: 0,
     currentSpeed: 0,
     floatAngle: Math.random() * Math.PI * 2,
     floatOffset: 0,
@@ -89,6 +116,9 @@ export function createBoat(x, y) {
     foamTrail: [],
     towedBoxes: [],
     isBroken: false,
+    wreckCleanupAt: null,
+    fuelCapacity,
+    fuel: getRandomFuelAmount(BOAT_FUEL_MIN, BOAT_FUEL_MAX),
   }
 }
 
@@ -529,19 +559,26 @@ export function exitBoat() {
 
   gameState.player.x = safeExitPosition.x
   gameState.player.y = safeExitPosition.y
+
+  if (boat.isBroken) {
+    markBoatWreckForCleanup(boat)
+  }
+
   return true
 }
 
-export function damageBoat(boat) {
+export function damageBoat(boat, options = {}) {
   if (!boat || boat.isBroken) {
-    return
+    return false
   }
 
-  if (Date.now() - boat.lastHit < 1000) {
-    return
+  const { amount = 1, ignoreCooldown = false } = options
+
+  if (!ignoreCooldown && Date.now() - boat.lastHit < 1000) {
+    return false
   }
 
-  boat.health--
+  boat.health = Math.max(0, boat.health - Math.max(1, Math.round(amount)))
   boat.lastHit = Date.now()
 
   if (!gameState.hitEffects) {
@@ -559,6 +596,8 @@ export function damageBoat(boat) {
   if (boat.health <= 0) {
     destroyBoat(boat)
   }
+
+  return true
 }
 
 export function destroyBoat(boat) {
@@ -571,11 +610,45 @@ export function destroyBoat(boat) {
   boat.currentSpeed = 0
   boat.velocity.x = 0
   boat.velocity.y = 0
+  resetVehicleMotion(boat.motion)
   boat.floatAngle = boat.direction + Math.PI * 0.5
+
+  if (!(gameState.isInCar && gameState.drivingCar === boat)) {
+    markBoatWreckForCleanup(boat)
+  }
+}
+
+function markBoatWreckForCleanup(boat) {
+  boat.wreckCleanupAt = Date.now() + VEHICLE_WRECK_DESPAWN_DELAY_MS
+}
+
+function removeExpiredBoatWrecks() {
+  const { boats, isInCar, drivingCar } = gameState
+  if (!Array.isArray(boats) || boats.length === 0) {
+    return
+  }
+
+  const now = Date.now()
+  for (let i = boats.length - 1; i >= 0; i--) {
+    const boat = boats[i]
+    if (!boat?.isBroken || !boat.wreckCleanupAt) {
+      continue
+    }
+
+    if (isInCar && drivingCar === boat) {
+      continue
+    }
+
+    if (now >= boat.wreckCleanupAt) {
+      boats.splice(i, 1)
+    }
+  }
 }
 
 export function drawAndUpdateBoats() {
   const { ctx, camera, boats, isInCar, drivingCar, player } = gameState
+
+  removeExpiredBoatWrecks()
 
   for (const boat of boats) {
     if (isInCar && drivingCar === boat) {
@@ -616,6 +689,10 @@ export function drawAndUpdateBoats() {
     ctx.restore()
     drawBoatTowedBoxes(ctx, boat, camera)
 
+    if (isInCar && drivingCar === boat) {
+      drawVehicleFuelBar(ctx, screenX, screenY, boat.size, boat.fuel, boat.fuelCapacity)
+    }
+
     if (!isInCar && getDistance(player.x, player.y, boat.x, boat.y) < CAR_INTERACTION_RANGE) {
       drawBoatPrompt(ctx, screenX, screenY)
     }
@@ -625,47 +702,76 @@ export function drawAndUpdateBoats() {
 function updateBoatPosition(boat) {
   const { player, keys, isMobile, joystickActive, joystickAngle, joystickDistance } = gameState
 
-  let isAccelerating = false
-  let directionMultiplier = 0
+  let throttleInput = 0
 
   if (isMobile && joystickActive) {
     player.direction = joystickAngle
-    isAccelerating = joystickDistance > 0.1
-    directionMultiplier = joystickDistance
+    throttleInput = joystickDistance > 0.1 ? Math.min(1, joystickDistance) : 0
   } else {
     const movingForward = keys["ArrowUp"] || keys["w"]
     const movingBackward = keys["ArrowDown"] || keys["s"]
 
-    if (movingForward || movingBackward) {
-      isAccelerating = true
-      directionMultiplier = movingForward ? 1 : -0.55
+    if (movingForward) {
+      throttleInput = 1
+    } else if (movingBackward) {
+      throttleInput = -0.55
     }
   }
 
+  if (throttleInput !== 0 && (boat.fuel ?? 0) <= 0) {
+    throttleInput = 0
+  }
+
+  if (throttleInput > 0 && (boat.fuel ?? 0) > 0) {
+    boat.fuel = Math.max(0, boat.fuel - BOAT_FUEL_DRAIN_FORWARD * Math.max(0.25, Math.abs(throttleInput)))
+  }
+
   const directionDifference = normalizeAngle(player.direction - boat.direction)
-  const turnSpeed = Math.min(0.1 + (boat.currentSpeed / CAR_MAX_SPEED) * 0.12, 0.22)
-  boat.direction += directionDifference * turnSpeed
 
-  if (isAccelerating) {
-    boat.currentSpeed = Math.min(boat.currentSpeed + CAR_ACCELERATION, CAR_MAX_SPEED * 0.92)
-  } else {
-    boat.currentSpeed = Math.max(boat.currentSpeed - CAR_DECELERATION * 0.8, 0)
-  }
+  // Aim direction is a rudder request. The hull keeps carrying its old momentum,
+  // so the boat slides wide through the turn before the heading catches up.
+  const steerInput = Math.max(-1, Math.min(1, directionDifference / BOAT_MAX_RUDDER_ANGLE))
 
-  const forwardX = Math.cos(boat.direction) * directionMultiplier
-  const forwardY = Math.sin(boat.direction) * directionMultiplier
-  const sideX = Math.cos(boat.direction + Math.PI / 2)
-  const sideY = Math.sin(boat.direction + Math.PI / 2)
-  const turningAmount = Math.abs(directionDifference) * 1.6
+  const motion = getBoatMotion(boat)
+  stepVehicleMotion(
+    motion,
+    { throttle: throttleInput, steer: steerInput },
+    {
+      maxSpeed: BOAT_MAX_SPEED,
+      acceleration: BOAT_ACCELERATION,
+      braking: BOAT_DECELERATION,
+      maxSteerAngle: BOAT_MAX_RUDDER_ANGLE,
+      steerSpeed: BOAT_STEER_SPEED,
+      frontAxle: boat.size * 0.4,
+      rearAxle: boat.size * 0.4,
+      yawInertia: BOAT_YAW_INERTIA,
+      frontGrip: BOAT_HULL_GRIP,
+      rearGrip: BOAT_RUDDER_GRIP,
+      frontStiffness: BOAT_HULL_STIFFNESS,
+      rearStiffness: BOAT_RUDDER_STIFFNESS,
+      driftFactor: BOAT_DRIFT_FACTOR,
+      powerOversteer: BOAT_POWER_OVERSTEER,
+      lateralDrag: BOAT_LATERAL_DRAG,
+      yawDamping: BOAT_YAW_DAMPING,
+      steerSpeedSensitivity: BOAT_STEER_SENSITIVITY_FALLOFF,
+      rearSteering: true,
+      steerNeedsFlow: true,
+      driftAffectsFront: true,
+    }
+  )
 
-  boat.velocity.x = forwardX * boat.currentSpeed
-  boat.velocity.y = forwardY * boat.currentSpeed
+  boat.direction = motion.heading
+  boat.forwardSpeed = motion.longitudinalSpeed
+  boat.lateralSpeed = motion.lateralSpeed
+  boat.currentSpeed = Math.hypot(motion.longitudinalSpeed, motion.lateralSpeed)
+  boat.slipAngle = motion.slipAngle
+  boat.isDrifting = motion.isSliding
 
-  if (boat.currentSpeed > 1 && Math.abs(directionDifference) > 0.02) {
-    const driftDirection = directionDifference > 0 ? 1 : -1
-    boat.velocity.x += sideX * driftDirection * turningAmount * boat.currentSpeed * (1 - CAR_DRIFT_FACTOR)
-    boat.velocity.y += sideY * driftDirection * turningAmount * boat.currentSpeed * (1 - CAR_DRIFT_FACTOR)
-  }
+  const turningAmount = Math.min(1.7, Math.abs(motion.slipAngle) * 2.4)
+
+  const velocity = getMotionVelocity(motion)
+  boat.velocity.x = velocity.x
+  boat.velocity.y = velocity.y
 
   const newX = boat.x + boat.velocity.x
   const newY = boat.y + boat.velocity.y
@@ -682,10 +788,27 @@ function updateBoatPosition(boat) {
     gameState.player.y = boat.y
     spawnBoatWake(boat, turningAmount)
   } else {
-    boat.currentSpeed *= 0.35
-    boat.velocity.x *= 0.2
-    boat.velocity.y *= 0.2
+    const motionState = getBoatMotion(boat)
+    dampMotionAfterImpact(motionState, 0.3)
+    boat.currentSpeed = Math.hypot(motionState.longitudinalSpeed, motionState.lateralSpeed)
+    boat.forwardSpeed = motionState.longitudinalSpeed
+    boat.lateralSpeed = motionState.lateralSpeed
+    const impactVelocity = getMotionVelocity(motionState)
+    boat.velocity.x = impactVelocity.x
+    boat.velocity.y = impactVelocity.y
   }
+}
+
+// Boats restored from a save (or created before the physics rework) need their
+// motion state seeded once.
+function getBoatMotion(boat) {
+  if (!boat.motion) {
+    boat.motion = createVehicleMotion(boat.direction || 0)
+    boat.motion.longitudinalSpeed = Number.isFinite(boat.forwardSpeed) ? boat.forwardSpeed : boat.currentSpeed || 0
+    boat.motion.lateralSpeed = Number.isFinite(boat.lateralSpeed) ? boat.lateralSpeed : 0
+  }
+
+  return boat.motion
 }
 
 function updateBoatDrift(boat) {
@@ -708,6 +831,7 @@ function updateBoatDrift(boat) {
       boat.currentSpeed = 0
       boat.velocity.x = 0
       boat.velocity.y = 0
+      resetVehicleMotion(boat.motion)
       return
     }
 
@@ -736,6 +860,7 @@ function updateBoatDrift(boat) {
     boat.currentSpeed = 0
     boat.velocity.x = 0
     boat.velocity.y = 0
+    resetVehicleMotion(boat.motion)
   }
 
   if (boat.isBroken) {
@@ -933,4 +1058,37 @@ function normalizeAngle(angle) {
   while (angle > Math.PI) angle -= Math.PI * 2
   while (angle < -Math.PI) angle += Math.PI * 2
   return angle
+}
+
+function getRandomFuelAmount(minFuel, maxFuel) {
+  const safeMin = Math.max(0, Math.min(minFuel, maxFuel))
+  const safeMax = Math.max(safeMin, Math.max(minFuel, maxFuel))
+  return safeMin + Math.random() * (safeMax - safeMin)
+}
+
+function drawVehicleFuelBar(ctx, screenX, screenY, size, fuel, fuelCapacity) {
+  const capacity = Math.max(1, fuelCapacity || 1)
+  const normalizedFuel = Math.max(0, Math.min(1, (fuel || 0) / capacity))
+  const barWidth = size * 1.2
+  const barHeight = 8
+  const barX = screenX - barWidth * 0.5
+  const barY = screenY - size * 0.85
+
+  ctx.save()
+  ctx.fillStyle = "rgba(0, 0, 0, 0.55)"
+  ctx.fillRect(barX - 1, barY - 1, barWidth + 2, barHeight + 2)
+
+  ctx.fillStyle = "rgba(33, 33, 33, 0.9)"
+  ctx.fillRect(barX, barY, barWidth, barHeight)
+
+  ctx.fillStyle = normalizedFuel > 0.25 ? "#69c36a" : "#e29b3b"
+  if (normalizedFuel <= 0.1) {
+    ctx.fillStyle = "#db4c3f"
+  }
+
+  ctx.fillRect(barX, barY, barWidth * normalizedFuel, barHeight)
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.35)"
+  ctx.lineWidth = 1
+  ctx.strokeRect(barX, barY, barWidth, barHeight)
+  ctx.restore()
 }

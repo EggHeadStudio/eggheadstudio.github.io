@@ -1,11 +1,20 @@
 // Player entity
 import { gameState } from "../core/game-state.js"
-import { TILE_SIZE, PLAYER_HEAL_DELAY_MS, PLAYER_HEAL_UNDER_ROOF_MULTIPLIER } from "../core/constants.js"
+import {
+  TILE_SIZE,
+  PLAYER_HEAL_DELAY_MS,
+  PLAYER_HEAL_UNDER_ROOF_MULTIPLIER,
+  CARRY_SPEED_MULTIPLIER_BY_STRENGTH,
+  CARRY_SPEED_MULTIPLIER_BY_OBJECT_AND_STRENGTH,
+  VEHICLE_PLAYER_COLLISION_RADIUS_MULTIPLIER,
+} from "../core/constants.js"
 import { getDistance } from "../utils/math-utils.js"
 import { createShadow } from "../utils/rendering-utils.js"
 import { applyKnockbackToEnemy, damageEnemy } from "../entities/enemies.js"
 import { damageWoodenBox, isUnderRoof } from "../entities/wooden-boxes.js"
 import { damageTree, isTreeBlocking } from "../entities/trees.js"
+import { damageCar } from "../entities/cars.js"
+import { damageBoat } from "../entities/boats.js"
 import { createDeathEffect, DEATH_EFFECT_DURATION } from "./death-effects.js"
 import { isWaterLikeTile, isHoleTile, isHoleFlooded } from "./shovels.js"
 import { movePlayerToNearestSafePosition } from "../utils/player-position-utils.js"
@@ -174,6 +183,31 @@ function getPlayerBodyScale(player) {
   return 1
 }
 
+function getCarrySpeedMultiplier(player) {
+  if (!gameState.isGrabbing) {
+    return 1
+  }
+
+  const rawStrength = Number(player?.strength)
+  const resolvedStrength = Number.isFinite(rawStrength) ? rawStrength : 1
+  const strengthLevel = Math.max(1, Math.min(5, Math.round(resolvedStrength)))
+  const carriedObjectType = gameState.grabbedRock
+    ? "rock"
+    : gameState.grabbedEnemy
+      ? "enemy"
+      : null
+  const perObjectMultipliers = carriedObjectType
+    ? CARRY_SPEED_MULTIPLIER_BY_OBJECT_AND_STRENGTH[carriedObjectType]
+    : null
+
+  return (
+    perObjectMultipliers?.[strengthLevel] ??
+    CARRY_SPEED_MULTIPLIER_BY_STRENGTH[strengthLevel] ??
+    CARRY_SPEED_MULTIPLIER_BY_STRENGTH[1] ??
+    0.42
+  )
+}
+
 // Update player position based on keyboard input
 export function updatePlayerPosition() {
   const {
@@ -223,7 +257,8 @@ export function updatePlayerPosition() {
   // dropping in and climbing out.
   const holeTransition = getPlayerHoleTransitionState(player)
   const transitionSpeedMultiplier = holeTransition.isActive ? PLAYER_HOLE_TRANSITION_SPEED_MULTIPLIER : 1
-  const currentSpeed = (isGrabbing ? player.speed / 2 : player.speed) * transitionSpeedMultiplier
+  const carrySpeedMultiplier = getCarrySpeedMultiplier(player)
+  const currentSpeed = player.speed * carrySpeedMultiplier * transitionSpeedMultiplier
   dx *= currentSpeed
   dy *= currentSpeed
 
@@ -307,6 +342,26 @@ export function updatePlayerPosition() {
     }
   }
 
+  if (canMove && !gameState.isInCar) {
+    for (const car of gameState.cars || []) {
+      const collisionRadius = car.size * VEHICLE_PLAYER_COLLISION_RADIUS_MULTIPLIER
+      if (getDistance(newX, newY, car.x, car.y) < player.size + collisionRadius) {
+        canMove = false
+        break
+      }
+    }
+  }
+
+  if (canMove && !gameState.isInCar) {
+    for (const boat of gameState.boats || []) {
+      const collisionRadius = boat.size * VEHICLE_PLAYER_COLLISION_RADIUS_MULTIPLIER
+      if (getDistance(newX, newY, boat.x, boat.y) < player.size + collisionRadius) {
+        canMove = false
+        break
+      }
+    }
+  }
+
   // Standing trees block movement (collision is on the trunk, not the canopy)
   if (canMove && isTreeBlocking(newX, newY, player.size)) {
     canMove = false
@@ -325,7 +380,7 @@ export function updatePlayerPosition() {
 
 // Check if player's melee attack hits any enemies
 function checkMeleeAttack() {
-  const { player, enemies, woodenBoxes } = gameState
+  const { player, enemies, woodenBoxes, cars, boats } = gameState
 
   // Only check during the active part of the throw animation
   if (!player.throwingApple) return
@@ -428,6 +483,46 @@ function checkMeleeAttack() {
   }
 
   // Trees are only chopped with the saw tool; normal melee swings do not damage them.
+
+  for (const car of cars || []) {
+    const distance = getDistance(rightHandX, rightHandY, car.x, car.y)
+    if (distance < HAND_SIZE + car.size * VEHICLE_PLAYER_COLLISION_RADIUS_MULTIPLIER) {
+      damageCar(car)
+
+      if (!gameState.hitEffects) {
+        gameState.hitEffects = []
+      }
+
+      gameState.hitEffects.push({
+        x: car.x,
+        y: car.y,
+        size: car.size * 1.1,
+        createdAt: Date.now(),
+        duration: 180,
+      })
+      return
+    }
+  }
+
+  for (const boat of boats || []) {
+    const distance = getDistance(rightHandX, rightHandY, boat.x, boat.y)
+    if (distance < HAND_SIZE + boat.size * VEHICLE_PLAYER_COLLISION_RADIUS_MULTIPLIER) {
+      damageBoat(boat)
+
+      if (!gameState.hitEffects) {
+        gameState.hitEffects = []
+      }
+
+      gameState.hitEffects.push({
+        x: boat.x,
+        y: boat.y,
+        size: boat.size,
+        createdAt: Date.now(),
+        duration: 180,
+      })
+      return
+    }
+  }
 }
 
 // Draw player

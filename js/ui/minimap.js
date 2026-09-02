@@ -1,15 +1,538 @@
-import { TILE_SIZE, MINIMAP_VISIBLE_TILES_MOBILE, MINIMAP_VISIBLE_TILES_DESKTOP } from "../core/constants.js"
+import {
+  TILE_SIZE,
+  MINIMAP_VISIBLE_TILES_MOBILE,
+  MINIMAP_VISIBLE_TILES_DESKTOP,
+  MAP_SECTION_TILE_SIZE,
+  MAP_SECTION_REVEAL_THRESHOLD,
+} from "../core/constants.js"
 import { gameState } from "../core/game-state.js"
 import { getTerrainColor } from "../utils/color-utils.js"
 
 const MINIMAP_CACHE_REFRESH_MS = 80
 const MINIMAP_CACHE_REFRESH_MS_LIGHTWEIGHT = 180
+const CLAIMED_SECTION_COLORS = [
+  "rgba(255, 209, 102, 0.18)",
+  "rgba(94, 169, 255, 0.16)",
+  "rgba(110, 222, 165, 0.16)",
+  "rgba(255, 132, 132, 0.15)",
+  "rgba(194, 153, 255, 0.16)",
+]
+
+function getSepiaTerrainColor(terrainType) {
+  switch (terrainType) {
+    case 0:
+      return "#8b6d4c"
+    case 1:
+      return "#92734f"
+    case 2:
+      return "#7f6141"
+    case 3:
+      return "#9a7a54"
+    case 4:
+      return "#a88b62"
+    case 5:
+      return "#745b40"
+    default:
+      return "#8a6f4e"
+  }
+}
 
 let minimapCacheCanvas = null
 let minimapCacheCtx = null
 let minimapCacheLastUpdateAt = 0
 let minimapCacheWidth = 0
 let minimapCacheHeight = 0
+
+function getSectionKeyForTile(tileX, tileY) {
+  return `${Math.floor(tileX / MAP_SECTION_TILE_SIZE)},${Math.floor(tileY / MAP_SECTION_TILE_SIZE)}`
+}
+
+function getMapLayout(discoveredEntries, width, height) {
+  if (!discoveredEntries.length) {
+    return {
+      minX: 0,
+      maxX: 1,
+      minY: 0,
+      maxY: 1,
+      mapWidth: 1,
+      mapHeight: 1,
+      tileSize: 1,
+      offsetX: 0,
+      offsetY: 0,
+      width,
+      height,
+    }
+  }
+
+  const minX = Math.min(...discoveredEntries.map((entry) => entry.x))
+  const maxX = Math.max(...discoveredEntries.map((entry) => entry.x))
+  const minY = Math.min(...discoveredEntries.map((entry) => entry.y))
+  const maxY = Math.max(...discoveredEntries.map((entry) => entry.y))
+  const mapWidth = Math.max(1, maxX - minX + 1)
+  const mapHeight = Math.max(1, maxY - minY + 1)
+  const padding = 12
+  const tileSize = Math.min((width - padding * 2) / mapWidth, (height - padding * 2) / mapHeight)
+  const offsetX = (width - mapWidth * tileSize) / 2
+  const offsetY = (height - mapHeight * tileSize) / 2
+
+  return {
+    minX,
+    maxX,
+    minY,
+    maxY,
+    mapWidth,
+    mapHeight,
+    tileSize,
+    offsetX,
+    offsetY,
+    width,
+    height,
+  }
+}
+
+function getMapSectionEntries(discoveredEntries) {
+  const bySection = new Map()
+
+  for (const entry of discoveredEntries) {
+    const sectionKey = getSectionKeyForTile(entry.x, entry.y)
+    const current = bySection.get(sectionKey) || {
+      key: sectionKey,
+      sectionX: Number(sectionKey.split(",")[0]),
+      sectionY: Number(sectionKey.split(",")[1]),
+      discoveredTiles: 0,
+      claimed: gameState.claimedSections.get(sectionKey) || null,
+      totalTiles: MAP_SECTION_TILE_SIZE * MAP_SECTION_TILE_SIZE,
+    }
+
+    current.discoveredTiles += 1
+    bySection.set(sectionKey, current)
+  }
+
+  return [...bySection.values()].map((section) => ({
+    ...section,
+    discoveredRatio: section.discoveredTiles / section.totalTiles,
+  }))
+}
+
+function drawClaimedSectionTerrain(ctx, discoveredEntries, layout) {
+  if (!gameState.claimedSections.size) {
+    return
+  }
+
+  const { minX, minY, tileSize, offsetX, offsetY } = layout
+
+  for (const entry of discoveredEntries) {
+    const sectionKey = getSectionKeyForTile(entry.x, entry.y)
+    if (!gameState.claimedSections.has(sectionKey)) {
+      continue
+    }
+
+    const px = offsetX + (entry.x - minX) * tileSize
+    const py = offsetY + (entry.y - minY) * tileSize
+    ctx.fillStyle = getTerrainColor(entry.terrain)
+    ctx.fillRect(Math.round(px), Math.round(py), Math.ceil(tileSize + 1), Math.ceil(tileSize + 1))
+  }
+}
+
+function drawMapSectionOverlays(ctx, discoveredEntries, layout) {
+  const sections = getMapSectionEntries(discoveredEntries)
+  if (!sections.length) {
+    return
+  }
+
+  const { offsetX, offsetY, minX, minY } = layout
+
+  for (const section of sections) {
+    const sectionMinX = section.sectionX * MAP_SECTION_TILE_SIZE
+    const sectionMinY = section.sectionY * MAP_SECTION_TILE_SIZE
+    const rectX = offsetX + (sectionMinX - minX) * layout.tileSize
+    const rectY = offsetY + (sectionMinY - minY) * layout.tileSize
+    const rectWidth = MAP_SECTION_TILE_SIZE * layout.tileSize
+    const rectHeight = MAP_SECTION_TILE_SIZE * layout.tileSize
+
+    const hasAnyReveal = section.discoveredTiles > 0
+    if (!hasAnyReveal) {
+      continue
+    }
+
+    const isFullyRevealed = section.discoveredRatio >= MAP_SECTION_REVEAL_THRESHOLD
+
+    ctx.save()
+    ctx.setLineDash([6, 4])
+    ctx.lineWidth = section.claimed ? 1.9 : 1.4
+    ctx.strokeStyle = section.claimed
+      ? "rgba(255, 209, 102, 0.95)"
+      : isFullyRevealed
+        ? "rgba(222, 196, 146, 0.92)"
+        : "rgba(186, 160, 124, 0.74)"
+    ctx.strokeRect(Math.round(rectX), Math.round(rectY), Math.ceil(rectWidth), Math.ceil(rectHeight))
+    ctx.restore()
+
+    if (section.claimed) {
+      const labelText = section.claimed.name
+      const centerX = rectX + rectWidth * 0.5
+      const centerY = rectY + rectHeight * 0.5
+      ctx.save()
+      ctx.translate(centerX, centerY)
+      ctx.rotate(-0.12)
+      ctx.font = section.claimed ? "bold 17px Avenir Next, sans-serif" : "15px Avenir Next, sans-serif"
+      ctx.textAlign = "center"
+      ctx.textBaseline = "middle"
+      ctx.fillStyle = "rgba(247, 233, 204, 0.95)"
+      ctx.strokeStyle = "rgba(71, 52, 31, 0.65)"
+      ctx.lineWidth = 3
+      ctx.strokeText(labelText, 0, 0)
+      ctx.fillText(labelText, 0, 0)
+      ctx.restore()
+    }
+  }
+}
+
+export function handleClaimableSectionClick(clickX, clickY, width, height) {
+  const discoveredEntries = [...gameState.discoveredMap.values()]
+  if (!discoveredEntries.length) {
+    return false
+  }
+
+  const layout = getMapLayout(discoveredEntries, width, height)
+  const sections = getMapSectionEntries(discoveredEntries)
+
+  for (const section of sections) {
+    if (section.discoveredRatio < MAP_SECTION_REVEAL_THRESHOLD || !Number.isFinite(section.discoveredRatio)) {
+      continue
+    }
+
+    const sectionMinX = section.sectionX * MAP_SECTION_TILE_SIZE
+    const sectionMinY = section.sectionY * MAP_SECTION_TILE_SIZE
+    const rectX = layout.offsetX + (sectionMinX - layout.minX) * layout.tileSize
+    const rectY = layout.offsetY + (sectionMinY - layout.minY) * layout.tileSize
+    const rectWidth = MAP_SECTION_TILE_SIZE * layout.tileSize
+    const rectHeight = MAP_SECTION_TILE_SIZE * layout.tileSize
+
+    if (
+      clickX >= rectX &&
+      clickX <= rectX + rectWidth &&
+      clickY >= rectY &&
+      clickY <= rectY + rectHeight
+    ) {
+      if (gameState.claimedSections.has(section.key)) {
+        return false
+      }
+
+      const proposedName = window.prompt("Name this claimed section", "Raven's Hollow")
+      const resolvedName = (proposedName || "").trim()
+      if (!resolvedName) {
+        return false
+      }
+
+      const color = CLAIMED_SECTION_COLORS[gameState.claimedSections.size % CLAIMED_SECTION_COLORS.length]
+      gameState.claimedSections.set(section.key, {
+        key: section.key,
+        name: resolvedName,
+        color,
+        sectionX: section.sectionX,
+        sectionY: section.sectionY,
+      })
+      return true
+    }
+  }
+
+  return false
+}
+
+function getTerrainAnnotationLabel(terrainType, regionSize) {
+  switch (terrainType) {
+    case 0:
+      if (regionSize > 180) {
+        return "Lake"
+      }
+      if (regionSize > 60) {
+        return "River"
+      }
+      return "Water"
+    case 1:
+      if (regionSize > 200) {
+        return "Plain"
+      }
+      return "Grass"
+    case 2:
+      return regionSize > 160 ? "Forest" : "Woodland"
+    case 3:
+      return regionSize > 150 ? "Dirt" : "Ground"
+    case 4:
+      return regionSize > 180 ? "Beach" : "Sand"
+    case 5:
+      return regionSize > 150 ? "Gravel" : "Rock"
+    default:
+      return "Land"
+  }
+}
+
+function getDirectionalRegionName(terrainType, regionSize, x, y, mapBounds) {
+  const baseLabel = getTerrainAnnotationLabel(terrainType, regionSize)
+  const centerX = x - (mapBounds.minX + mapBounds.maxX) / 2
+  const centerY = y - (mapBounds.minY + mapBounds.maxY) / 2
+
+  let direction = "Central"
+  if (centerY < -10) {
+    direction = "North"
+  } else if (centerY > 10) {
+    direction = "South"
+  }
+
+  if (centerX < -10) {
+    direction = direction === "Central" ? "West" : direction === "North" ? "Northwest" : "Southwest"
+  } else if (centerX > 10) {
+    direction = direction === "Central" ? "East" : direction === "North" ? "Northeast" : "Southeast"
+  }
+
+  if (direction === "Central") {
+    return baseLabel
+  }
+
+  return `${direction} ${baseLabel}`
+}
+
+export function getExplorationMapAnnotations(entries) {
+  if (!entries.length) {
+    return []
+  }
+
+  const entryMap = new Map(entries.map((entry) => [`${entry.x},${entry.y}`, entry]))
+  const visited = new Set()
+  const regions = []
+
+  for (const entry of entries) {
+    const key = `${entry.x},${entry.y}`
+    if (visited.has(key)) {
+      continue
+    }
+
+    const queue = [entry]
+    const regionTiles = []
+    visited.add(key)
+
+    while (queue.length) {
+      const current = queue.shift()
+      regionTiles.push(current)
+
+      const neighbors = [
+        { x: current.x + 1, y: current.y },
+        { x: current.x - 1, y: current.y },
+        { x: current.x, y: current.y + 1 },
+        { x: current.x, y: current.y - 1 },
+        { x: current.x + 1, y: current.y + 1 },
+        { x: current.x - 1, y: current.y - 1 },
+        { x: current.x + 1, y: current.y - 1 },
+        { x: current.x - 1, y: current.y + 1 },
+      ]
+
+      for (const neighbor of neighbors) {
+        const neighborKey = `${neighbor.x},${neighbor.y}`
+        const neighborEntry = entryMap.get(neighborKey)
+        if (!neighborEntry || visited.has(neighborKey)) {
+          continue
+        }
+
+        if (neighborEntry.terrain === current.terrain) {
+          queue.push(neighborEntry)
+          visited.add(neighborKey)
+        }
+      }
+    }
+
+    if (regionTiles.length < 8) {
+      continue
+    }
+
+    const centerX = regionTiles.reduce((sum, tile) => sum + tile.x, 0) / regionTiles.length
+    const centerY = regionTiles.reduce((sum, tile) => sum + tile.y, 0) / regionTiles.length
+    const minX = Math.min(...regionTiles.map((tile) => tile.x))
+    const maxX = Math.max(...regionTiles.map((tile) => tile.x))
+    const minY = Math.min(...regionTiles.map((tile) => tile.y))
+    const maxY = Math.max(...regionTiles.map((tile) => tile.y))
+    const spreadX = maxX - minX + 1
+    const spreadY = maxY - minY + 1
+
+    regions.push({
+      x: centerX,
+      y: centerY,
+      terrain: regionTiles[0].terrain,
+      size: regionTiles.length,
+      width: spreadX,
+      height: spreadY,
+      label: getTerrainAnnotationLabel(regionTiles[0].terrain, regionTiles.length),
+    })
+  }
+
+  return regions
+    .sort((a, b) => b.size - a.size)
+    .filter((region, index, all) => {
+      if (index >= 8) {
+        return false
+      }
+
+      return !all.some(
+        (other, otherIndex) =>
+          otherIndex !== index &&
+          other.terrain === region.terrain &&
+          Math.hypot(other.x - region.x, other.y - region.y) < 14,
+      )
+    })
+}
+
+function drawMapAnnotations(ctx, discoveredEntries, mapBounds, tileSize, offsetX, offsetY) {
+  const annotations = getExplorationMapAnnotations(discoveredEntries)
+  if (!annotations.length) {
+    return
+  }
+
+  const { minX, minY, maxX, maxY } = mapBounds
+
+  for (const annotation of annotations) {
+    const labelX = offsetX + (annotation.x - minX) * tileSize + tileSize * 0.5
+    const labelY = offsetY + (annotation.y - minY) * tileSize + tileSize * 0.5
+    const text = getDirectionalRegionName(annotation.terrain, annotation.size, annotation.x, annotation.y, {
+      minX,
+      maxX,
+      minY,
+      maxY,
+    })
+    ctx.font = annotation.size > 80 ? "bold 12px Avenir Next, sans-serif" : "11px Avenir Next, sans-serif"
+    const metrics = ctx.measureText(text)
+    const labelWidth = metrics.width + 12
+    const labelHeight = 16
+    const backgroundX = labelX - labelWidth / 2
+    const backgroundY = labelY - labelHeight / 2
+
+    ctx.fillStyle = "rgba(4, 12, 16, 0.65)"
+    ctx.fillRect(backgroundX, backgroundY, labelWidth, labelHeight)
+
+    ctx.strokeStyle = "rgba(255,255,255,0.25)"
+    ctx.strokeRect(backgroundX, backgroundY, labelWidth, labelHeight)
+
+    ctx.fillStyle = "rgba(255,255,255,0.9)"
+    ctx.textAlign = "center"
+    ctx.textBaseline = "middle"
+    ctx.fillText(text, labelX, labelY + 0.5)
+
+    const markerSize = Math.max(3, Math.min(7, tileSize * 0.35))
+    ctx.fillStyle = getSepiaTerrainColor(annotation.terrain)
+    ctx.beginPath()
+    ctx.moveTo(labelX, labelY - markerSize)
+    ctx.lineTo(labelX + markerSize, labelY)
+    ctx.lineTo(labelX, labelY + markerSize)
+    ctx.lineTo(labelX - markerSize, labelY)
+    ctx.closePath()
+    ctx.fill()
+  }
+}
+
+export function revealNearbyWorld() {
+  if (!gameState.isStarted || !gameState.player || !gameState.terrain?.length) {
+    return
+  }
+
+  const centerTileX = Math.floor(gameState.player.x / TILE_SIZE)
+  const centerTileY = Math.floor(gameState.player.y / TILE_SIZE)
+  const radius = 26
+
+  for (let tileY = centerTileY - radius; tileY <= centerTileY + radius; tileY++) {
+    if (tileY < 0 || tileY >= gameState.terrain.length) {
+      continue
+    }
+
+    for (let tileX = centerTileX - radius; tileX <= centerTileX + radius; tileX++) {
+      if (tileX < 0 || tileX >= gameState.terrain[0].length) {
+        continue
+      }
+
+      const distance = Math.hypot(tileX - centerTileX, tileY - centerTileY)
+      if (distance > radius + 2) {
+        continue
+      }
+
+      const key = `${tileX},${tileY}`
+      const terrainValue = gameState.terrain[tileY][tileX]
+      gameState.discoveredMap.set(key, {
+        x: tileX,
+        y: tileY,
+        terrain: terrainValue,
+      })
+    }
+  }
+}
+
+export function drawExplorationMapToContext(ctx, width, height) {
+  const discoveredEntries = [...gameState.discoveredMap.values()]
+  if (!discoveredEntries.length) {
+    ctx.fillStyle = "#081d22"
+    ctx.fillRect(0, 0, width, height)
+    ctx.fillStyle = "rgba(255,255,255,0.7)"
+    ctx.font = "16px Avenir Next, sans-serif"
+    ctx.textAlign = "center"
+    ctx.fillText("No terrain discovered yet", width / 2, height / 2)
+    return
+  }
+
+  const layout = getMapLayout(discoveredEntries, width, height)
+  const { minX, maxX, minY, maxY, tileSize, offsetX, offsetY } = layout
+
+  ctx.fillStyle = "#081d22"
+  ctx.fillRect(0, 0, width, height)
+
+  for (const entry of discoveredEntries) {
+    const px = offsetX + (entry.x - minX) * tileSize
+    const py = offsetY + (entry.y - minY) * tileSize
+    ctx.fillStyle = getSepiaTerrainColor(entry.terrain)
+    ctx.fillRect(Math.round(px), Math.round(py), Math.ceil(tileSize + 1), Math.ceil(tileSize + 1))
+  }
+
+  drawClaimedSectionTerrain(ctx, discoveredEntries, layout)
+
+  drawMapSectionOverlays(ctx, discoveredEntries, layout)
+
+  drawMapAnnotations(
+    ctx,
+    discoveredEntries,
+    { minX, minY, maxX, maxY },
+    tileSize,
+    offsetX,
+    offsetY,
+  )
+
+  const playerTileX = Math.floor(gameState.player.x / TILE_SIZE)
+  const playerTileY = Math.floor(gameState.player.y / TILE_SIZE)
+  const playerX = offsetX + (playerTileX - minX) * tileSize + tileSize * 0.5
+  const playerY = offsetY + (playerTileY - minY) * tileSize + tileSize * 0.5
+
+  ctx.fillStyle = "rgba(255,255,255,0.9)"
+  ctx.beginPath()
+  ctx.arc(playerX, playerY, Math.max(3, tileSize * 0.34), 0, Math.PI * 2)
+  ctx.fill()
+}
+
+export function renderExplorationMapCanvas() {
+  const canvas = document.getElementById("explorationMapCanvas")
+  if (!canvas) {
+    return
+  }
+
+  const ctx = canvas.getContext("2d")
+  if (!ctx) {
+    return
+  }
+
+  const width = canvas.clientWidth || 320
+  const height = canvas.clientHeight || 280
+  const ratio = Math.min(window.devicePixelRatio || 1, 2)
+
+  canvas.width = Math.floor(width * ratio)
+  canvas.height = Math.floor(height * ratio)
+  ctx.setTransform(ratio, 0, 0, ratio, 0, 0)
+  ctx.clearRect(0, 0, width, height)
+  drawExplorationMapToContext(ctx, width, height)
+}
 
 export function drawMinimap() {
   if (!gameState.isStarted || !gameState.player) {

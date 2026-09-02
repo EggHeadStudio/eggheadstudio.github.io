@@ -502,6 +502,96 @@ body {
   transform: translateY(-1px);
 }
 
+.exploration-map-page {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(3, 12, 18, 0.92);
+  backdrop-filter: blur(8px);
+}
+
+.exploration-map-page.hidden {
+  display: none;
+}
+
+.exploration-map-shell {
+  width: min(960px, 100%);
+  height: min(82vh, 820px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(6, 19, 25, 0.96), rgba(9, 25, 31, 0.9));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+}
+
+.map-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: rgba(245, 241, 232, 0.82);
+}
+
+.map-panel-header h2 {
+  font-size: 16px;
+  margin: 0;
+}
+
+.map-panel-header span,
+.map-page-summary {
+  font-size: 12px;
+  color: rgba(245, 241, 232, 0.7);
+  margin: 0;
+}
+
+#explorationMapCanvas {
+  display: block;
+  width: 100%;
+  flex: 1 1 auto;
+  min-height: 240px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(4, 12, 16, 0.8);
+}
+
+.map-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(245, 241, 232, 0.8);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+.map-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.map-key {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  display: inline-block;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.map-key.water { background: #3498db; }
+.map-key.grass { background: #2ecc71; }
+.map-key.forest { background: #27ae60; }
+.map-key.sand { background: #e4d2a0; }
+.map-key.gravel { background: #9aa0a4; }
+
 .menu-actions {
   display: flex;
   gap: 12px;
@@ -1031,7 +1121,117 @@ body {
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
 }
 
+.selector-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 46;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(4, 11, 16, 0.58);
+  backdrop-filter: blur(6px);
+}
+
+.selector-modal.hidden {
+  display: none;
+}
+
+.selector-modal-card {
+  width: min(420px, 92vw);
+  aspect-ratio: 1 / 1;
+  padding: 18px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: linear-gradient(165deg, rgba(13, 24, 30, 0.78), rgba(18, 30, 36, 0.7));
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+}
+
+.selector-modal-title {
+  margin: 0 0 12px;
+  text-align: center;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(245, 241, 232, 0.9);
+}
+
+.selector-modal-controls {
+  display: grid;
+  grid-template-columns: 52px 1fr 52px;
+  gap: 10px;
+  align-items: center;
+}
+
+.selector-arrow {
+  height: 54px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.08);
+  color: #f5f1e8;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.selector-center {
+  min-height: 208px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 209, 102, 0.5);
+  background: rgba(255, 209, 102, 0.06);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: #f5f1e8;
+}
+
+.selector-preview-canvas {
+  width: 120px;
+  height: 120px;
+  display: block;
+}
+
+#selectorModalCenterLabel {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.selector-modal-hint {
+  margin: 10px 0 0;
+  text-align: center;
+  color: rgba(245, 241, 232, 0.72);
+  font-size: 12px;
+}
+
 @media (max-width: 768px) {
+  .selector-modal-card {
+    width: min(94vw, 380px);
+    padding: 14px 12px;
+  }
+
+  .selector-modal-controls {
+    grid-template-columns: 46px 1fr 46px;
+  }
+
+  .selector-arrow {
+    height: 48px;
+    font-size: 24px;
+  }
+
+  .selector-center {
+    min-height: 180px;
+  }
+
+  .selector-preview-canvas {
+    width: 102px;
+    height: 102px;
+  }
+
   .start-menu {
     padding: 14px;
     /* Extra room so the action buttons can always be scrolled clear of

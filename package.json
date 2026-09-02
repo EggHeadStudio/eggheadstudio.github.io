@@ -3,6 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "scripts": {
-    "serve:mobile": "node scripts/serve-mobile.js"
+    "serve:mobile": "node scripts/serve-mobile.js",
+    "check:drift": "node --experimental-default-type=module scripts/drift-check.mjs"
   }
 }

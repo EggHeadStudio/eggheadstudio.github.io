@@ -1,6 +1,7 @@
 import { gameState } from "../core/game-state.js"
-import { TILE_SIZE, TERRAIN_TYPES } from "../core/constants.js"
+import { TILE_SIZE, TERRAIN_TYPES, SPAWN_ROOF_BUFFER_TILES } from "../core/constants.js"
 import { getDistance } from "./math-utils.js"
+import { isInsideRoofBuffer } from "../entities/wooden-boxes.js"
 
 function isFloodedHoleTile(tileX, tileY) {
   return Boolean(gameState.dugHoles?.[`${tileX},${tileY}`]?.flooded)
@@ -51,7 +52,13 @@ export function isSpawnPositionClear(x, y, size, options = {}) {
     includeBoats = true,
     includeSledgehammers = true,
     ignoreFloatingBoxes = false,
+    avoidRoofedStructures = true,
+    roofBufferTiles = SPAWN_ROOF_BUFFER_TILES,
   } = options
+
+  if (avoidRoofedStructures && isInsideRoofBuffer(x, y, roofBufferTiles, size * 0.5)) {
+    return false
+  }
 
   if (requireLand && !isLandPosition(x, y)) {
     return false

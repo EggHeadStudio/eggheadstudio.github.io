@@ -62,6 +62,13 @@ export const gameState = {
   // Camera
   camera: { x: 0, y: 0 },
 
+  // Exploration / revealed map state
+  discoveredMap: new Map(),
+  claimedSections: new Map(),
+  mapRevealOpen: false,
+  selectorModalOpen: false,
+  selectorModalType: null,
+
   // Game entities
   player: null,
   terrain: [],

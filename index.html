@@ -25,14 +25,6 @@
           </div>
           <div id="characterOptions" class="character-options"></div>
           <div id="characterPreview" class="character-preview"></div>
-        </section>
-
-        <section class="menu-card">
-          <div class="menu-card-header">
-            <h2>Start Time</h2>
-            <p>Select a lighting preset so dawn, day, dusk, and night are easy to test.</p>
-          </div>
-          <div id="timeOptions" class="time-options"></div>
           <div class="menu-performance-options">
             <label class="menu-toggle" for="lightweightModeToggle">
               <input id="lightweightModeToggle" type="checkbox">
@@ -43,9 +35,36 @@
             </label>
           </div>
         </section>
+
+        <section id="startTimeSection" class="menu-card">
+          <div class="menu-card-header">
+            <h2>Start Time</h2>
+            <p>Select a lighting preset so dawn, day, dusk, and night are easy to test.</p>
+          </div>
+          <div id="timeOptions" class="time-options"></div>
+        </section>
+      </div>
+
+      <div id="explorationMapPage" class="exploration-map-page hidden" aria-live="polite">
+        <div class="exploration-map-shell">
+          <div class="map-panel-header">
+            <h2>Revealed Map</h2>
+            <button id="closeMapButton" class="secondary-menu-button">Close</button>
+          </div>
+          <p class="map-page-summary">Claim a fully explored section by clicking its dotted border.</p>
+          <canvas id="explorationMapCanvas"></canvas>
+          <div class="map-legend" aria-label="Exploration map legend">
+            <span><i class="map-key water"></i>Water</span>
+            <span><i class="map-key grass"></i>Grass</span>
+            <span><i class="map-key forest"></i>Forest</span>
+            <span><i class="map-key sand"></i>Sand</span>
+            <span><i class="map-key gravel"></i>Gravel</span>
+          </div>
+        </div>
       </div>
 
       <div class="menu-actions">
+        <button id="toggleMapButton" class="secondary-menu-button">Toggle Map</button>
         <button id="resumeGameButton" class="primary-menu-button">Resume Game</button>
         <button id="newGameButton" class="secondary-menu-button">Start New Game</button>
       </div>
@@ -66,6 +85,20 @@
   <div class="kill-counter">
     <div class="skull-icon"></div>
     <div id="killCount">0</div>
+  </div>
+  <div id="selectorModal" class="selector-modal hidden" aria-hidden="true">
+    <div class="selector-modal-card" role="dialog" aria-modal="true" aria-labelledby="selectorModalTitle">
+      <p id="selectorModalTitle" class="selector-modal-title">Select Weapon</p>
+      <div class="selector-modal-controls">
+        <button id="selectorModalPrev" class="selector-arrow" aria-label="Previous option">&#10094;</button>
+        <button id="selectorModalCenter" class="selector-center" aria-label="Confirm selection and close">
+          <canvas id="selectorModalPreview" class="selector-preview-canvas" width="120" height="120" aria-hidden="true"></canvas>
+          <span id="selectorModalCenterLabel">Wrist</span>
+        </button>
+        <button id="selectorModalNext" class="selector-arrow" aria-label="Next option">&#10095;</button>
+      </div>
+      <p id="selectorModalHint" class="selector-modal-hint">Tap center to resume</p>
+    </div>
   </div>
   <div class="minimap-frame" aria-label="Realtime minimap">
     <div id="timeOfDayLabel" class="time-of-day-label">Day</div>
