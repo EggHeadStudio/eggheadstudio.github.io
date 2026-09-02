@@ -143,6 +143,7 @@ export function init(config = gameState.startupConfig) {
   gameState.joystickDistance = 0
   gameState.buttonAActive = false
   gameState.buttonBActive = false
+  gameState.buttonCActive = false
   gameState.killCount = 0 // Reset kill count when starting a new game
   gameState.startupConfig = normalizedConfig
   gameState.dayNight = {
@@ -164,6 +165,11 @@ export function init(config = gameState.startupConfig) {
   gameState.ctx = gameState.canvas.getContext("2d")
   gameState.isMobile = Boolean(detectMobile())
   gameState.lightweightMode = Boolean(normalizedConfig.lightweightMode)
+
+  const mapPage = document.getElementById("explorationMapPage")
+  if (mapPage) {
+    mapPage.classList.add("hidden")
+  }
 
   // Set canvas size to match container
   resizeCanvas()
@@ -254,6 +260,7 @@ export function pauseCurrentGame() {
   gameState.joystickDistance = 0
   gameState.buttonAActive = false
   gameState.buttonBActive = false
+  gameState.buttonCActive = false
 
   if (gameState.gameLoop) {
     cancelAnimationFrame(gameState.gameLoop)
@@ -298,6 +305,7 @@ export function triggerGameOver() {
     gameState.joystickDistance = 0
     gameState.buttonAActive = false
     gameState.buttonBActive = false
+    gameState.buttonCActive = false
     gameState.gameOverTimeoutId = setTimeout(() => {
       if (!gameState.isStarted || gameState.gameOver) {
         return
@@ -327,6 +335,7 @@ function finalizeGameOver() {
   gameState.joystickDistance = 0
   gameState.buttonAActive = false
   gameState.buttonBActive = false
+  gameState.buttonCActive = false
 
   if (gameState.gameLoop) {
     cancelAnimationFrame(gameState.gameLoop)

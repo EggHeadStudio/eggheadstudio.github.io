@@ -20,6 +20,7 @@ import { drawPlayer } from "../entities/player.js"
 import { drawDayNightOverlay, updateDayNightCycle } from "./day-night-cycle.js"
 import { maintainGameElements } from "./game-maintenance.js"
 import { drawMinimap, revealNearbyWorld } from "../ui/minimap.js"
+import { syncMobileVehicleButtons } from "../input/mobile-controls.js"
 
 // Main game update loop
 export function update() {
@@ -55,6 +56,8 @@ export function update() {
     if (!gameState.isInCar && !isPlayerDying) {
       updatePlayerPosition()
     }
+
+    syncMobileVehicleButtons()
 
     // Update camera position
     gameState.camera.x = gameState.player.x - canvas.width / 2

@@ -140,7 +140,12 @@ export function showStartMenu() {
 
 export function hideStartMenu() {
   const startMenu = document.getElementById("startMenu")
+  const mapPage = document.getElementById("explorationMapPage")
   startMenu.classList.remove("active")
+  if (mapPage) {
+    mapPage.classList.add("hidden")
+  }
+  gameState.mapRevealOpen = false
   stopCharacterPreviewAnimation()
 
   if (gameState.isStarted && !gameState.gameOver) {
@@ -250,6 +255,9 @@ function buildAccessContext() {
 
 function renderMenuState() {
   const startMenu = document.getElementById("startMenu")
+  const menuCopy = document.querySelector(".menu-copy")
+  const menuGrid = document.querySelector(".menu-grid")
+  const menuActions = document.querySelector(".menu-actions")
   const menuKicker = document.querySelector(".menu-kicker")
   const menuTitle = document.getElementById("menuTitle")
   const menuDescription = document.getElementById("menuDescription")
@@ -272,6 +280,10 @@ function renderMenuState() {
   toggleMapButton.hidden = !(gameState.isStarted && gameState.isPaused && !gameState.gameOver && gameState.menuMode === "pause")
   newGameButton.textContent = gameState.isStarted ? "Start New Game" : "Start Game"
   mapPage.classList.toggle("hidden", !(gameState.isStarted && gameState.isPaused && gameState.mapRevealOpen))
+  const showMapOnly = gameState.isStarted && gameState.isPaused && gameState.mapRevealOpen
+  if (menuCopy) menuCopy.hidden = showMapOnly
+  if (menuGrid) menuGrid.hidden = showMapOnly
+  if (menuActions) menuActions.hidden = showMapOnly
   if (startTimeSection) {
     startTimeSection.hidden = !SHOW_START_TIME_OPTIONS
   }

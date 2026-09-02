@@ -58,6 +58,7 @@ export const gameState = {
   joystickOrigin: { x: 0, y: 0 },
   buttonAActive: false,
   buttonBActive: false,
+  buttonCActive: false,
 
   // Camera
   camera: { x: 0, y: 0 },

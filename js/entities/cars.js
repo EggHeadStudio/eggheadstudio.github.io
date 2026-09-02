@@ -231,12 +231,16 @@ function isValidCarPosition(x, y, tileX, tileY, terrain, rocks, woodenBoxes, bom
 
 // Update car position when player is driving
 export function updateCarPosition(car) {
-  const { player, keys, terrain, rocks, woodenBoxes, isMobile, joystickActive, joystickAngle, joystickDistance } = gameState
+  const { player, keys, terrain, rocks, woodenBoxes, isMobile, joystickActive, joystickAngle } = gameState
   
   let throttleInput = 0;
 
-  if (isMobile && joystickActive) {
-    throttleInput = joystickDistance > 0.1 ? Math.min(1, joystickDistance) : 0;
+  if (isMobile) {
+    if (gameState.buttonCActive) {
+      throttleInput = 1;
+    } else if (gameState.buttonBActive) {
+      throttleInput = -0.7;
+    }
   } else {
     const movingForward = keys["ArrowUp"] || keys["w"];
     const movingBackward = keys["ArrowDown"] || keys["s"];
@@ -253,8 +257,7 @@ export function updateCarPosition(car) {
   }
 
   if (throttleInput > 0 && (car.fuel ?? 0) > 0) {
-    const mobileDrainScale = isMobile && joystickActive ? Math.max(0.25, joystickDistance) : 1;
-    car.fuel = Math.max(0, car.fuel - CAR_FUEL_DRAIN_FORWARD * mobileDrainScale);
+    car.fuel = Math.max(0, car.fuel - CAR_FUEL_DRAIN_FORWARD);
   }
 
   const directionDifference = normalizeAngle(player.direction - car.direction);

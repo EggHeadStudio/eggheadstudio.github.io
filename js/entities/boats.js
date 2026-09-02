@@ -700,13 +700,17 @@ export function drawAndUpdateBoats() {
 }
 
 function updateBoatPosition(boat) {
-  const { player, keys, isMobile, joystickActive, joystickAngle, joystickDistance } = gameState
+  const { player, keys, isMobile, joystickActive, joystickAngle } = gameState
 
   let throttleInput = 0
 
-  if (isMobile && joystickActive) {
+  if (isMobile) {
     player.direction = joystickAngle
-    throttleInput = joystickDistance > 0.1 ? Math.min(1, joystickDistance) : 0
+    if (gameState.buttonCActive) {
+      throttleInput = 1
+    } else if (gameState.buttonBActive) {
+      throttleInput = -0.7
+    }
   } else {
     const movingForward = keys["ArrowUp"] || keys["w"]
     const movingBackward = keys["ArrowDown"] || keys["s"]
