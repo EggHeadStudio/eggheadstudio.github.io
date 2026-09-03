@@ -39,10 +39,12 @@ export function update() {
       }
     }
 
-    // Update player direction based on mouse position
+    // Update player direction based on active input source.
     if (!isPlayerDying) {
-      if (gameState.isMobile && gameState.joystickActive && gameState.joystickDistance > 0.1) {
-        gameState.player.direction = gameState.joystickAngle
+      if (gameState.isMobile) {
+        if (gameState.joystickActive && gameState.joystickDistance > 0.1) {
+          gameState.player.direction = gameState.joystickAngle
+        }
       } else {
         gameState.player.direction = Math.atan2(
           gameState.mousePosition.y - canvas.height / 2,
