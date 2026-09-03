@@ -140,12 +140,7 @@ export function showStartMenu() {
 
 export function hideStartMenu() {
   const startMenu = document.getElementById("startMenu")
-  const mapPage = document.getElementById("explorationMapPage")
   startMenu.classList.remove("active")
-  if (mapPage) {
-    mapPage.classList.add("hidden")
-  }
-  gameState.mapRevealOpen = false
   stopCharacterPreviewAnimation()
 
   if (gameState.isStarted && !gameState.gameOver) {

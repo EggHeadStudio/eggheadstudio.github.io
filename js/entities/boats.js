@@ -700,16 +700,19 @@ export function drawAndUpdateBoats() {
 }
 
 function updateBoatPosition(boat) {
-  const { player, keys, isMobile, joystickActive, joystickAngle } = gameState
+  const { player, keys, isMobile, joystickActive, joystickAngle, joystickDistance } = gameState
 
   let throttleInput = 0
 
   if (isMobile) {
-    player.direction = joystickAngle
-    if (gameState.buttonCActive) {
-      throttleInput = 1
-    } else if (gameState.buttonBActive) {
-      throttleInput = -0.7
+    if (joystickActive) {
+      player.direction = joystickAngle
+    }
+
+    if (gameState.buttonBActive) {
+      throttleInput = -0.55
+    } else if (joystickActive) {
+      throttleInput = joystickDistance > 0.1 ? Math.min(1, joystickDistance) : 0
     }
   } else {
     const movingForward = keys["ArrowUp"] || keys["w"]
@@ -730,13 +733,31 @@ function updateBoatPosition(boat) {
     boat.fuel = Math.max(0, boat.fuel - BOAT_FUEL_DRAIN_FORWARD * Math.max(0.25, Math.abs(throttleInput)))
   }
 
-  const directionDifference = normalizeAngle(player.direction - boat.direction)
+  const motion = getBoatMotion(boat)
+
+  // While nearly stopped, keep bow aligned with player facing so forward or
+  // reverse can instantly steer out of stuck situations.
+  const standstillSpeed = Math.hypot(motion.longitudinalSpeed, motion.lateralSpeed)
+  if (standstillSpeed < 0.2) {
+    motion.heading = player.direction
+    motion.yawRate = 0
+    boat.direction = motion.heading
+  }
+
+  const directionDifference = normalizeAngle(player.direction - motion.heading)
 
   // Aim direction is a rudder request. The hull keeps carrying its old momentum,
   // so the boat slides wide through the turn before the heading catches up.
   const steerInput = Math.max(-1, Math.min(1, directionDifference / BOAT_MAX_RUDDER_ANGLE))
 
-  const motion = getBoatMotion(boat)
+  // Same low-speed assist as cars: only for unsticking, not normal drifting.
+  const isLowSpeed = Math.hypot(motion.longitudinalSpeed, motion.lateralSpeed) < 1
+  if (throttleInput !== 0 && isLowSpeed) {
+    motion.heading = normalizeAngle(motion.heading + directionDifference * 0.28)
+    motion.yawRate *= 0.45
+    boat.direction = motion.heading
+  }
+
   stepVehicleMotion(
     motion,
     { throttle: throttleInput, steer: steerInput },
@@ -765,6 +786,12 @@ function updateBoatPosition(boat) {
   )
 
   boat.direction = motion.heading
+  if (throttleInput !== 0 && boat.currentSpeed < 1.05) {
+    const lowSpeedAssistDiff = normalizeAngle(player.direction - boat.direction)
+    motion.heading = normalizeAngle(motion.heading + lowSpeedAssistDiff * 0.22)
+    motion.yawRate *= 0.55
+    boat.direction = motion.heading
+  }
   boat.forwardSpeed = motion.longitudinalSpeed
   boat.lateralSpeed = motion.lateralSpeed
   boat.currentSpeed = Math.hypot(motion.longitudinalSpeed, motion.lateralSpeed)

@@ -231,15 +231,15 @@ function isValidCarPosition(x, y, tileX, tileY, terrain, rocks, woodenBoxes, bom
 
 // Update car position when player is driving
 export function updateCarPosition(car) {
-  const { player, keys, terrain, rocks, woodenBoxes, isMobile, joystickActive, joystickAngle } = gameState
+  const { player, keys, terrain, rocks, woodenBoxes, isMobile, joystickActive, joystickAngle, joystickDistance } = gameState
   
   let throttleInput = 0;
 
   if (isMobile) {
-    if (gameState.buttonCActive) {
-      throttleInput = 1;
-    } else if (gameState.buttonBActive) {
+    if (gameState.buttonBActive) {
       throttleInput = -0.7;
+    } else if (joystickActive) {
+      throttleInput = joystickDistance > 0.1 ? Math.min(1, joystickDistance) : 0;
     }
   } else {
     const movingForward = keys["ArrowUp"] || keys["w"];
@@ -257,16 +257,35 @@ export function updateCarPosition(car) {
   }
 
   if (throttleInput > 0 && (car.fuel ?? 0) > 0) {
-    car.fuel = Math.max(0, car.fuel - CAR_FUEL_DRAIN_FORWARD);
+    const mobileDrainScale = isMobile && joystickActive ? Math.max(0.25, joystickDistance) : 1;
+    car.fuel = Math.max(0, car.fuel - CAR_FUEL_DRAIN_FORWARD * mobileDrainScale);
   }
 
-  const directionDifference = normalizeAngle(player.direction - car.direction);
+  const motion = getCarMotion(car);
+
+  // While nearly stopped, keep the car nose aligned with player facing so
+  // forward or reverse can instantly steer out of stuck situations.
+  const standstillSpeed = Math.hypot(motion.longitudinalSpeed, motion.lateralSpeed);
+  if (standstillSpeed < 0.22) {
+    motion.heading = player.direction;
+    motion.yawRate = 0;
+    car.direction = motion.heading;
+  }
+
+  const directionDifference = normalizeAngle(player.direction - motion.heading);
 
   // The aim direction is a STEERING request, not the car's heading. Pointing
   // away from where the car is sliding is exactly how opposite lock works.
   const steerInput = Math.max(-1, Math.min(1, directionDifference / CAR_MAX_STEER_ANGLE));
 
-  const motion = getCarMotion(car);
+  // Assist only near standstill so drift handling at speed stays unchanged.
+  const isLowSpeed = Math.hypot(motion.longitudinalSpeed, motion.lateralSpeed) < 1.1;
+  if (throttleInput !== 0 && isLowSpeed) {
+    motion.heading = normalizeAngle(motion.heading + directionDifference * 0.4);
+    motion.yawRate *= 0.35;
+    car.direction = motion.heading;
+  }
+
   stepVehicleMotion(
     motion,
     { throttle: throttleInput, steer: steerInput },
@@ -292,6 +311,12 @@ export function updateCarPosition(car) {
   );
 
   car.direction = motion.heading;
+  if (throttleInput !== 0 && car.currentSpeed < 1.2) {
+    const lowSpeedAssistDiff = normalizeAngle(player.direction - car.direction);
+    motion.heading = normalizeAngle(motion.heading + lowSpeedAssistDiff * 0.3);
+    motion.yawRate *= 0.5;
+    car.direction = motion.heading;
+  }
   car.forwardSpeed = motion.longitudinalSpeed;
   car.lateralSpeed = motion.lateralSpeed;
   car.currentSpeed = Math.hypot(motion.longitudinalSpeed, motion.lateralSpeed);

@@ -50,7 +50,6 @@ export function setupMobileControls() {
   const joystickContainer = document.querySelector(".joystick-container")
   const joystickKnob = document.querySelector(".joystick-knob")
   const buttonA = document.querySelector(".button-a")
-  const buttonC = document.querySelector(".button-c")
   const buttonB = document.querySelector(".button-b")
   const canvas = gameState.canvas
 
@@ -66,7 +65,6 @@ export function setupMobileControls() {
     gameState.touchTracker = {
       joystickTouchId: null,
       buttonATouchId: null,
-      buttonCTouchId: null,
       buttonBTouchId: null,
     }
   }
@@ -79,9 +77,6 @@ export function setupMobileControls() {
   buttonA.removeEventListener("touchstart", handleButtonAStart)
   buttonA.removeEventListener("touchend", handleButtonAEnd)
   buttonA.removeEventListener("touchcancel", handleButtonAEnd)
-  buttonC.removeEventListener("touchstart", handleButtonCStart)
-  buttonC.removeEventListener("touchend", handleButtonCEnd)
-  buttonC.removeEventListener("touchcancel", handleButtonCEnd)
   buttonB.removeEventListener("touchstart", handleButtonBStart)
   buttonB.removeEventListener("touchend", handleButtonBEnd)
   buttonB.removeEventListener("touchcancel", handleButtonBEnd)
@@ -98,17 +93,10 @@ export function setupMobileControls() {
   buttonA.addEventListener("touchend", handleButtonAEnd)
   buttonA.addEventListener("touchcancel", handleButtonAEnd)
 
-  // Button C accelerates forward when driving a vehicle.
-  buttonC.addEventListener("touchstart", handleButtonCStart)
-  buttonC.addEventListener("touchend", handleButtonCEnd)
-  buttonC.addEventListener("touchcancel", handleButtonCEnd)
-
   // Button B (throw apple or detonate bomb) touch events
   buttonB.addEventListener("touchstart", handleButtonBStart)
   buttonB.addEventListener("touchend", handleButtonBEnd)
   buttonB.addEventListener("touchcancel", handleButtonBEnd)
-
-  syncMobileVehicleButtons()
 
   // Canvas tap mirrors the desktop mouse click: shovel digs the tapped tile,
   // everything else throws an apple.
@@ -218,20 +206,18 @@ export function handleButtonBStart(e) {
   gameState.buttonBActive = true
   e.target.classList.add("button-active")
 
-  if (gameState.isInCar) {
-    return
-  }
-
   // Button B is for throwing apples unless the saw is selected.
   // Shovel digging happens from a tap on the game canvas instead, matching
   // desktop mouse clicks.
-  if (gameState.selectedTool === "saw") {
-    if (tryUseSawOnNearbyTree(gameState.player.x, gameState.player.y)) {
-      return
+  if (!gameState.isInCar) {
+    if (gameState.selectedTool === "saw") {
+      if (tryUseSawOnNearbyTree(gameState.player.x, gameState.player.y)) {
+        return
+      }
     }
-  }
 
-  throwApple()
+    throwApple()
+  }
 }
 
 export function handleCanvasTouchStart(e) {
@@ -285,56 +271,6 @@ export function handleButtonBEnd(e) {
       gameState.touchTracker.buttonBTouchId = null
       return
     }
-  }
-}
-
-export function handleButtonCStart(e) {
-  if (gameState.isPaused || !gameState.isInCar) {
-    return
-  }
-
-  e.preventDefault()
-  e.stopPropagation()
-
-  const touch = e.changedTouches[0]
-  gameState.touchTracker.buttonCTouchId = touch.identifier
-  gameState.buttonCActive = true
-  e.target.classList.add("button-active")
-}
-
-export function handleButtonCEnd(e) {
-  for (let i = 0; i < e.changedTouches.length; i++) {
-    const touch = e.changedTouches[i]
-
-    if (touch.identifier === gameState.touchTracker.buttonCTouchId) {
-      gameState.buttonCActive = false
-      e.target.classList.remove("button-active")
-      gameState.touchTracker.buttonCTouchId = null
-      return
-    }
-  }
-}
-
-export function syncMobileVehicleButtons() {
-  const buttonC = document.querySelector(".button-c")
-  if (!buttonC) return
-
-  if (!gameState.touchTracker) {
-    gameState.touchTracker = {
-      joystickTouchId: null,
-      buttonATouchId: null,
-      buttonCTouchId: null,
-      buttonBTouchId: null,
-    }
-  }
-
-  const shouldShow = Boolean(gameState.isInCar)
-  buttonC.style.display = shouldShow ? "flex" : "none"
-
-  if (!shouldShow) {
-    gameState.buttonCActive = false
-    gameState.touchTracker.buttonCTouchId = null
-    buttonC.classList.remove("button-active")
   }
 }
 
