@@ -29,6 +29,43 @@ let isInitialized = false
 let previewAnimationFrame = null
 let previewAnimationTime = 0
 
+function tryClaimSectionFromMapInteraction(event, explorationMapCanvas) {
+  if (!gameState.isStarted || !gameState.isPaused || !gameState.mapRevealOpen) {
+    return
+  }
+
+  const discoveredEntries = [...gameState.discoveredMap.values()]
+  if (!discoveredEntries.length) {
+    return
+  }
+
+  const rect = explorationMapCanvas.getBoundingClientRect()
+  let clientX = event.clientX
+  let clientY = event.clientY
+
+  if ((clientX == null || clientY == null) && event.changedTouches?.length) {
+    clientX = event.changedTouches[0].clientX
+    clientY = event.changedTouches[0].clientY
+  }
+
+  if (clientX == null || clientY == null || rect.width <= 0 || rect.height <= 0) {
+    return
+  }
+
+  const clickX = ((clientX - rect.left) / rect.width) * explorationMapCanvas.clientWidth
+  const clickY = ((clientY - rect.top) / rect.height) * explorationMapCanvas.clientHeight
+  const claimed = handleClaimableSectionClick(
+    clickX,
+    clickY,
+    explorationMapCanvas.clientWidth,
+    explorationMapCanvas.clientHeight,
+  )
+
+  if (claimed) {
+    renderExplorationMapCanvas()
+  }
+}
+
 const MENU_COPY = {
   start: {
     kicker: "Top-Down Survival",
@@ -101,21 +138,11 @@ export function initializeStartMenu(initialConfig = createDefaultGameConfig()) {
   const explorationMapCanvas = document.getElementById("explorationMapCanvas")
   if (explorationMapCanvas && !explorationMapCanvas.dataset.claimHandlerBound) {
     explorationMapCanvas.addEventListener("click", (event) => {
-      if (!gameState.isStarted || !gameState.isPaused || !gameState.mapRevealOpen) {
-        return
-      }
-
-      const discoveredEntries = [...gameState.discoveredMap.values()]
-      if (!discoveredEntries.length) {
-        return
-      }
-
-      const clickX = (event.clientX - explorationMapCanvas.getBoundingClientRect().left) / explorationMapCanvas.clientWidth * explorationMapCanvas.clientWidth
-      const clickY = (event.clientY - explorationMapCanvas.getBoundingClientRect().top) / explorationMapCanvas.clientHeight * explorationMapCanvas.clientHeight
-      const claimed = handleClaimableSectionClick(clickX, clickY, explorationMapCanvas.clientWidth, explorationMapCanvas.clientHeight)
-      if (claimed) {
-        renderExplorationMapCanvas()
-      }
+      tryClaimSectionFromMapInteraction(event, explorationMapCanvas)
+    })
+    explorationMapCanvas.addEventListener("touchend", (event) => {
+      event.preventDefault()
+      tryClaimSectionFromMapInteraction(event, explorationMapCanvas)
     })
     explorationMapCanvas.dataset.claimHandlerBound = "true"
   }
