@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Character Factory</title>
+<link rel="stylesheet" href="../css/character-factory.css">
+</head>
+<body>
+  <main class="factory-page">
+    <header class="factory-header">
+      <p class="factory-kicker">Top-Down Survival Tooling</p>
+      <h1>Character Factory</h1>
+      <p>Design a character visually, tweak all supported parameters, and copy ready-to-paste snippets for character-factory.js.</p>
+    </header>
+
+    <section class="preview-card">
+      <div class="preview-head">
+        <h2>Live Preview</h2>
+        <label class="checkbox-inline" for="previewMovingToggle">
+          <input id="previewMovingToggle" type="checkbox" checked>
+          Animate movement
+        </label>
+      </div>
+      <canvas id="previewCanvas" width="360" height="360" aria-label="Character preview canvas"></canvas>
+      <div class="preview-controls">
+        <label for="previewDirection">Direction</label>
+        <input id="previewDirection" type="range" min="-180" max="180" step="1" value="-90">
+        <output id="previewDirectionValue">-90deg</output>
+      </div>
+    </section>
+
+    <section class="meta-card">
+      <h2>Identity and Menu Placement</h2>
+      <div class="meta-grid">
+        <label>
+          Character key
+          <input id="characterKey" type="text" value="newHero" spellcheck="false">
+        </label>
+        <label>
+          Display label
+          <input id="displayLabel" type="text" value="New Hero" spellcheck="false">
+        </label>
+        <label>
+          Start from template
+          <select id="templateType"></select>
+        </label>
+        <label class="checkbox-field" for="addToSelectable">
+          <input id="addToSelectable" type="checkbox">
+          Show in basic menu (SELECTABLE_CHARACTER_TYPES)
+        </label>
+        <label class="checkbox-field" for="isSpecialHero">
+          <input id="isSpecialHero" type="checkbox">
+          Add as special hero (SPECIAL_CHARACTER_DEFINITIONS)
+        </label>
+      </div>
+
+      <div id="specialFields" class="special-fields hidden">
+        <h3>Special Hero Metadata</h3>
+        <div class="meta-grid">
+          <label>
+            Hero id
+            <input id="specialHeroId" type="text" value="newhero" spellcheck="false">
+          </label>
+          <label>
+            Public label
+            <input id="specialLabel" type="text" value="New Hero" spellcheck="false">
+          </label>
+          <label>
+            Title
+            <input id="specialTitle" type="text" value="Arc Runner" spellcheck="false">
+          </label>
+          <label>
+            Rarity
+            <input id="specialRarity" type="text" value="Legendary" spellcheck="false">
+          </label>
+          <label class="wide-field">
+            Description
+            <input id="specialDescription" type="text" value="A composed survivor with balanced skills." spellcheck="false">
+          </label>
+          <label class="wide-field">
+            Perk
+            <input id="specialPerk" type="text" value="Keeps control when situations turn chaotic." spellcheck="false">
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <section class="controls-card">
+      <h2>Character Parameters</h2>
+      <p>Every parameter currently used by character definitions and rendering can be edited here.</p>
+      <div id="parameterControls" class="parameter-controls"></div>
+    </section>
+
+    <section class="output-card">
+      <div class="output-head">
+        <h2>Copy-Paste Output</h2>
+        <button id="copyOutputButton" type="button">Copy Snippet</button>
+      </div>
+      <textarea id="outputSnippet" rows="18" readonly aria-label="Generated character snippet"></textarea>
+      <div class="json-tools">
+        <div class="json-tools-head">
+          <h3>Draft Import and Export</h3>
+          <button id="exportJsonButton" type="button">Export JSON</button>
+        </div>
+        <div class="json-tools-actions">
+          <label class="file-button" for="importJsonFileInput">
+            Import JSON File
+            <input id="importJsonFileInput" type="file" accept=".json,application/json">
+          </label>
+          <button id="applyJsonTextButton" type="button">Apply JSON Text</button>
+        </div>
+        <textarea id="jsonDraft" rows="10" aria-label="Character draft JSON"></textarea>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="../js/factory/character-factory-page.js"></script>
+</body>
+</html>
