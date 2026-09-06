@@ -15,6 +15,8 @@ const CHARACTER_TYPES = {
     backpackPocketColor: "#A0522D",
     hairStyle: "none",
     hairColor: "#2d2d2d",
+    eyeSizeScale: 1,
+    mouthOffsetScale: 0.6,
     noseColor: "#b5966a",
     noseSizeScale: 0.15,
   },

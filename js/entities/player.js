@@ -1108,7 +1108,7 @@ function getBlinkOpenness(player) {
     : 150
   const blinkOffsetMs = Number.isFinite(player.blinkOffsetMs)
     ? player.blinkOffsetMs
-    : Math.abs(Math.sin((player.x || 0) * 0.19 + (player.y || 0) * 0.13)) * blinkIntervalMs
+    : getStableBlinkOffset(player, blinkIntervalMs)
 
   const elapsed = (Date.now() + blinkOffsetMs) % blinkIntervalMs
   if (elapsed >= blinkDurationMs) {
@@ -1120,6 +1120,25 @@ function getBlinkOpenness(player) {
   const progress = closing ? elapsed / halfDuration : (elapsed - halfDuration) / halfDuration
 
   return clamp01(closing ? 1 - progress : progress)
+}
+
+function getStableBlinkOffset(player, blinkIntervalMs) {
+  const source = [
+    player.characterType || "default",
+    player.size ?? 0,
+    player.health ?? 0,
+    player.strength ?? 0,
+    player.color || "",
+    player.hairStyle || "",
+    player.hairColor || "",
+  ].join("|")
+
+  let hash = 0
+  for (let index = 0; index < source.length; index++) {
+    hash = (hash * 31 + source.charCodeAt(index)) >>> 0
+  }
+
+  return hash % blinkIntervalMs
 }
 
 function drawMouth(ctx, x, y, player) {
@@ -1182,10 +1201,15 @@ function drawMouth(ctx, x, y, player) {
 // Draw the player's face (eyes and pupils)
 function drawPlayerFace(ctx, x, y, player) {
   const eyeOffset = player.size / 3
-  const eyeSize = player.size / 5
+  const eyeSizeScale = Number.isFinite(player.eyeSizeScale) ? player.eyeSizeScale : 1
+  const eyeSize = (player.size / 5) * eyeSizeScale
   const eyeAnchors = getEyeAnchorPoints(x, y, player, eyeOffset)
   const openness = getBlinkOpenness(player)
   const eyeRadiusY = eyeSize * Math.max(0.06, openness)
+
+  if (player.hasLashes) {
+    drawEyelashes(ctx, x, y, player, eyeAnchors)
+  }
 
   for (const eye of eyeAnchors) {
     // Sclera compresses vertically while blinking.
@@ -1228,10 +1252,6 @@ function drawPlayerFace(ctx, x, y, player) {
     }
   }
 
-  if (player.hasLashes) {
-    drawEyelashes(ctx, x, y, player, eyeAnchors)
-  }
-
   if (player.hasBeard) {
     drawBeard(ctx, x, y, player)
   }
@@ -1246,6 +1266,10 @@ function drawPlayerFace(ctx, x, y, player) {
 }
 
 function drawNoseIndicator(ctx, x, y, player) {
+  if (player.hasNose === false) {
+    return
+  }
+
   const dirX = Math.cos(player.direction)
   const dirY = Math.sin(player.direction)
   const noseSizeScale = Number.isFinite(player.noseSizeScale) ? player.noseSizeScale : 0.2
@@ -1332,8 +1356,9 @@ function drawEyelashes(ctx, x, y, player, eyeAnchors = null) {
   const eyeSize = player.size / 5
   const eyes = eyeAnchors || getEyeAnchorPoints(x, y, player, eyeOffset)
 
-  const lashLength = eyeSize * 0.75
+  const lashLength = eyeSize * 0.8
   const lashSpread = eyeSize * 0.44
+  const lashLift = eyeSize * 0.18
 
   ctx.save()
   ctx.strokeStyle = "#2f241d"
@@ -1350,10 +1375,10 @@ function drawEyelashes(ctx, x, y, player, eyeAnchors = null) {
     const tangentY = Math.cos(radialAngle)
 
     for (const offset of [-1, 0, 1]) {
-      const startX = eyeX + tangentX * lashSpread * offset * 0.55 + radialX * eyeSize * 0.18
-      const startY = eyeY + tangentY * lashSpread * offset * 0.55 + radialY * eyeSize * 0.18
-      const endX = startX + radialX * lashLength + tangentX * offset * eyeSize * 0.08
-      const endY = startY + radialY * lashLength + tangentY * offset * eyeSize * 0.08
+      const startX = eyeX + tangentX * lashSpread * offset * 0.55 + radialX * eyeSize * 0.18 - tangentX * lashLift
+      const startY = eyeY + tangentY * lashSpread * offset * 0.55 + radialY * eyeSize * 0.18 - tangentY * lashLift
+      const endX = startX + radialX * lashLength + tangentX * offset * eyeSize * 0.08 - tangentX * lashLift * 0.35
+      const endY = startY + radialY * lashLength + tangentY * offset * eyeSize * 0.08 - tangentY * lashLift * 0.35
 
       ctx.beginPath()
       ctx.moveTo(startX, startY)
@@ -1403,19 +1428,19 @@ function drawGlasses(ctx, x, y, player, eyeAnchors = null) {
   const rightTempleStartX = rightX + Math.cos(rightAngle) * lensRadius * 0.95
   const rightTempleStartY = rightY + Math.sin(rightAngle) * lensRadius * 0.95
 
-  ctx.beginPath()
-
-  // Left temple arm
-  ctx.moveTo(leftTempleStartX, leftTempleStartY)
-  ctx.quadraticCurveTo(
-    x + hingeRadius * Math.cos(leftHingeAngle),
-    y + hingeRadius * Math.sin(leftHingeAngle),
-    x + earRadius * Math.cos(leftEarAngle),
-    y + earRadius * Math.sin(leftEarAngle),
-  )
-
-  // Right temple arm
   if (rightEye) {
+    ctx.beginPath()
+
+    // Left temple arm
+    ctx.moveTo(leftTempleStartX, leftTempleStartY)
+    ctx.quadraticCurveTo(
+      x + hingeRadius * Math.cos(leftHingeAngle),
+      y + hingeRadius * Math.sin(leftHingeAngle),
+      x + earRadius * Math.cos(leftEarAngle),
+      y + earRadius * Math.sin(leftEarAngle),
+    )
+
+    // Right temple arm
     ctx.moveTo(rightTempleStartX, rightTempleStartY)
     ctx.quadraticCurveTo(
       x + hingeRadius * Math.cos(rightHingeAngle),
@@ -1423,8 +1448,8 @@ function drawGlasses(ctx, x, y, player, eyeAnchors = null) {
       x + earRadius * Math.cos(rightEarAngle),
       y + earRadius * Math.sin(rightEarAngle),
     )
+    ctx.stroke()
   }
-  ctx.stroke()
 
   // Lenses drawn on top so the frame reads clearly.
   ctx.fillStyle = lensTint
