@@ -12,6 +12,7 @@
   --accent-2: #f08a24;
 }
 
+html,
 body {
   margin: 0;
   min-height: 100vh;

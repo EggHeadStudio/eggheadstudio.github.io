@@ -50,6 +50,11 @@ export const CAR_DECELERATION = CAR_DECELERATION_CONST
 export const CAR_INTERACTION_RANGE = CAR_INTERACTION_RANGE_CONST
 export const CAR_MAX_HEALTH = CAR_MAX_HEALTH_CONST
 
+const CAR_SKID_MARK_LIFETIME_MS = 5000
+const CAR_SKID_MARK_SPAWN_INTERVAL_MS = 70
+const CAR_SKID_MARK_MIN_SPEED = 1.6
+const CAR_SKID_MARK_MAX_COUNT = 160
+
 // Ground the cars can drive on. Sand and gravel behave like grass.
 const DRIVABLE_TERRAIN = [TERRAIN_TYPES.GRASS, TERRAIN_TYPES.DIRT, TERRAIN_TYPES.SAND, TERRAIN_TYPES.GRAVEL]
 
@@ -66,6 +71,8 @@ export function createCar(x, y) {
     wheelRotation: 0,
     animationTime: 0,
     dustParticles: [],
+    skidMarks: [],
+    lastSkidMarkAt: 0,
     velocity: { x: 0, y: 0 },
     motion: null,
     forwardSpeed: 0,
@@ -232,6 +239,9 @@ function isValidCarPosition(x, y, tileX, tileY, terrain, rocks, woodenBoxes, bom
 // Update car position when player is driving
 export function updateCarPosition(car) {
   const { player, keys, terrain, rocks, woodenBoxes, isMobile, joystickActive, joystickAngle, joystickDistance } = gameState
+  const previousX = car.x;
+  const previousY = car.y;
+  const previousDirection = car.direction;
   
   let throttleInput = 0;
 
@@ -395,6 +405,7 @@ export function updateCarPosition(car) {
   if (isValidPositionForMovingCar(newX, newY, tileX, tileY, car)) {
     car.x = newX;
     car.y = newY;
+    updateCarSkidMarks(car, previousX, previousY, previousDirection, car.x, car.y, car.direction, turningAmount)
     
     // Move player with car
     player.x = car.x;
@@ -410,6 +421,101 @@ export function updateCarPosition(car) {
     car.velocity.x = impactVelocity.x;
     car.velocity.y = impactVelocity.y;
   }
+}
+
+function getCarWheelWorldPosition(centerX, centerY, direction, forwardOffset, sideOffset) {
+  const cos = Math.cos(direction)
+  const sin = Math.sin(direction)
+
+  return {
+    x: centerX + cos * forwardOffset - sin * sideOffset,
+    y: centerY + sin * forwardOffset + cos * sideOffset,
+  }
+}
+
+function updateCarSkidMarks(car, startX, startY, startDirection, endX, endY, endDirection, turningAmount) {
+  if (!car.isDrifting || car.currentSpeed < CAR_SKID_MARK_MIN_SPEED || turningAmount < 0.16) {
+    return
+  }
+
+  const now = Date.now()
+  if (now - (car.lastSkidMarkAt || 0) < CAR_SKID_MARK_SPAWN_INTERVAL_MS) {
+    return
+  }
+
+  car.lastSkidMarkAt = now
+
+  const rearOffset = -car.size * 0.5
+  const sideOffset = car.size * 0.4
+  const startLeft = getCarWheelWorldPosition(startX, startY, startDirection, rearOffset, -sideOffset)
+  const startRight = getCarWheelWorldPosition(startX, startY, startDirection, rearOffset, sideOffset)
+  const endLeft = getCarWheelWorldPosition(endX, endY, endDirection, rearOffset, -sideOffset)
+  const endRight = getCarWheelWorldPosition(endX, endY, endDirection, rearOffset, sideOffset)
+  const baseAlpha = Math.min(0.55, 0.22 + turningAmount * 0.28)
+  const width = Math.max(2.5, car.size * 0.085)
+
+  car.skidMarks.push(
+    {
+      x1: startLeft.x,
+      y1: startLeft.y,
+      x2: endLeft.x,
+      y2: endLeft.y,
+      width,
+      alpha: baseAlpha,
+      createdAt: now,
+    },
+    {
+      x1: startRight.x,
+      y1: startRight.y,
+      x2: endRight.x,
+      y2: endRight.y,
+      width,
+      alpha: baseAlpha,
+      createdAt: now,
+    },
+  )
+
+  if (car.skidMarks.length > CAR_SKID_MARK_MAX_COUNT) {
+    car.skidMarks.splice(0, car.skidMarks.length - CAR_SKID_MARK_MAX_COUNT)
+  }
+}
+
+function pruneCarSkidMarks(car, now = Date.now()) {
+  if (!Array.isArray(car.skidMarks) || car.skidMarks.length === 0) {
+    return
+  }
+
+  for (let i = car.skidMarks.length - 1; i >= 0; i--) {
+    if (now - car.skidMarks[i].createdAt >= CAR_SKID_MARK_LIFETIME_MS) {
+      car.skidMarks.splice(i, 1)
+    }
+  }
+}
+
+function drawCarSkidMarks(ctx, car, camera, now = Date.now()) {
+  if (!Array.isArray(car.skidMarks) || car.skidMarks.length === 0) {
+    return
+  }
+
+  ctx.save()
+  ctx.lineCap = "round"
+
+  for (const mark of car.skidMarks) {
+    const lifeProgress = 1 - (now - mark.createdAt) / CAR_SKID_MARK_LIFETIME_MS
+    if (lifeProgress <= 0) {
+      continue
+    }
+
+    ctx.globalAlpha = mark.alpha * lifeProgress
+    ctx.strokeStyle = "#111111"
+    ctx.lineWidth = mark.width * (0.85 + lifeProgress * 0.15)
+    ctx.beginPath()
+    ctx.moveTo(mark.x1 - camera.x, mark.y1 - camera.y)
+    ctx.lineTo(mark.x2 - camera.x, mark.y2 - camera.y)
+    ctx.stroke()
+  }
+
+  ctx.restore()
 }
 
 // Cars created before the physics rework (or restored from a save) have no
@@ -649,12 +755,15 @@ function removeExpiredCarWrecks() {
 // Draw and update cars
 export function drawAndUpdateCars() {
   const { ctx, cars, camera, isInCar, drivingCar, player } = gameState;
+  const now = Date.now()
   
   if (!cars) return;
 
   removeExpiredCarWrecks()
   
   for (const car of cars) {
+    pruneCarSkidMarks(car, now)
+
     // Skip update for cars that are not being driven
     if (isInCar && drivingCar === car) {
       if (car.isBroken) {
@@ -687,6 +796,8 @@ export function drawAndUpdateCars() {
     ) {
       continue;
     }
+
+    drawCarSkidMarks(ctx, car, camera, now)
     
     // Draw dust particles behind the car
     for (const particle of car.dustParticles) {

@@ -47,6 +47,9 @@ import { getRandomLoadedWorldPosition } from "../world/world-manager.js"
 
 const BOAT_FLOAT_BOB = 2.5
 const BOAT_WAKE_LIFETIME = 420
+const BOAT_TAIL_LIFETIME_MS = 3000
+const BOAT_TAIL_SPAWN_INTERVAL_MS = 70
+const BOAT_TAIL_MAX_POINTS = 72
 
 export function generateBoats(count, options = {}) {
   const { terrain, player } = gameState
@@ -114,6 +117,8 @@ export function createBoat(x, y) {
     floatOffset: 0,
     bowWaves: [],
     foamTrail: [],
+    waterTail: [],
+    lastWaterTailAt: 0,
     towedBoxes: [],
     isBroken: false,
     wreckCleanupAt: null,
@@ -925,9 +930,17 @@ function updateBoatParticles(boat) {
 
     wave.progress = elapsed / BOAT_WAKE_LIFETIME
   }
+
+  for (let i = boat.waterTail.length - 1; i >= 0; i--) {
+    if (Date.now() - boat.waterTail[i].createdAt >= BOAT_TAIL_LIFETIME_MS) {
+      boat.waterTail.splice(i, 1)
+    }
+  }
 }
 
 function drawBoatEffects(ctx, boat, camera) {
+  drawBoatTail(ctx, boat, camera)
+
   for (const foam of boat.foamTrail) {
     ctx.save()
     ctx.globalAlpha = foam.alpha
@@ -948,6 +961,37 @@ function drawBoatEffects(ctx, boat, camera) {
     ctx.ellipse(wave.x - camera.x, wave.y - camera.y, radius, radius * 0.38, wave.rotation, 0, Math.PI * 2)
     ctx.stroke()
   }
+  ctx.restore()
+}
+
+function drawBoatTail(ctx, boat, camera) {
+  if (!Array.isArray(boat.waterTail) || boat.waterTail.length < 2) {
+    return
+  }
+
+  const now = Date.now()
+  ctx.save()
+  ctx.lineCap = "round"
+  ctx.lineJoin = "round"
+
+  for (let i = 1; i < boat.waterTail.length; i++) {
+    const previous = boat.waterTail[i - 1]
+    const current = boat.waterTail[i]
+    const lifeProgress = 1 - (now - current.createdAt) / BOAT_TAIL_LIFETIME_MS
+
+    if (lifeProgress <= 0) {
+      continue
+    }
+
+    ctx.globalAlpha = 0.32 * lifeProgress
+    ctx.strokeStyle = "rgba(214, 238, 248, 0.95)"
+    ctx.lineWidth = Math.max(2, boat.size * 0.18 * (0.35 + lifeProgress))
+    ctx.beginPath()
+    ctx.moveTo(previous.x - camera.x, previous.y - camera.y)
+    ctx.lineTo(current.x - camera.x, current.y - camera.y)
+    ctx.stroke()
+  }
+
   ctx.restore()
 }
 
@@ -1014,6 +1058,8 @@ function drawBoatPrompt(ctx, screenX, screenY) {
 }
 
 function spawnBoatWake(boat, turningAmount) {
+  spawnBoatTailPoint(boat)
+
   const sternAngle = boat.direction + Math.PI
   const sternDistance = boat.size * 0.68
   const spread = boat.size * 0.18
@@ -1033,6 +1079,31 @@ function spawnBoatWake(boat, turningAmount) {
 
   if (Math.random() < 0.3 + turningAmount * 0.2) {
     spawnBowWave(boat)
+  }
+}
+
+function spawnBoatTailPoint(boat) {
+  if (boat.currentSpeed < 0.35) {
+    return
+  }
+
+  const now = Date.now()
+  if (now - (boat.lastWaterTailAt || 0) < BOAT_TAIL_SPAWN_INTERVAL_MS) {
+    return
+  }
+
+  boat.lastWaterTailAt = now
+
+  const sternAngle = boat.direction + Math.PI
+  const sternDistance = boat.size * 0.72
+  boat.waterTail.push({
+    x: boat.x + Math.cos(sternAngle) * sternDistance,
+    y: boat.y + Math.sin(sternAngle) * sternDistance,
+    createdAt: now,
+  })
+
+  if (boat.waterTail.length > BOAT_TAIL_MAX_POINTS) {
+    boat.waterTail.splice(0, boat.waterTail.length - BOAT_TAIL_MAX_POINTS)
   }
 }
 
