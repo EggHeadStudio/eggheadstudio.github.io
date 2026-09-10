@@ -84,6 +84,7 @@ export const gameState = {
   deathEffects: [],
   rocks: [],
   trees: [],
+  sandPiles: [],
   woodenBoxes: [], // Added wooden boxes array
   boxDestructionEffects: [], // Added effects for box destruction
   waterDrips: [], // Water drip effects for floating boxes
@@ -95,6 +96,7 @@ export const gameState = {
   grabbedBomb: null,
   grabbedRock: null,
   grabbedEnemy: null,
+  grabbedSandPile: null,
   grabbedWoodenBox: null, // Added for wooden box grabbing
   hasSledgehammer: false,
   hasShovel: false,

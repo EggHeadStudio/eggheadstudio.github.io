@@ -6,6 +6,7 @@ import { checkCollisions } from "./collision-detection.js"
 import { drawTerrain } from "../terrain/terrain-renderer.js"
 import { drawAndUpdateRocks } from "../entities/rocks.js"
 import { drawAndUpdateTrees, drawTreeCanopyOverlay } from "../entities/trees.js"
+import { drawAndUpdateSandPiles } from "../entities/sand-piles.js"
 import { drawAndUpdateWoodenBoxes, drawWoodenBoxRoofs } from "../entities/wooden-boxes.js" // Import wooden boxes update
 import { drawAndUpdateCars } from "../entities/cars.js" // Import cars update
 import { drawAndUpdateBoats } from "../entities/boats.js"
@@ -99,6 +100,9 @@ export function update() {
 
   // Draw trees above ground props so canopies layer correctly
   drawAndUpdateTrees()
+
+  // Draw sand piles before other ground pickups and buildables
+  drawAndUpdateSandPiles()
 
   // Draw and update apples
   drawAndUpdateApples()

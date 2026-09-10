@@ -15,6 +15,7 @@ import {
   MAX_CARS,
   MAX_ROCKS,
   MAX_SAWS,
+  MAX_SAND_PILES,
   MAX_SHOVELS,
   MAX_SLEDGEHAMMERS,
   MAX_WOODEN_BOXES,
@@ -38,6 +39,8 @@ import {
   CHUNK_BOAT_CHANCE,
   CHUNK_BOAT_MIN_WATER_TILES,
   CHUNK_TOOL_CHANCE,
+  CHUNK_SAND_PILE_MIN,
+  CHUNK_SAND_PILE_MAX,
 } from "../core/constants.js"
 import {
   getWorldMap,
@@ -48,6 +51,7 @@ import {
 import { isSpawnPositionClear, isWaterPosition } from "../utils/spawn-utils.js"
 import { getDistance } from "../utils/math-utils.js"
 import { createRock } from "../entities/rocks.js"
+import { createSandPile } from "../entities/sand-piles.js"
 import { createWoodenBox } from "../entities/wooden-boxes.js"
 import { createApple } from "../entities/apples.js"
 import { createBomb } from "../entities/bombs.js"
@@ -64,6 +68,7 @@ const STREAMED_COLLECTIONS = [
   "apples",
   "bombs",
   "trees",
+  "sandPiles",
   "cars",
   "boats",
   "sledgehammers",
@@ -120,6 +125,7 @@ function collectChunkTiles(key) {
   const land = []
   const water = []
   const gravel = []
+  const sand = []
   const openWater = []
 
   for (let tileY = bounds.startTileY; tileY < bounds.endTileY; tileY++) {
@@ -145,13 +151,17 @@ function collectChunkTiles(key) {
 
       land.push([tileX, tileY])
 
+      if (terrainType === TERRAIN_TYPES.SAND) {
+        sand.push([tileX, tileY])
+      }
+
       if (terrainType === TERRAIN_TYPES.GRAVEL) {
         gravel.push([tileX, tileY])
       }
     }
   }
 
-  return { land, water, gravel, openWater }
+  return { land, water, gravel, sand, openWater }
 }
 
 function isOpenWaterTile(terrain, tileX, tileY) {
@@ -267,6 +277,31 @@ function spawnWoodenBoxes(tiles) {
     }
 
     tryPlace(water, (x, y) => placeWoodenBox(x, y))
+  }
+}
+
+function spawnSandPiles(tiles) {
+  if (!tiles.sand || tiles.sand.length === 0 || gameState.sandPiles.length >= MAX_SAND_PILES) {
+    return
+  }
+
+  const pileCount = randomInt(CHUNK_SAND_PILE_MIN, CHUNK_SAND_PILE_MAX)
+
+  for (let i = 0; i < pileCount; i++) {
+    if (gameState.sandPiles.length >= MAX_SAND_PILES) {
+      return
+    }
+
+    tryPlace(tiles.sand, (x, y) => {
+      const pile = createSandPile(x, y)
+
+      if (!isSpawnPositionClear(x, y, pile.size, { requireLand: true, playerDistanceBuffer: 90 })) {
+        return false
+      }
+
+      gameState.sandPiles.push(pile)
+      return true
+    })
   }
 }
 
@@ -445,6 +480,7 @@ function populateChunk(key) {
 
   spawnRocks(tiles)
   spawnRockRubble(tiles)
+  spawnSandPiles(tiles)
   spawnWoodenBoxes(tiles)
   spawnApples(tiles)
   spawnBombs(tiles)

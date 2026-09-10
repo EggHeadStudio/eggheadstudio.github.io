@@ -134,7 +134,7 @@ export function tryGrabWoodenBox() {
       // Sledgehammer reforges carried structures:
       // - trunks become compact solid cubes
       // - wooden boxes become metallic spiked crates
-      if (gameState.hasSledgehammer && gameState.selectedTool === "sledgehammer") {
+      if (gameState.hasSledgehammer && gameState.selectedTool === "sledgehammer" && !box.isGlassCube) {
         if (box.isTrunk) {
           box.isSledgeCube = true
           box.isSledgeSpiked = false
@@ -209,6 +209,10 @@ export function releaseWoodenBox() {
       } else {
         grabbedWoodenBox.isFloating = false
 
+        if (grabbedWoodenBox.isGlassCube) {
+          grabbedWoodenBox.lightDirection = player.direction
+        }
+
         settleBoxOnLand(grabbedWoodenBox, woodenBoxes, rocks)
       }
     }
@@ -232,7 +236,9 @@ function checkForBoxSnapping(box, allBoxes, allRocks) {
   if (box.isBeingThrown || box.isFloating) return
 
   // Non-sledge pieces use free drop + tile settle only.
-  if (!isGridWallBox(box)) {
+  const isGridWall = isGridWallBox(box)
+
+  if (!isGridWall) {
     box.snappedTo = null
     return
   }
@@ -246,6 +252,8 @@ function checkForBoxSnapping(box, allBoxes, allRocks) {
   for (const otherBox of allBoxes) {
     // Skip self or boxes being thrown or floating
     if (otherBox === box || otherBox.isBeingThrown || otherBox.isFloating) continue
+
+    if (isGridWall && !isGridWallBox(otherBox)) continue
 
     const distance = getDistance(box.x, box.y, otherBox.x, otherBox.y)
     if (distance < closestDistance) {
@@ -479,7 +487,7 @@ function isTileAvailableForBox(tileX, tileY, box, allBoxes, allRocks) {
 }
 
 function isGridWallBox(box) {
-  return Boolean(box && (box.isSledgeCube || box.isSledgeSpiked))
+  return Boolean(box && (box.isSledgeCube || box.isSledgeSpiked || box.isGlassCube))
 }
 
 function isGridWallRock(rock) {
@@ -698,7 +706,7 @@ export function damageWoodenBox(box, amount = 1) {
       gameState.woodenBoxes.splice(boxIndex, 1)
 
       // Trunks come from chopped trees, so they are not restocked like crates
-      if (!box.isTrunk) {
+      if (!box.isTrunk && !box.isGlassCube) {
         // Spawn a new box elsewhere (delayed to prevent instant respawning)
         setTimeout(() => {
           if (gameState.woodenBoxes) {
@@ -1232,7 +1240,7 @@ export function drawAndUpdateWoodenBoxes(options = {}) {
       }
 
       // Draw shadow
-      if (box.isSledgeCube || box.isSledgeSpiked) {
+      if (box.isSledgeCube || box.isSledgeSpiked || box.isGlassCube) {
         // Skip shadows for tile-locked wall modules so edges meet cleanly.
       } else if (box.isTrunk && !box.isSledgeCube && !box.isSledgeSpiked) {
         createShadow(
@@ -1977,6 +1985,11 @@ function drawAndUpdateSplashEffects() {
 
 // Draw the wooden box base
 export function drawWoodenBox(ctx, box) {
+  if (box.isGlassCube) {
+    drawGlassCube(ctx, box)
+    return
+  }
+
   if (box.isSledgeCube) {
     drawSolidBrownCube(ctx, box)
     return
@@ -2089,6 +2102,32 @@ function drawSolidBrownCube(ctx, box) {
   ctx.fill()
 
   drawModuleOuterEdges(ctx, box, halfSize, "rgba(41, 23, 11, 0.56)")
+}
+
+function drawGlassCube(ctx, box) {
+  const halfSize = box.size * 0.49
+  const shimmer = 0.5 + 0.5 * Math.sin(Date.now() * 0.003 + (box.glassGlowSeed || 0))
+
+  ctx.fillStyle = `rgba(120, 216, 244, ${0.24 + shimmer * 0.08})`
+  drawRoundedRectLocal(ctx, -halfSize, -halfSize, halfSize * 2, halfSize * 2, 4)
+
+  ctx.strokeStyle = "rgba(224, 250, 255, 0.92)"
+  ctx.lineWidth = 2
+  drawRoundedRectLocal(ctx, -halfSize, -halfSize, halfSize * 2, halfSize * 2, 4)
+
+  ctx.fillStyle = `rgba(245, 252, 255, ${0.16 + shimmer * 0.08})`
+  drawRoundedRectLocal(ctx, -halfSize * 0.84, -halfSize * 0.84, halfSize * 1.68, halfSize * 0.58, 3)
+
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.42)"
+  ctx.lineWidth = 1.2
+  ctx.beginPath()
+  ctx.moveTo(-halfSize * 0.78, -halfSize * 0.8)
+  ctx.lineTo(halfSize * 0.62, halfSize * 0.56)
+  ctx.moveTo(-halfSize * 0.24, -halfSize * 0.86)
+  ctx.lineTo(halfSize * 0.9, -halfSize * 0.04)
+  ctx.stroke()
+
+  drawModuleOuterEdges(ctx, box, halfSize, "rgba(110, 188, 214, 0.58)")
 }
 
 function drawSpikedMetalBox(ctx, box) {

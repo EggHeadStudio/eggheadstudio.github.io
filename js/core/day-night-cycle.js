@@ -2,6 +2,8 @@ import { gameState } from "./game-state.js"
 import { refreshWorldForNewDay } from "./game-maintenance.js"
 import { clearAllEnemies, spawnImmediateNightBlackEnemies } from "../entities/enemies.js"
 import { roofAreas } from "../entities/wooden-boxes.js"
+
+const GLASS_CUBE_LIGHT_RADIUS = TILE_SIZE * 3
 import { TILE_SIZE } from "./constants.js"
 
 const TRANSITION_DURATION = 30 * 1000
@@ -200,6 +202,7 @@ export function drawDayNightOverlay() {
   overlayCtx.globalCompositeOperation = "destination-out"
 
   drawShelterLightCutouts(overlayCtx, camera, player)
+  drawGlassCubeLightCutouts(overlayCtx, camera)
 
   const playerLightRadius = Math.max(lighting.lightRadius, TILE_SIZE * 1.5)
   const playerLight = overlayCtx.createRadialGradient(screenX, screenY, 0, screenX, screenY, playerLightRadius)
@@ -252,6 +255,32 @@ function drawLightweightOverlay(ctx, canvas, lighting) {
   ctx.fillStyle = `rgba(${lighting.overlayColor.join(", ")}, ${alpha})`
   ctx.fillRect(0, 0, canvas.width, canvas.height)
   ctx.restore()
+}
+
+function drawGlassCubeLightCutouts(overlayCtx, camera) {
+  if (gameState.dayNight.currentPhase !== "night" || !Array.isArray(gameState.woodenBoxes)) {
+    return
+  }
+
+  for (const box of gameState.woodenBoxes) {
+    if (!box?.isGlassCube) {
+      continue
+    }
+
+    const screenX = box.x - camera.x
+    const screenY = box.y - camera.y - (box.isFloating ? box.floatOffset || 0 : 0)
+
+    const sourceGlow = overlayCtx.createRadialGradient(screenX, screenY, 0, screenX, screenY, GLASS_CUBE_LIGHT_RADIUS)
+    sourceGlow.addColorStop(0, "rgba(0, 0, 0, 1)")
+    sourceGlow.addColorStop(0.16, "rgba(0, 0, 0, 0.96)")
+    sourceGlow.addColorStop(0.44, "rgba(0, 0, 0, 0.62)")
+    sourceGlow.addColorStop(0.76, "rgba(0, 0, 0, 0.18)")
+    sourceGlow.addColorStop(1, "rgba(0, 0, 0, 0)")
+    overlayCtx.fillStyle = sourceGlow
+    overlayCtx.beginPath()
+    overlayCtx.arc(screenX, screenY, GLASS_CUBE_LIGHT_RADIUS, 0, Math.PI * 2)
+    overlayCtx.fill()
+  }
 }
 
 function getLightingState(segmentKey, progress) {

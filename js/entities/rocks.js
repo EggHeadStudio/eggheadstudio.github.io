@@ -558,7 +558,7 @@ function isRockOverlappingAnyObjectAt(x, y, rock, allRocks, allBoxes) {
       continue
     }
 
-    const boxIsGridWall = Boolean(box.isSledgeCube || box.isSledgeSpiked)
+    const boxIsGridWall = Boolean(box.isSledgeCube || box.isSledgeSpiked || box.isGlassCube)
 
     if (movingIsGridWall && boxIsGridWall) {
       const boxTile = getSnappedTileCoords(box.x, box.y)
@@ -634,7 +634,7 @@ function findAdjacentTileSnapPositionForRock(rock, anchorObject, allRocks, allBo
   }
 
   const rockIsGridWall = Boolean(rock.isHammerShaped)
-  const anchorIsGridWall = Boolean(anchorObject.isHammerShaped || anchorObject.isSledgeCube || anchorObject.isSledgeSpiked)
+  const anchorIsGridWall = Boolean(anchorObject.isHammerShaped || anchorObject.isSledgeCube || anchorObject.isSledgeSpiked || anchorObject.isGlassCube)
 
   if (!rockIsGridWall || !anchorIsGridWall) {
     const anchorTileX = Math.round((anchorObject.x - TILE_SIZE / 2) / TILE_SIZE)
@@ -898,7 +898,7 @@ function isWallModuleAtTile(tileX, tileY, selfObject) {
   }
 
   for (const box of gameState.woodenBoxes || []) {
-    if (!box || box === selfObject || box.isBeingThrown || box.isFloating || !(box.isSledgeCube || box.isSledgeSpiked)) {
+    if (!box || box === selfObject || box.isBeingThrown || box.isFloating || !(box.isSledgeCube || box.isSledgeSpiked || box.isGlassCube)) {
       continue
     }
 

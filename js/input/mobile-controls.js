@@ -3,6 +3,7 @@ import { gameState } from "../core/game-state.js"
 import { throwApple } from "../entities/apples.js"
 import { tryGrabBomb, releaseBomb, detonateAnyBombWithCountdown, placeSelectedBomb } from "../entities/bombs.js"
 import { tryGrabRock, releaseRock } from "../entities/rocks.js"
+import { tryGrabSandPile, releaseSandPile } from "../entities/sand-piles.js"
 import { tryGrabWoodenBox, releaseWoodenBox } from "../entities/wooden-boxes.js" // Import wooden box functions
 import { tryGrabEnemy, releaseEnemy } from "../entities/enemies.js"
 import { checkCarInteraction, enterCar, exitCar } from "../entities/cars.js" // Import car interaction functions
@@ -152,6 +153,8 @@ export function handleButtonAStart(e) {
             releaseBomb()
           } else if (gameState.grabbedRock) {
             releaseRock()
+          } else if (gameState.grabbedSandPile) {
+            releaseSandPile()
           } else if (gameState.grabbedWoodenBox) {
             releaseWoodenBox()
           } else if (gameState.grabbedEnemy) {
@@ -161,7 +164,7 @@ export function handleButtonAStart(e) {
           // If not holding anything, try to grab a bomb
           if (!tryGrabBomb()) {
             // If no bomb to grab, try to grab a wooden box
-            if (!tryGrabWoodenBox()) {
+            if (!tryGrabSandPile() && !tryGrabWoodenBox()) {
               // If no wooden box to grab, try to grab a rock
               if (!tryGrabRock()) {
                 // If no rock to grab, try to grab an enemy
