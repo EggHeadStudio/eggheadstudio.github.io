@@ -11,7 +11,7 @@ import {
   normalizeCharacterCustomization,
 } from "../entities/character-factory.js"
 import { drawCharacterPreview } from "../entities/player.js"
-import { SHOW_START_TIME_OPTIONS, SHOW_CHARACTER_CUSTOMIZATION } from "../core/constants.js"
+import { SHOW_START_TIME_OPTIONS, SHOW_CHARACTER_CUSTOMIZATION, WORLD_SAVE_KEY } from "../core/constants.js"
 import { resetHud, setHudVisibility } from "./ui-manager.js"
 import { handleClaimableSectionClick, renderExplorationMapCanvas } from "./minimap.js"
 
@@ -28,6 +28,7 @@ const TIME_OPTIONS = [
 let isInitialized = false
 let previewAnimationFrame = null
 let previewAnimationTime = 0
+const GAME_STORAGE_PREFIX = "small-game-"
 
 function tryClaimSectionFromMapInteraction(event, explorationMapCanvas) {
   if (!gameState.isStarted || !gameState.isPaused || !gameState.mapRevealOpen) {
@@ -147,7 +148,12 @@ export function initializeStartMenu(initialConfig = createDefaultGameConfig()) {
     explorationMapCanvas.dataset.claimHandlerBound = "true"
   }
 
-  document.getElementById("newGameButton").addEventListener("click", () => {
+  document.getElementById("newGameButton").addEventListener("click", async () => {
+    if (gameState.isStarted) {
+      await hardResetGamePage()
+      return
+    }
+
     init({ ...gameState.startupConfig })
     hideStartMenu()
   })
@@ -175,6 +181,71 @@ export function hideStartMenu() {
   if (gameState.isStarted && !gameState.gameOver) {
     setHudVisibility(true)
   }
+}
+
+async function hardResetGamePage() {
+  if (typeof window === "undefined") {
+    return false
+  }
+
+  try {
+    if (window.localStorage) {
+      const keysToDelete = []
+      for (let i = 0; i < window.localStorage.length; i++) {
+        const key = window.localStorage.key(i)
+        if (key && (key === WORLD_SAVE_KEY || key.startsWith(GAME_STORAGE_PREFIX))) {
+          keysToDelete.push(key)
+        }
+      }
+
+      for (const key of keysToDelete) {
+        window.localStorage.removeItem(key)
+      }
+    }
+  } catch {
+    // Ignore storage access errors.
+  }
+
+  try {
+    if (window.sessionStorage) {
+      const keysToDelete = []
+      for (let i = 0; i < window.sessionStorage.length; i++) {
+        const key = window.sessionStorage.key(i)
+        if (key && key.startsWith(GAME_STORAGE_PREFIX)) {
+          keysToDelete.push(key)
+        }
+      }
+
+      for (const key of keysToDelete) {
+        window.sessionStorage.removeItem(key)
+      }
+    }
+  } catch {
+    // Ignore session storage access errors.
+  }
+
+  try {
+    if ("serviceWorker" in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations()
+      await Promise.all(registrations.map((registration) => registration.unregister()))
+    }
+  } catch {
+    // Ignore service worker errors.
+  }
+
+  try {
+    if ("caches" in window) {
+      const cacheNames = await window.caches.keys()
+      await Promise.all(cacheNames.map((cacheName) => window.caches.delete(cacheName)))
+    }
+  } catch {
+    // Ignore Cache Storage errors.
+  }
+
+  const resetUrl = new URL(window.location.href)
+  resetUrl.searchParams.set("reset", Date.now().toString())
+  window.location.replace(resetUrl.toString())
+  return true
 }
 
 function syncMenuFromConfig(config) {
