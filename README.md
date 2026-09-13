@@ -1,4 +1,4 @@
-# Small Game
+# Small adventure Game
 
 Current project tuning and variable reference.
 
