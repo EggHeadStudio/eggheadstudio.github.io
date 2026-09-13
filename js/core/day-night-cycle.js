@@ -258,9 +258,17 @@ function drawLightweightOverlay(ctx, canvas, lighting) {
 }
 
 function drawGlassCubeLightCutouts(overlayCtx, camera) {
-  if (gameState.dayNight.currentPhase !== "night" || !Array.isArray(gameState.woodenBoxes)) {
+  if (!Array.isArray(gameState.woodenBoxes)) {
     return
   }
+
+  const phase = gameState.dayNight.currentPhase
+  const phaseStrength = getGlassCubeLightStrength(phase, gameState.dayNight.phaseProgress)
+  if (phaseStrength <= 0.01) {
+    return
+  }
+
+  const now = Date.now()
 
   for (const box of gameState.woodenBoxes) {
     if (!box?.isGlassCube) {
@@ -269,18 +277,77 @@ function drawGlassCubeLightCutouts(overlayCtx, camera) {
 
     const screenX = box.x - camera.x
     const screenY = box.y - camera.y - (box.isFloating ? box.floatOffset || 0 : 0)
+    const isInStructure = isGlassCubeInStructure(box)
+    const pulse = isInStructure ? 1 : 0.72 + 0.28 * Math.sin(now * 0.0035 + (box.glassGlowSeed || 0))
+    const baseRadius = isInStructure ? GLASS_CUBE_LIGHT_RADIUS : GLASS_CUBE_LIGHT_RADIUS * (0.96 + pulse * 0.18)
+    const radius = baseRadius * (0.72 + phaseStrength * (isInStructure ? 0.38 : 0.72) + (isInStructure ? 0 : pulse * 0.12))
+    const alphaScale = clamp(phaseStrength, 0, 1)
 
-    const sourceGlow = overlayCtx.createRadialGradient(screenX, screenY, 0, screenX, screenY, GLASS_CUBE_LIGHT_RADIUS)
-    sourceGlow.addColorStop(0, "rgba(0, 0, 0, 1)")
-    sourceGlow.addColorStop(0.16, "rgba(0, 0, 0, 0.96)")
-    sourceGlow.addColorStop(0.44, "rgba(0, 0, 0, 0.62)")
-    sourceGlow.addColorStop(0.76, "rgba(0, 0, 0, 0.18)")
+    const sourceGlow = overlayCtx.createRadialGradient(screenX, screenY, 0, screenX, screenY, radius)
+    sourceGlow.addColorStop(0, `rgba(0, 0, 0, ${isInStructure ? 1 * alphaScale : 0.92 * alphaScale})`)
+    sourceGlow.addColorStop(0.16, `rgba(0, 0, 0, ${isInStructure ? 0.96 * alphaScale : 0.9 * alphaScale})`)
+    sourceGlow.addColorStop(0.42, `rgba(0, 0, 0, ${isInStructure ? 0.62 * alphaScale : (0.7 + pulse * 0.16) * alphaScale})`)
+    sourceGlow.addColorStop(0.76, `rgba(0, 0, 0, ${isInStructure ? 0.18 * alphaScale : (0.26 + pulse * 0.18) * alphaScale})`)
     sourceGlow.addColorStop(1, "rgba(0, 0, 0, 0)")
+
     overlayCtx.fillStyle = sourceGlow
     overlayCtx.beginPath()
-    overlayCtx.arc(screenX, screenY, GLASS_CUBE_LIGHT_RADIUS, 0, Math.PI * 2)
+    overlayCtx.arc(screenX, screenY, radius, 0, Math.PI * 2)
     overlayCtx.fill()
   }
+}
+
+function getGlassCubeLightStrength(phase, progress = 0) {
+  switch (phase) {
+    case "dayToDusk":
+      return easeInOut(progress) * 0.56
+    case "dusk":
+      return 0.56
+    case "duskToNight":
+      return 0.56 + easeInOut(progress) * 0.44
+    case "night":
+      return 1
+    case "nightToDawn":
+      return 1 - easeInOut(progress)
+    case "dawn":
+      return 0.28
+    case "dawnToDay":
+      return (1 - easeInOut(progress)) * 0.28
+    default:
+      return 0
+  }
+}
+
+function easeInOut(progress) {
+  return progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2
+}
+
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max)
+}
+
+function isGlassCubeInStructure(box) {
+  if (!box || !Array.isArray(gameState.woodenBoxes)) {
+    return false
+  }
+
+  const adjacencyRadius = TILE_SIZE * 1.2
+
+  for (const candidate of gameState.woodenBoxes) {
+    if (!candidate || candidate === box) {
+      continue
+    }
+
+    if (!(candidate.isGlassCube || candidate.isSledgeCube || candidate.isSledgeSpiked)) {
+      continue
+    }
+
+    if (Math.abs(candidate.x - box.x) <= adjacencyRadius && Math.abs(candidate.y - box.y) <= adjacencyRadius) {
+      return true
+    }
+  }
+
+  return false
 }
 
 function getLightingState(segmentKey, progress) {
