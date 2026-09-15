@@ -36,10 +36,25 @@ export function isLandPosition(x, y) {
   )
 }
 
+export function isRoadPosition(x, y) {
+  const { terrain } = gameState
+  const tileX = Math.floor(x / TILE_SIZE)
+  const tileY = Math.floor(y / TILE_SIZE)
+
+  return (
+    tileX >= 0 &&
+    tileX < terrain[0].length &&
+    tileY >= 0 &&
+    tileY < terrain.length &&
+    terrain[tileY][tileX] === TERRAIN_TYPES.ROAD
+  )
+}
+
 export function isSpawnPositionClear(x, y, size, options = {}) {
   const {
     requireLand = false,
     requireWater = false,
+    avoidRoad = true,
     playerDistanceBuffer = 0,
     includePlayer = true,
     includeApples = true,
@@ -65,6 +80,10 @@ export function isSpawnPositionClear(x, y, size, options = {}) {
   }
 
   if (requireWater && !isWaterPosition(x, y)) {
+    return false
+  }
+
+  if (avoidRoad && isRoadPosition(x, y)) {
     return false
   }
 

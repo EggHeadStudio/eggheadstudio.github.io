@@ -15,6 +15,8 @@ export function getTerrainColor(terrainType) {
         return "#e4d2a0"
       case 5: // TERRAIN_TYPES.GRAVEL
         return "#9aa0a4"
+      case 6: // TERRAIN_TYPES.ROAD
+        return "#50555b"
       default:
         return "#ecf0f1"
     }

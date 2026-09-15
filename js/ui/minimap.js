@@ -263,6 +263,8 @@ function getTerrainAnnotationLabel(terrainType, regionSize) {
       return regionSize > 180 ? "Beach" : "Sand"
     case 5:
       return regionSize > 150 ? "Gravel" : "Rock"
+    case 6:
+      return regionSize > 220 ? "Highway" : "Road"
     default:
       return "Land"
   }

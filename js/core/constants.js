@@ -26,6 +26,13 @@ export const WORLD_SHORE_BAND = 0.05 // Sand ring around every water mass
 export const WORLD_RIVER_SCALE = 420 // Length/width of river systems
 export const WORLD_RIVER_WIDTH = 0.02 // Set to 0 to remove rivers entirely
 export const WORLD_RIVER_MAX_ELEVATION = 0.24 // Rivers stop before high ground
+export const WORLD_ROAD_SPACING = 160 // Distance between the major cross-country roads
+export const WORLD_ROAD_BEND_SCALE = 180 // Bigger = straighter roads, lower = more wandering
+export const WORLD_ROAD_BEND_AMOUNT = 18 // Side-to-side drift of the road centre line in tiles
+export const WORLD_ROAD_CURVE_SCALE = 320 // Low-frequency warp that bends the whole road network into smooth arcs
+export const WORLD_ROAD_CURVE_AMOUNT = 34 // How far those broad curves can pull the roads in tiles
+export const WORLD_ROAD_HALF_WIDTH_TILES = 2 // Full width = 4 tiles when tested from tile centers
+export const WORLD_ROAD_WATER_BUFFER_TILES = 1 // Keep roads one tile away from water/shore
 export const WORLD_MOISTURE_SCALE = 140 // Size of forest regions
 export const WORLD_FOREST_LEVEL = 0.52 // Above this moisture is forest
 export const WORLD_GRAVEL_SCALE = 110 // Size of gravel fields
@@ -192,6 +199,7 @@ export const TREE_APPLE_VALUE = 1 // Apples dropped from trees are worth 1
 export const CAR_SIZE = 70 // Size of cars
 export const BOAT_SIZE = 80 // Size of boats
 export const CAR_SPEED = 8 // 2x the normal player speed (vehicles)
+export const ROAD_SPEED_MULTIPLIER = 1.6
 export const CAR_INTERACTION_RANGE = 80 // Distance for player to interact with cars
 export const VEHICLE_PLAYER_COLLISION_RADIUS_MULTIPLIER = 0.34
 export const VEHICLE_APPLE_COLLISION_RADIUS_MULTIPLIER = 0.4
@@ -271,4 +279,5 @@ export const TERRAIN_TYPES = {
   DIRT: 3,
   SAND: 4,
   GRAVEL: 5,
+  ROAD: 6,
 }

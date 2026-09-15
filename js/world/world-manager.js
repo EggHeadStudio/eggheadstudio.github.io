@@ -20,6 +20,13 @@ import {
   WORLD_RIVER_SCALE,
   WORLD_RIVER_WIDTH,
   WORLD_RIVER_MAX_ELEVATION,
+  WORLD_ROAD_SPACING,
+  WORLD_ROAD_BEND_SCALE,
+  WORLD_ROAD_BEND_AMOUNT,
+  WORLD_ROAD_CURVE_SCALE,
+  WORLD_ROAD_CURVE_AMOUNT,
+  WORLD_ROAD_HALF_WIDTH_TILES,
+  WORLD_ROAD_WATER_BUFFER_TILES,
   WORLD_MOISTURE_SCALE,
   WORLD_FOREST_LEVEL,
   WORLD_GRAVEL_SCALE,
@@ -156,6 +163,62 @@ function isRiverTile(tileX, tileY, elevation, seed) {
   return 1 - Math.abs(river * 2 - 1) > 1 - WORLD_RIVER_WIDTH
 }
 
+function getRoadAxisCenter(axisIndex, alongAxisCoordinate, seedOffset) {
+  const baseCenter = axisIndex * WORLD_ROAD_SPACING + WORLD_ROAD_SPACING / 2
+  const drift = (valueNoise(axisIndex * 0.37 + seedOffset, alongAxisCoordinate / WORLD_ROAD_BEND_SCALE, getWorldMap().seed + seedOffset) - 0.5) * 2
+  return baseCenter + drift * WORLD_ROAD_BEND_AMOUNT
+}
+
+function getDistanceToRoadAxis(coordinate, alongAxisCoordinate, seedOffset) {
+  const axisIndex = Math.floor(coordinate / WORLD_ROAD_SPACING)
+  let minDistance = Infinity
+
+  for (let index = axisIndex - 1; index <= axisIndex + 1; index++) {
+    const center = getRoadAxisCenter(index, alongAxisCoordinate, seedOffset)
+    minDistance = Math.min(minDistance, Math.abs(coordinate - center))
+  }
+
+  return minDistance
+}
+
+function getRoadWarpedCoordinates(tileX, tileY, seed) {
+  const warpedX = tileX + (fractalNoise(tileX / WORLD_ROAD_CURVE_SCALE, tileY / WORLD_ROAD_CURVE_SCALE, seed + 15001, 2) - 0.5) * 2 * WORLD_ROAD_CURVE_AMOUNT
+  const warpedY = tileY + (fractalNoise(tileX / WORLD_ROAD_CURVE_SCALE, tileY / WORLD_ROAD_CURVE_SCALE, seed + 17011, 2) - 0.5) * 2 * WORLD_ROAD_CURVE_AMOUNT
+
+  return { x: warpedX, y: warpedY }
+}
+
+function isWaterLikeProceduralTile(tileX, tileY, seed) {
+  const elevation = fractalNoise(
+    tileX / WORLD_ELEVATION_SCALE,
+    tileY / WORLD_ELEVATION_SCALE,
+    seed,
+    WORLD_ELEVATION_OCTAVES,
+  )
+
+  return elevation < WORLD_WATER_LEVEL + WORLD_SHORE_BAND * 0.35 || isRiverTile(tileX, tileY, elevation, seed)
+}
+
+function isRoadTileCandidate(tileX, tileY, seed) {
+  const warped = getRoadWarpedCoordinates(tileX + 0.5, tileY + 0.5, seed)
+  const verticalDistance = getDistanceToRoadAxis(warped.x, warped.y, 9101)
+  const horizontalDistance = getDistanceToRoadAxis(warped.y, warped.x, 12347)
+
+  if (verticalDistance >= WORLD_ROAD_HALF_WIDTH_TILES && horizontalDistance >= WORLD_ROAD_HALF_WIDTH_TILES) {
+    return false
+  }
+
+  for (let offsetY = -WORLD_ROAD_WATER_BUFFER_TILES; offsetY <= WORLD_ROAD_WATER_BUFFER_TILES; offsetY++) {
+    for (let offsetX = -WORLD_ROAD_WATER_BUFFER_TILES; offsetX <= WORLD_ROAD_WATER_BUFFER_TILES; offsetX++) {
+      if (isWaterLikeProceduralTile(tileX + offsetX, tileY + offsetY, seed)) {
+        return false
+      }
+    }
+  }
+
+  return true
+}
+
 function getProceduralTerrainType(tileX, tileY) {
   const worldMap = getWorldMap()
 
@@ -179,6 +242,10 @@ function getProceduralTerrainType(tileX, tileY) {
   // it borders.
   if (elevation < WORLD_WATER_LEVEL + WORLD_SHORE_BAND) {
     return TERRAIN_TYPES.SAND
+  }
+
+  if (isRoadTileCandidate(tileX, tileY, seed)) {
+    return TERRAIN_TYPES.ROAD
   }
 
   const gravel = fractalNoise(tileX / WORLD_GRAVEL_SCALE, tileY / WORLD_GRAVEL_SCALE, seed + 3301, 2)

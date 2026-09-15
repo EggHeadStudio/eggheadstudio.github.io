@@ -15,6 +15,7 @@ import {
   CAR_FUEL_MIN,
   CAR_FUEL_MAX,
   CAR_FUEL_DRAIN_FORWARD,
+  ROAD_SPEED_MULTIPLIER,
   CAR_DRIFT_FACTOR,
   CAR_MAX_STEER_ANGLE,
   CAR_STEER_SPEED,
@@ -56,7 +57,36 @@ const CAR_SKID_MARK_MIN_SPEED = 1.6
 const CAR_SKID_MARK_MAX_COUNT = 160
 
 // Ground the cars can drive on. Sand and gravel behave like grass.
-const DRIVABLE_TERRAIN = [TERRAIN_TYPES.GRASS, TERRAIN_TYPES.DIRT, TERRAIN_TYPES.SAND, TERRAIN_TYPES.GRAVEL]
+const DRIVABLE_TERRAIN = [TERRAIN_TYPES.GRASS, TERRAIN_TYPES.DIRT, TERRAIN_TYPES.SAND, TERRAIN_TYPES.GRAVEL, TERRAIN_TYPES.ROAD]
+
+function isRoadTileAtWorldPosition(worldX, worldY, terrain) {
+  const tileX = Math.floor(worldX / TILE_SIZE)
+  const tileY = Math.floor(worldY / TILE_SIZE)
+
+  if (tileX < 0 || tileY < 0 || tileY >= terrain.length || tileX >= terrain[0].length) {
+    return false
+  }
+
+  return terrain[tileY][tileX] === TERRAIN_TYPES.ROAD
+}
+
+function isCarOnRoad(car, terrain) {
+  const forwardX = Math.cos(car.direction)
+  const forwardY = Math.sin(car.direction)
+  const sideX = Math.cos(car.direction + Math.PI / 2)
+  const sideY = Math.sin(car.direction + Math.PI / 2)
+  const forwardDistance = car.size * 0.28
+  const sideDistance = car.size * 0.24
+  const sampleOffsets = [
+    [0, 0],
+    [forwardX * forwardDistance, forwardY * forwardDistance],
+    [-forwardX * forwardDistance, -forwardY * forwardDistance],
+    [sideX * sideDistance, sideY * sideDistance],
+    [-sideX * sideDistance, -sideY * sideDistance],
+  ]
+
+  return sampleOffsets.some(([offsetX, offsetY]) => isRoadTileAtWorldPosition(car.x + offsetX, car.y + offsetY, terrain))
+}
 
 // Create a single car.
 export function createCar(x, y) {
@@ -194,6 +224,7 @@ function isValidCarPosition(x, y, tileX, tileY, terrain, rocks, woodenBoxes, bom
 
   if (!isSpawnPositionClear(x, y, CAR_SIZE, {
     requireLand: true,
+    avoidRoad: false,
     playerDistanceBuffer: 180,
     includeCars: false,
     includeBoats: false,
@@ -242,6 +273,7 @@ export function updateCarPosition(car) {
   const previousX = car.x;
   const previousY = car.y;
   const previousDirection = car.direction;
+  const roadSpeedMultiplier = isCarOnRoad(car, terrain) ? ROAD_SPEED_MULTIPLIER : 1
   
   let throttleInput = 0;
 
@@ -300,7 +332,7 @@ export function updateCarPosition(car) {
     motion,
     { throttle: throttleInput, steer: steerInput },
     {
-      maxSpeed: CAR_MAX_SPEED,
+      maxSpeed: CAR_MAX_SPEED * roadSpeedMultiplier,
       acceleration: CAR_ACCELERATION,
       braking: CAR_DECELERATION,
       maxSteerAngle: CAR_MAX_STEER_ANGLE,
@@ -330,6 +362,7 @@ export function updateCarPosition(car) {
   car.forwardSpeed = motion.longitudinalSpeed;
   car.lateralSpeed = motion.lateralSpeed;
   car.currentSpeed = Math.hypot(motion.longitudinalSpeed, motion.lateralSpeed);
+  car.isOnRoad = roadSpeedMultiplier > 1
   car.slipAngle = motion.slipAngle;
   car.isDrifting = motion.isSliding;
 
