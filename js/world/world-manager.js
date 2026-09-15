@@ -383,6 +383,32 @@ export function initializeWorldTerrain(mapSize = WORLD_MAP_SIZE) {
   }
 }
 
+// Wipes every persisted world edit (dug holes, chopped trees, tile changes) so
+// a new run generates the world from scratch instead of inheriting the old one.
+export function clearWorldSave() {
+  if (saveTimerId && typeof window !== "undefined") {
+    window.clearTimeout(saveTimerId)
+  }
+  saveTimerId = null
+
+  gameState.dugHoles = {}
+  gameState.choppedTreeTiles = {}
+
+  if (gameState.worldMap) {
+    gameState.worldMap.savedChunks = {}
+  }
+
+  if (typeof window === "undefined" || !window.localStorage) {
+    return
+  }
+
+  try {
+    window.localStorage.removeItem(WORLD_SAVE_KEY)
+  } catch {
+    // Storage access problems must not block starting a new game.
+  }
+}
+
 export function ensureWorldChunksAroundWorldPosition(worldX, worldY, radius = WORLD_CHUNK_PRELOAD_RADIUS) {
   const worldMap = getWorldMap()
   const chunkX = Math.floor(worldX / TILE_SIZE / worldMap.chunkSize)

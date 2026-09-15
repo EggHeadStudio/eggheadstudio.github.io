@@ -709,6 +709,11 @@ export function damageWoodenBox(box, amount = 1) {
       if (!box.isTrunk && !box.isGlassCube) {
         // Spawn a new box elsewhere (delayed to prevent instant respawning)
         setTimeout(() => {
+          // A paused or finished run must not keep spawning content.
+          if (!gameState.isStarted || gameState.isPaused || gameState.gameOver) {
+            return
+          }
+
           if (gameState.woodenBoxes) {
             // Check if game still exists
             generateWoodenBoxes(1)

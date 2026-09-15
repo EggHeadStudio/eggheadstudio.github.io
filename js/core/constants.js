@@ -11,6 +11,8 @@ export const WORLD_CHUNK_KEEP_RADIUS = 3
 // Upper bound on placement retries for any world spawn loop.
 export const SPAWN_ATTEMPT_LIMIT = 40
 export const WORLD_SAVE_KEY = "small-game-world-state-v1"
+export const PAUSED_GAME_SESSION_META_KEY = "small-game-paused-session-meta-v1"
+export const PAUSED_GAME_SESSION_DATA_KEY = "small-game-paused-session-data-v1"
 export const WORLD_SEED = 1337
 
 // --- World shape -----------------------------------------------------------

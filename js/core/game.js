@@ -8,6 +8,7 @@ import {
 import { setupEventListeners } from "../input/input-handler.js"
 import { detectMobile, setupMobileControls } from "../input/mobile-controls.js"
 import { generateTerrain } from "../terrain/terrain-generator.js"
+import { clearWorldSave } from "../world/world-manager.js"
 import { populateWorldAroundPlayer } from "../world/world-population.js"
 import { generateTrees } from "../entities/trees.js"
 import { generateEnemies, getInitialEnemySpawnPlan } from "../entities/enemies.js"
@@ -18,6 +19,7 @@ import { generateCars } from "../entities/cars.js" // Import cars generator
 import { updateTimer } from "../ui/ui-manager.js"
 import { update } from "./game-loop.js"
 import { gameState } from "./game-state.js"
+import { clearPausedGameSession } from "./paused-session.js"
 import {
   createCharacter,
   isSpecialHeroOnlyMode,
@@ -85,6 +87,11 @@ function normalizeGameConfig(config = {}) {
 export function init(config = gameState.startupConfig) {
   const normalizedConfig = normalizeGameConfig(config)
 
+  clearPausedGameSession()
+  // A new run must not inherit dug holes, chopped trees or any other saved
+  // terrain edits, so the persisted world is wiped before terrain is built.
+  clearWorldSave()
+
   if (gameState.gameOverTimeoutId) {
     clearTimeout(gameState.gameOverTimeoutId)
     gameState.gameOverTimeoutId = null
@@ -114,6 +121,7 @@ export function init(config = gameState.startupConfig) {
   gameState.selectedWeapon = "wrist"
   gameState.selectedTool = "none"
   gameState.dugHoles = {}
+  gameState.choppedTreeTiles = {}
   gameState.pendingDigTile = null
   gameState.digAnimations = []
   gameState.shovelActionLockUntil = 0
@@ -262,6 +270,12 @@ export function pauseCurrentGame() {
     gameState.gameLoop = null
   }
 
+  // The survival clock must stop with everything else.
+  if (gameState.timerInterval) {
+    clearInterval(gameState.timerInterval)
+    gameState.timerInterval = null
+  }
+
   return true
 }
 
@@ -274,6 +288,12 @@ export function resumeCurrentGame() {
   shiftGameTimestamps(gameState, pausedDuration)
   gameState.isPaused = false
   gameState.pauseStartedAt = 0
+
+  if (!gameState.timerInterval) {
+    gameState.timerInterval = setInterval(updateTimer, 1000)
+  }
+
+  clearPausedGameSession()
 
   if (!gameState.gameLoop) {
     gameState.gameLoop = requestAnimationFrame(update)
@@ -329,6 +349,7 @@ function finalizeGameOver() {
   gameState.joystickDistance = 0
   gameState.buttonAActive = false
   gameState.buttonBActive = false
+  clearPausedGameSession()
 
   if (gameState.gameLoop) {
     cancelAnimationFrame(gameState.gameLoop)

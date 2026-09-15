@@ -1,6 +1,13 @@
 import { createDefaultGameConfig, init, pauseCurrentGame, resumeCurrentGame } from "../core/game.js"
 import { gameState } from "../core/game-state.js"
 import {
+  clearPausedGameSession,
+  hasPausedGameSession,
+  loadPausedGameSessionMeta,
+  restorePausedGameSessionRuntime,
+  savePausedGameSession,
+} from "../core/paused-session.js"
+import {
   CHARACTER_CUSTOMIZATION_RULES,
   getCharacterCustomizationDefaults,
   getCharacterTypeLabel,
@@ -12,7 +19,18 @@ import {
 } from "../entities/character-factory.js"
 import { drawCharacterPreview } from "../entities/player.js"
 import { SHOW_START_TIME_OPTIONS, SHOW_CHARACTER_CUSTOMIZATION, WORLD_SAVE_KEY } from "../core/constants.js"
-import { resetHud, setHudVisibility } from "./ui-manager.js"
+import {
+  resetHud,
+  setHudVisibility,
+  updateAppleCounter,
+  updateBombCounter,
+  updateKillCounter,
+  updateSawIndicator,
+  updateSledgehammerIndicator,
+  updateShovelIndicator,
+  updateTimer,
+  updateWeaponSelectionUi,
+} from "./ui-manager.js"
 import { handleClaimableSectionClick, renderExplorationMapCanvas } from "./minimap.js"
 
 const PREVIEW_CANVAS_SIZE = 104
@@ -28,7 +46,29 @@ const TIME_OPTIONS = [
 let isInitialized = false
 let previewAnimationFrame = null
 let previewAnimationTime = 0
+let savedPauseAvailable = false
 const GAME_STORAGE_PREFIX = "small-game-"
+let suppressPausedSessionSave = false
+
+function shouldAutoStartFromResetQuery() {
+  if (typeof window === "undefined") {
+    return false
+  }
+
+  const params = new URLSearchParams(window.location.search)
+  return params.get("newGame") === "1"
+}
+
+function clearResetQueryParams() {
+  if (typeof window === "undefined") {
+    return
+  }
+
+  const url = new URL(window.location.href)
+  url.searchParams.delete("newGame")
+  url.searchParams.delete("reset")
+  window.history.replaceState({}, "", url.toString())
+}
 
 function tryClaimSectionFromMapInteraction(event, explorationMapCanvas) {
   if (!gameState.isStarted || !gameState.isPaused || !gameState.mapRevealOpen) {
@@ -89,28 +129,100 @@ const MENU_COPY = {
 export function initializeStartMenu(initialConfig = createDefaultGameConfig()) {
   if (isInitialized) {
     syncMenuFromConfig(initialConfig)
-    return
+    return false
   }
 
-  gameState.startupConfig = {
-    ...createDefaultGameConfig(),
-    ...initialConfig,
+  const shouldAutoStart = shouldAutoStartFromResetQuery()
+
+  if (shouldAutoStart) {
+    clearPausedGameSession()
+    savedPauseAvailable = false
+    gameState.startupConfig = {
+      ...createDefaultGameConfig(),
+      ...initialConfig,
+    }
+  } else {
+    const pausedSessionMeta = loadPausedGameSessionMeta()
+
+    if (pausedSessionMeta?.startupConfig) {
+      savedPauseAvailable = true
+      gameState.startupConfig = {
+        ...createDefaultGameConfig(),
+        ...pausedSessionMeta.startupConfig,
+      }
+      gameState.menuMode = "pause"
+      gameState.pauseStartedAt = pausedSessionMeta.pauseStartedAt || Date.now()
+    } else {
+      savedPauseAvailable = false
+      gameState.startupConfig = {
+        ...createDefaultGameConfig(),
+        ...initialConfig,
+      }
+    }
   }
+
+  bindMenuButtons()
 
   renderCharacterOptions()
   renderTimeOptions()
   setupPerformanceOptions()
   setupMinimapMenuTrigger()
+  setupPausedSessionPersistence()
 
+  setHudVisibility(false)
+  resetHud()
+  syncMenuFromConfig(gameState.startupConfig)
+  isInitialized = true
+
+  if (shouldAutoStart) {
+    clearResetQueryParams()
+    startFreshGame()
+    return true
+  }
+
+  return false
+}
+
+function startFreshGame() {
+  clearPausedGameSession()
+  savedPauseAvailable = false
+  init({ ...gameState.startupConfig })
+  syncHudFromGameState()
+  hideStartMenu()
+}
+
+function bindMenuButtons() {
   document.getElementById("resumeGameButton").addEventListener("click", () => {
-    if (gameState.isStarted && gameState.isPaused && !gameState.gameOver) {
-      gameState.mapRevealOpen = false
-      resumeCurrentGame()
-      hideStartMenu()
+    const hasLivePausedRun = gameState.isStarted && gameState.isPaused && !gameState.gameOver
+
+    if (!hasLivePausedRun && !savedPauseAvailable && !hasPausedGameSession()) {
+      return
     }
+
+    if (!hasLivePausedRun && !restorePausedGameSessionRuntime()) {
+      // The stored run could not be rebuilt, so fall back to a clean start
+      // instead of leaving the player stuck on the menu.
+      startFreshGame()
+      return
+    }
+
+    savedPauseAvailable = false
+    gameState.mapRevealOpen = false
+    resumeCurrentGame()
+    syncHudFromGameState()
+    hideStartMenu()
   })
 
   document.getElementById("toggleMapButton").addEventListener("click", () => {
+    const hasLivePausedRun = gameState.isStarted && gameState.isPaused && !gameState.gameOver
+
+    if (!hasLivePausedRun && (savedPauseAvailable || hasPausedGameSession())) {
+      if (!restorePausedGameSessionRuntime()) {
+        return
+      }
+      savedPauseAvailable = false
+    }
+
     if (!gameState.isStarted || gameState.gameOver) {
       return
     }
@@ -149,19 +261,21 @@ export function initializeStartMenu(initialConfig = createDefaultGameConfig()) {
   }
 
   document.getElementById("newGameButton").addEventListener("click", async () => {
-    if (gameState.isStarted) {
-      await hardResetGamePage()
+    // A run that is still live in this tab only needs a full in-memory reset.
+    if (gameState.isStarted && gameState.canvas) {
+      startFreshGame()
       return
     }
 
-    init({ ...gameState.startupConfig })
-    hideStartMenu()
-  })
+    // A stored run has to be wiped from the browser first, so reload into a
+    // guaranteed clean session that starts a new game immediately.
+    if (savedPauseAvailable || hasPausedGameSession()) {
+      await hardResetGamePage({ autoStartNewGame: true })
+      return
+    }
 
-  setHudVisibility(false)
-  resetHud()
-  syncMenuFromConfig(gameState.startupConfig)
-  isInitialized = true
+    startFreshGame()
+  })
 }
 
 export function showStartMenu() {
@@ -183,10 +297,59 @@ export function hideStartMenu() {
   }
 }
 
-async function hardResetGamePage() {
+function setupPausedSessionPersistence() {
+  if (window.hasPausedSessionListener) {
+    return
+  }
+
+  window.addEventListener("pagehide", handlePausedSessionPageHide)
+  // Switching apps or tabs on mobile often fires only visibilitychange, so the
+  // run is parked there too instead of being left running in the background.
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") {
+      handlePausedSessionPageHide()
+    }
+  })
+  window.hasPausedSessionListener = true
+}
+
+function handlePausedSessionPageHide() {
+  if (suppressPausedSessionSave) {
+    return
+  }
+
+  if (!gameState.isStarted || gameState.gameOver) {
+    return
+  }
+
+  // Leaving mid-run performs a full pause (loop and timer stopped, snapshot
+  // written) so returning continues from the exact moment of departure.
+  if (!gameState.isPaused) {
+    openPausedMenu()
+    return
+  }
+
+  savePausedGameSession()
+}
+
+function syncHudFromGameState() {
+  updateAppleCounter()
+  updateBombCounter()
+  updateSledgehammerIndicator()
+  updateShovelIndicator()
+  updateSawIndicator()
+  updateKillCounter()
+  updateWeaponSelectionUi()
+  updateTimer()
+}
+
+async function hardResetGamePage(options = {}) {
   if (typeof window === "undefined") {
     return false
   }
+
+  const { autoStartNewGame = false } = options
+  suppressPausedSessionSave = true
 
   try {
     if (window.localStorage) {
@@ -244,6 +407,9 @@ async function hardResetGamePage() {
 
   const resetUrl = new URL(window.location.href)
   resetUrl.searchParams.set("reset", Date.now().toString())
+  if (autoStartNewGame) {
+    resetUrl.searchParams.set("newGame", "1")
+  }
   window.location.replace(resetUrl.toString())
   return true
 }
@@ -275,6 +441,7 @@ function syncMenuFromConfig(config) {
 
 export function showGameOverMenu() {
   gameState.menuMode = "gameover"
+  savedPauseAvailable = false
   syncMenuFromConfig(gameState.startupConfig)
   showStartMenu()
 }
@@ -316,6 +483,9 @@ function openPausedMenu() {
   if (pauseCurrentGame()) {
     gameState.mapRevealOpen = false
     gameState.menuMode = "pause"
+    // Snapshot here rather than in pauseCurrentGame, so the frequent selector
+    // pauses during play never pay the cost of a full session write.
+    savePausedGameSession()
     syncMenuFromConfig(gameState.startupConfig)
     showStartMenu()
   }
@@ -365,12 +535,16 @@ function renderMenuState() {
     return
   }
 
+  const livePausedRun = gameState.isStarted && gameState.isPaused && !gameState.gameOver && gameState.menuMode === "pause"
+  const canResume = livePausedRun || (savedPauseAvailable && gameState.menuMode === "pause")
+  const canToggleMap = canResume
+
   menuKicker.textContent = accessContext.kicker || menuState.kicker
   menuTitle.textContent = accessContext.title || menuState.title
   menuDescription.textContent = accessContext.description || menuState.description
-  resumeButton.hidden = !(gameState.isStarted && gameState.isPaused && !gameState.gameOver && gameState.menuMode === "pause")
-  toggleMapButton.hidden = !(gameState.isStarted && gameState.isPaused && !gameState.gameOver && gameState.menuMode === "pause")
-  newGameButton.textContent = gameState.isStarted ? "Start New Game" : "Start Game"
+  resumeButton.hidden = !canResume
+  toggleMapButton.hidden = !canToggleMap
+  newGameButton.textContent = gameState.isStarted || savedPauseAvailable ? "Start New Game" : "Start Game"
   mapPage.classList.toggle("hidden", !(gameState.isStarted && gameState.isPaused && gameState.mapRevealOpen))
   if (startTimeSection) {
     startTimeSection.hidden = !SHOW_START_TIME_OPTIONS

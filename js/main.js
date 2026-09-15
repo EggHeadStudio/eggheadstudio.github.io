@@ -5,6 +5,9 @@ import { initializeStartMenu, showStartMenu } from "./ui/start-menu.js"
 
 // Initialize the game when the page loads
 window.addEventListener("load", () => {
-	initializeStartMenu(createDefaultGameConfig())
-	showStartMenu()
+	const gameAlreadyStarted = initializeStartMenu(createDefaultGameConfig())
+
+	if (!gameAlreadyStarted) {
+		showStartMenu()
+	}
 })

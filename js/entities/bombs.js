@@ -147,23 +147,15 @@ export function checkBombChainReaction(explosionX, explosionY, explosionRadius) 
     }
   }
 
-  // Detonate each affected bomb with a slight delay
+  // Detonate each affected bomb with a slight delay. The delay is stored as a
+  // countdown timestamp so the game loop owns it: chained blasts then freeze
+  // with a paused game and survive a save/restore, unlike a raw setTimeout.
   bombsToDetonate.forEach((bombData) => {
-    setTimeout(() => {
-      // Make sure the bomb still exists in the array (it might have been removed by another explosion)
-      const currentIndex = bombs.indexOf(bombData.bomb)
-      if (currentIndex !== -1) {
-        // Create explosion for this bomb
-        const chainExplosionRadius = 100 + Math.random() * 50
-        createExplosion(bombData.bomb.x, bombData.bomb.y, chainExplosionRadius)
+    if (bombs.indexOf(bombData.bomb) === -1) {
+      return
+    }
 
-        // Remove the bomb from the array
-        bombs.splice(currentIndex, 1)
-
-        // Recursively check for more chain reactions
-        checkBombChainReaction(bombData.bomb.x, bombData.bomb.y, chainExplosionRadius)
-      }
-    }, bombData.delay)
+    bombData.bomb.countdown = Date.now() + bombData.delay
   })
 }
 
