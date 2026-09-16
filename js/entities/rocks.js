@@ -303,7 +303,9 @@ function convertWaterToGravelAroundTile(centerTileX, centerTileY, radius = ROCK_
   return converted
 }
 
-function createRockWaterSplashEffect(x, y, rockSize) {
+// Ripple ring plus droplets for anything that drops into water. Rocks, grenades
+// and bombs all share it, and drawAndUpdateRocks paints the queue every frame.
+export function createRockWaterSplashEffect(x, y, rockSize) {
   if (!gameState.rockSplashEffects) {
     gameState.rockSplashEffects = []
   }

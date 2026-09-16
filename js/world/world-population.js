@@ -11,7 +11,6 @@ import {
   TILE_SIZE,
   MAX_APPLES,
   MAX_BOATS,
-  MAX_BOMBS,
   MAX_CARS,
   MAX_ROCKS,
   MAX_SAWS,
@@ -34,7 +33,6 @@ import {
   CHUNK_FLOATING_BOX_MAX,
   CHUNK_APPLE_MIN,
   CHUNK_APPLE_MAX,
-  CHUNK_BOMB_CHANCE,
   CHUNK_CAR_CHANCE,
   CHUNK_BOAT_CHANCE,
   CHUNK_BOAT_MIN_WATER_TILES,
@@ -54,7 +52,6 @@ import { createRock } from "../entities/rocks.js"
 import { createSandPile } from "../entities/sand-piles.js"
 import { createWoodenBox } from "../entities/wooden-boxes.js"
 import { createApple } from "../entities/apples.js"
-import { createBomb } from "../entities/bombs.js"
 import { createCar, canPlaceCarAt } from "../entities/cars.js"
 import { createBoat } from "../entities/boats.js"
 import { createSledgehammer } from "../entities/sledgehammers.js"
@@ -342,23 +339,6 @@ function spawnApples(tiles) {
   }
 }
 
-function spawnBombs(tiles) {
-  if (Math.random() > CHUNK_BOMB_CHANCE || gameState.bombs.length >= MAX_BOMBS) {
-    return
-  }
-
-  tryPlace(tiles.land, (x, y) => {
-    const bomb = createBomb(x, y)
-
-    if (!isSpawnPositionClear(x, y, bomb.size, { requireLand: true, playerDistanceBuffer: 120 })) {
-      return false
-    }
-
-    gameState.bombs.push(bomb)
-    return true
-  })
-}
-
 function spawnCar(tiles) {
   if (Math.random() > CHUNK_CAR_CHANCE) {
     return
@@ -483,7 +463,6 @@ function populateChunk(key) {
   spawnSandPiles(tiles)
   spawnWoodenBoxes(tiles)
   spawnApples(tiles)
-  spawnBombs(tiles)
   spawnCar(tiles)
   spawnBoat(tiles)
   spawnTools(tiles)

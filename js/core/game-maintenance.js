@@ -1,7 +1,6 @@
 // Game maintenance utilities
 import { gameState } from "./game-state.js"
 import { generateApples } from "../entities/apples.js"
-import { generateBombs } from "../entities/bombs.js"
 import { generateWoodenBoxes } from "../entities/wooden-boxes.js" // Import wooden boxes generator
 import { generateTrees } from "../entities/trees.js"
 import { clearAllEnemies, generateEnemies, getInitialEnemySpawnPlan } from "../entities/enemies.js"
@@ -10,10 +9,7 @@ import { streamWorldEntities } from "../world/world-population.js"
 import {
   APPLE_RESPAWN_THRESHOLD,
   APPLE_RESPAWN_BATCH,
-  BOMB_RESPAWN_THRESHOLD,
-  BOMB_RESPAWN_BATCH,
   INITIAL_APPLE_COUNT,
-  INITIAL_BOMB_COUNT,
   WOODEN_BOX_RESPAWN_THRESHOLD,
   WOODEN_BOX_RESPAWN_BATCH,
 } from "./constants.js"
@@ -37,10 +33,8 @@ export function maintainGameElements() {
     generateApples(APPLE_RESPAWN_BATCH)
   }
 
-  // Generate more bombs if needed
-  if (gameState.bombs.length < BOMB_RESPAWN_THRESHOLD) {
-    generateBombs(BOMB_RESPAWN_BATCH)
-  }
+  // Bombs and grenades are intentionally not respawned here: they are only
+  // ever found by breaking open wooden crates.
 
   // Generate more wooden boxes if needed
   if (gameState.woodenBoxes.length < WOODEN_BOX_RESPAWN_THRESHOLD) {
@@ -59,7 +53,6 @@ export function refreshWorldForNewDay(startPhase = "dusk") {
   // that get used up. Everything else stays exactly as the player left it.
   streamWorldEntities({ force: true })
   generateApples(INITIAL_APPLE_COUNT, { spawnNearPlayer: false })
-  generateBombs(INITIAL_BOMB_COUNT)
 
   generateEnemies(getInitialEnemySpawnPlan(startPhase))
   gameState.lastEnemySpawnTime = Date.now()

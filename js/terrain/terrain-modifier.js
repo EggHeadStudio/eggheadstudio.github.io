@@ -2,9 +2,11 @@
 import { gameState } from "../core/game-state.js"
 import { TILE_SIZE } from "../core/constants.js"
 import { getDistance } from "../utils/math-utils.js"
+import { isExplosionPathBlocked } from "../utils/explosion-shadow.js"
 
-// Modify terrain in explosion radius
-export function modifyTerrainInRadius(centerX, centerY, radius) {
+// Modify terrain in explosion radius. Tiles sheltered behind a rock keep their
+// original terrain, so a blast leaves a crater with a clean shadow.
+export function modifyTerrainInRadius(centerX, centerY, radius, blockers = []) {
   const { terrain } = gameState
 
   const tileRadius = Math.ceil(radius / TILE_SIZE)
@@ -20,6 +22,10 @@ export function modifyTerrainInRadius(centerX, centerY, radius) {
         const distance = getDistance(centerX, centerY, tileX, tileY)
 
         if (distance <= radius) {
+          if (isExplosionPathBlocked(centerX, centerY, tileX, tileY, blockers)) {
+            continue
+          }
+
           // Convert terrain to dirt
           terrain[y][x] = 3 // TERRAIN_TYPES.DIRT
         }

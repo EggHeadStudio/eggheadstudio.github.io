@@ -1868,6 +1868,27 @@ function drawEquippedHandItems(ctx, player, rightHandX, rightHandY, leftHandX, l
     ctx.fill()
   }
 
+  const showGrenadeInHand = gameState.selectedWeapon === "grenade" && (player.grenades || 0) > 0
+  if (showGrenadeInHand) {
+    const heldGrenadeSize = HAND_SIZE * 0.95
+
+    // Green orb body
+    ctx.fillStyle = "#4a6b33"
+    ctx.beginPath()
+    ctx.arc(rightHandX, rightHandY, heldGrenadeSize, 0, Math.PI * 2)
+    ctx.fill()
+
+    ctx.fillStyle = "#6f9b4c"
+    ctx.beginPath()
+    ctx.arc(rightHandX - heldGrenadeSize * 0.3, rightHandY - heldGrenadeSize * 0.3, heldGrenadeSize * 0.38, 0, Math.PI * 2)
+    ctx.fill()
+
+    // Metal cap and safety lever
+    ctx.fillStyle = "#b9c0c4"
+    ctx.fillRect(rightHandX - heldGrenadeSize * 0.32, rightHandY - heldGrenadeSize * 1.5, heldGrenadeSize * 0.64, heldGrenadeSize * 0.55)
+    ctx.fillRect(rightHandX + heldGrenadeSize * 0.3, rightHandY - heldGrenadeSize * 1.4, heldGrenadeSize * 0.24, heldGrenadeSize * 1.1)
+  }
+
   const showSledgehammerInHand = gameState.selectedTool === "sledgehammer" && Boolean(gameState.hasSledgehammer)
   if (showSledgehammerInHand) {
     const handleLength = HAND_SIZE * 1.95

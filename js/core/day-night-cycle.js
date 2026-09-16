@@ -149,6 +149,7 @@ export function drawDayNightOverlay() {
 
   if (gameState.lightweightMode) {
     drawLightweightOverlay(ctx, canvas, lighting)
+    drawAdditiveExplosionGlow(ctx, camera)
     return
   }
 
@@ -176,6 +177,12 @@ export function drawDayNightOverlay() {
       vignette.addColorStop(1, `rgba(0, 0, 0, ${lighting.vignetteAlpha})`)
       ctx.fillStyle = vignette
       ctx.fillRect(0, 0, canvas.width, canvas.height)
+    }
+
+    // This branch paints straight onto the main canvas, so the blast light is
+    // added on top rather than cut out of an offscreen mask.
+    if (lighting.overlayAlpha > 0) {
+      drawAdditiveExplosionGlow(ctx, camera)
     }
 
     ctx.restore()
@@ -511,6 +518,47 @@ function drawExplosionLightBursts(overlayCtx, camera) {
     overlayCtx.arc(burstX, burstY, burstRadius, 0, Math.PI * 2)
     overlayCtx.fill()
   }
+}
+
+// Warm additive flash used where the darkness is painted straight onto the main
+// canvas and a destination-out cutout would erase the world instead.
+function drawAdditiveExplosionGlow(targetCtx, camera) {
+  const { explosions } = gameState
+  if (!explosions || explosions.length === 0) {
+    return
+  }
+
+  targetCtx.save()
+  targetCtx.globalCompositeOperation = "lighter"
+
+  for (const explosion of explosions) {
+    if (!explosion || !explosion.startTime || !explosion.duration) {
+      continue
+    }
+
+    const progress = Math.min(Math.max((Date.now() - explosion.startTime) / explosion.duration, 0), 1)
+    const fade = 1 - progress
+
+    if (fade <= 0) {
+      continue
+    }
+
+    const burstRadius = Math.max(explosion.currentRadius, explosion.maxRadius * 0.2) * (0.75 + fade * 0.55)
+    const burstX = explosion.x - camera.x
+    const burstY = explosion.y - camera.y
+    const glow = targetCtx.createRadialGradient(burstX, burstY, 0, burstX, burstY, burstRadius)
+
+    glow.addColorStop(0, `rgba(255, 214, 150, ${0.55 * fade})`)
+    glow.addColorStop(0.4, `rgba(255, 150, 60, ${0.28 * fade})`)
+    glow.addColorStop(1, "rgba(255, 120, 40, 0)")
+
+    targetCtx.fillStyle = glow
+    targetCtx.beginPath()
+    targetCtx.arc(burstX, burstY, burstRadius, 0, Math.PI * 2)
+    targetCtx.fill()
+  }
+
+  targetCtx.restore()
 }
 
 function getOverlayCanvas(canvas) {

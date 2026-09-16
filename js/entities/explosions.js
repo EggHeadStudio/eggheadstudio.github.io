@@ -10,6 +10,7 @@ import { damageWoodenBox } from "./wooden-boxes.js" // Import wooden box damage 
 import { destroyCar } from "./cars.js"
 import { destroyBoat } from "./boats.js"
 import { triggerGameOver } from "../core/game.js"
+import { collectExplosionBlockers, isExplosionPathBlocked } from "../utils/explosion-shadow.js"
 
 const EXPLOSION_SHOCKWAVE_DURATION = 420
 
@@ -54,15 +55,20 @@ export function createExplosion(x, y, radius) {
 
   explosions.push(explosion)
 
+  // Rocks shelter whatever sits behind them, so every hit below is tested
+  // against the straight line back to the blast centre.
+  const blockers = collectExplosionBlockers(x, y, explosionRadius)
+  explosion.blockers = blockers
+
   // Modify terrain in explosion radius
-  modifyTerrainInRadius(x, y, explosionRadius)
+  modifyTerrainInRadius(x, y, explosionRadius, blockers)
 
   // Check for enemies in explosion radius
   for (let i = enemies.length - 1; i >= 0; i--) {
     const enemy = enemies[i]
     const distance = getDistance(x, y, enemy.x, enemy.y)
 
-    if (distance < explosionRadius) {
+    if (distance < explosionRadius && !isExplosionPathBlocked(x, y, enemy.x, enemy.y, blockers)) {
       damageEnemy(enemy, 10, { ignoreCooldown: true })
     }
   }
@@ -72,16 +78,16 @@ export function createExplosion(x, y, radius) {
     const box = woodenBoxes[i]
     const distance = getDistance(x, y, box.x, box.y)
 
-    if (distance < explosionRadius + box.size) {
+    if (distance < explosionRadius + box.size && !isExplosionPathBlocked(x, y, box.x, box.y, blockers)) {
       // Set hitPoints to 0 to ensure instant destruction and create destruction effect
       box.hitPoints = 0
-      damageWoodenBox(box, 3) // Force destruction by dealing full damage
+      damageWoodenBox(box, 3, { ignoreCooldown: true }) // Force destruction by dealing full damage
     }
   }
 
   // Check if player is in explosion radius
   const distanceToPlayer = getDistance(x, y, player.x, player.y)
-  if (distanceToPlayer < explosionRadius) {
+  if (distanceToPlayer < explosionRadius && !isExplosionPathBlocked(x, y, player.x, player.y, blockers)) {
     damagePlayer(10, { ignoreCooldown: true })
     if (player.health <= 0) {
       player.health = 0
@@ -93,7 +99,7 @@ export function createExplosion(x, y, radius) {
   for (const car of cars) {
     const distance = getDistance(x, y, car.x, car.y)
 
-    if (distance < explosionRadius + car.size * 0.4) {
+    if (distance < explosionRadius + car.size * 0.4 && !isExplosionPathBlocked(x, y, car.x, car.y, blockers)) {
       destroyCar(car)
     }
   }
@@ -101,13 +107,13 @@ export function createExplosion(x, y, radius) {
   for (const boat of boats) {
     const distance = getDistance(x, y, boat.x, boat.y)
 
-    if (distance < explosionRadius + boat.size * 0.45) {
+    if (distance < explosionRadius + boat.size * 0.45 && !isExplosionPathBlocked(x, y, boat.x, boat.y, blockers)) {
       destroyBoat(boat)
     }
   }
 
   // Check for chain reaction with other bombs
-  checkBombChainReaction(x, y, explosionRadius)
+  checkBombChainReaction(x, y, explosionRadius, blockers)
 }
 
 // Draw and update explosions

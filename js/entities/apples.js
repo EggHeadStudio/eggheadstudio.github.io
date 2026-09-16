@@ -441,8 +441,8 @@ export function drawAndUpdateThrownApples() {
           // Create apple splash effect
           createAppleSplash(apple.x, apple.y, apple.velocityX, apple.velocityY)
 
-          // Damage the box
-          damageWoodenBox(box)
+          // A thrown apple bursts the crate open in one hit.
+          damageWoodenBox(box, 3, { ignoreCooldown: true })
 
           // Remove apple
           thrownApples.splice(i, 1)

@@ -16,6 +16,8 @@ import {
   ROOF_PLAYER_LIGHT_RADIUS,
   ROOF_PLAYER_LIGHT_ALPHA,
   SPAWN_ATTEMPT_LIMIT,
+  BOX_BOMB_DROP_CHANCE,
+  BOX_GRENADE_DROP_CHANCE,
 } from "../core/constants.js"
 import { getRandomLoadedWorldPosition } from "../world/world-manager.js"
 import { getDistance } from "../utils/math-utils.js"
@@ -23,6 +25,9 @@ import { isPlayerPositionClear, movePlayerToNearestSafePosition } from "../utils
 import { createShadow } from "../utils/rendering-utils.js"
 import { applyKnockbackToEnemy } from "../entities/enemies.js"
 import { isLandPosition, isSpawnPositionClear, isWaterPosition } from "../utils/spawn-utils.js"
+import { createBomb } from "./bombs.js"
+import { createGrenade } from "./grenades.js"
+import { startPickupReveal } from "../utils/pickup-reveal.js"
 
 // Roof system for wooden boxes and rocks
 let roofAreas = [] // Store detected roof areas
@@ -35,6 +40,11 @@ const OBJECT_SNAP_GAP = 2
 const NON_GRID_SNAP_TILE_GAP = 1
 const NON_GRID_SNAP_SPAN = TILE_SIZE * (NON_GRID_SNAP_TILE_GAP + 1)
 const MIN_PLAYER_SNAP_CLEARANCE = 8
+// A melee swing keeps the hand overlapping the box for several frames, so
+// without this window one punch would register a hit every frame. It is longer
+// than a swing's ~80ms contact window but shorter than the 200ms swing
+// animation, so every distinct swing still lands.
+const WOODEN_BOX_HIT_COOLDOWN = 150
 
 // Generate wooden boxes
 export function generateWoodenBoxes(count) {
@@ -680,13 +690,21 @@ function moveBoxToNearestFreeTile(box, allBoxes, allRocks) {
 
 // Ensure the damageWoodenBox function is properly exported and handles the damage states
 // Apply damage to a wooden box
-export function damageWoodenBox(box, amount = 1) {
+export function damageWoodenBox(box, amount = 1, options = {}) {
   // Skip if box doesn't exist
   if (!box) return false
 
   // Newly spawned trunks should not be destroyed by the same swing that felled
   // the tree. This keeps trunks reliably left behind after chopping.
   if (box.invulnerableUntil && Date.now() < box.invulnerableUntil) {
+    return false
+  }
+
+  // One-shot sources such as explosions and thrown apples opt out, since they
+  // only ever touch the box once.
+  const { ignoreCooldown = false } = options
+
+  if (!ignoreCooldown && box.lastHitTime && Date.now() - box.lastHitTime < WOODEN_BOX_HIT_COOLDOWN) {
     return false
   }
 
@@ -699,6 +717,7 @@ export function damageWoodenBox(box, amount = 1) {
   // If destroyed, remove box and spawn a new one elsewhere
   if (box.hitPoints <= 0) {
     createBoxDestructionEffect(box)
+    spawnCrateExplosiveDrop(box)
 
     // Find and remove the box
     const boxIndex = gameState.woodenBoxes.indexOf(box)
@@ -726,9 +745,37 @@ export function damageWoodenBox(box, amount = 1) {
   return false // Box was damaged but not destroyed
 }
 
+// Crates are the only source of explosives in the world: breaking one can
+// reveal a grenade or, less often, a full bomb.
+function spawnCrateExplosiveDrop(box) {
+  // Trunks are felled trees and glass cubes are player-built, so neither is a
+  // supply crate.
+  if (box.isTrunk || box.isGlassCube) {
+    return
+  }
+
+  const roll = Math.random()
+
+  if (roll < BOX_GRENADE_DROP_CHANCE) {
+    if (!Array.isArray(gameState.grenades)) {
+      gameState.grenades = []
+    }
+
+    gameState.grenades.push(startPickupReveal(createGrenade(box.x, box.y)))
+    return
+  }
+
+  if (roll < BOX_GRENADE_DROP_CHANCE + BOX_BOMB_DROP_CHANCE) {
+    if (!Array.isArray(gameState.bombs)) {
+      gameState.bombs = []
+    }
+
+    gameState.bombs.push(startPickupReveal(createBomb(box.x, box.y)))
+  }
+}
+
 // Create destruction effect when a box is destroyed
-function createBoxDestructionEffect(box) {
-  if (!gameState.boxDestructionEffects) {
+function createBoxDestructionEffect(box) {  if (!gameState.boxDestructionEffects) {
     gameState.boxDestructionEffects = []
   }
 

@@ -773,6 +773,24 @@ body {
   background: #111111;
 }
 
+.weapon-selector-icon.grenade::before {
+  left: 2px;
+  top: 3px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #4a6b33;
+}
+
+.weapon-selector-icon.grenade::after {
+  left: 6px;
+  top: -1px;
+  width: 3px;
+  height: 6px;
+  border-radius: 1px;
+  background: #b9c0c4;
+}
+
 .tool-selector {
   display: flex;
   align-items: center;

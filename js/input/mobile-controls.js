@@ -10,6 +10,7 @@ import { checkCarInteraction, enterCar, exitCar } from "../entities/cars.js" // 
 import { checkBoatInteraction, enterBoat, exitBoat } from "../entities/boats.js"
 import { queueOrDigHoleAtScreenPosition } from "../entities/shovels.js"
 import { tryUseSawOnNearbyTree, tryUseSawOnTreeAtScreenPosition } from "../entities/trees.js"
+import { beginGrenadeCharge, releaseGrenadeThrow, isChargingGrenade, cancelGrenadeCharge } from "../entities/grenades.js"
 
 function getCanvasPointerPosition(clientX, clientY) {
   const canvas = gameState.canvas
@@ -219,6 +220,14 @@ export function handleButtonBStart(e) {
       }
     }
 
+    // Grenades are charged for as long as the button is held, then thrown in
+    // handleButtonBEnd.
+    if (gameState.selectedWeapon === "grenade") {
+      if (beginGrenadeCharge()) {
+        return
+      }
+    }
+
     throwApple()
   }
 }
@@ -272,6 +281,15 @@ export function handleButtonBEnd(e) {
       gameState.buttonBActive = false
       e.target.classList.remove("button-active")
       gameState.touchTracker.buttonBTouchId = null
+
+      if (isChargingGrenade()) {
+        if (gameState.isPaused) {
+          cancelGrenadeCharge()
+        } else {
+          releaseGrenadeThrow()
+        }
+      }
+
       return
     }
   }

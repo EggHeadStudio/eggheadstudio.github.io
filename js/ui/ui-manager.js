@@ -8,6 +8,7 @@ let selectorModalBound = false
 const WEAPON_OPTION_LABELS = {
   wrist: "Wrist",
   apple: "Apple",
+  grenade: "Grenade",
   bomb: "Bomb",
 }
 
@@ -56,6 +57,16 @@ export function updateBombCounter() {
   const bombs = gameState.player?.bombs ?? 0
 
   if (bombs <= 0 && gameState.selectedWeapon === "bomb") {
+    gameState.selectedWeapon = "wrist"
+  }
+
+  updateWeaponSelectionUi()
+}
+
+export function updateGrenadeCounter() {
+  const grenades = gameState.player?.grenades ?? 0
+
+  if (grenades <= 0 && gameState.selectedWeapon === "grenade") {
     gameState.selectedWeapon = "wrist"
   }
 
@@ -158,6 +169,10 @@ function getAvailableWeapons() {
     weapons.push("apple")
   }
 
+  if ((gameState.player?.grenades ?? 0) > 0) {
+    weapons.push("grenade")
+  }
+
   if ((gameState.player?.bombs ?? 0) > 0) {
     weapons.push("bomb")
   }
@@ -245,6 +260,27 @@ function drawModalItemPreview(ctx, type, option, width, height) {
       ctx.beginPath()
       ctx.arc(0, -31, 4, 0, Math.PI * 2)
       ctx.fill()
+    } else if (option === "grenade") {
+      // Green orb body with a metal safety lever on top
+      ctx.fillStyle = "#4a6b33"
+      ctx.beginPath()
+      ctx.arc(0, 6, 16, 0, Math.PI * 2)
+      ctx.fill()
+
+      ctx.fillStyle = "#6f9b4c"
+      ctx.beginPath()
+      ctx.arc(-5, 1, 6, 0, Math.PI * 2)
+      ctx.fill()
+
+      ctx.fillStyle = "#b9c0c4"
+      ctx.fillRect(-5, -14, 10, 8)
+      ctx.fillRect(5, -13, 4, 16)
+
+      ctx.strokeStyle = "#dfe4e6"
+      ctx.lineWidth = 2
+      ctx.beginPath()
+      ctx.arc(-9, -12, 5, 0, Math.PI * 2)
+      ctx.stroke()
     } else {
       // Wrist / empty hand
       ctx.fillStyle = "#aeb6bc"
@@ -433,16 +469,19 @@ function updateWeaponSelectorUi() {
   ensureSelectedWeaponIsAvailable()
   const apples = gameState.player?.apples ?? 0
   const bombs = gameState.player?.bombs ?? 0
+  const grenades = gameState.player?.grenades ?? 0
 
   selector.classList.toggle("selected", gameState.selectedWeapon !== "wrist")
 
-  icon.classList.remove("wrist", "apple", "bomb")
+  icon.classList.remove("wrist", "apple", "bomb", "grenade")
   icon.classList.add(gameState.selectedWeapon)
 
   if (gameState.selectedWeapon === "apple") {
     count.textContent = apples.toString()
   } else if (gameState.selectedWeapon === "bomb") {
     count.textContent = bombs.toString()
+  } else if (gameState.selectedWeapon === "grenade") {
+    count.textContent = grenades.toString()
   } else {
     count.textContent = "-"
   }

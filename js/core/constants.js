@@ -55,7 +55,6 @@ export const CHUNK_BOX_MAX = 3
 export const CHUNK_FLOATING_BOX_MAX = 2 // Crates drifting on open water
 export const CHUNK_APPLE_MIN = 1
 export const CHUNK_APPLE_MAX = 3
-export const CHUNK_BOMB_CHANCE = 0.7
 export const CHUNK_CAR_CHANCE = 0.16
 export const CHUNK_BOAT_CHANCE = 0.55
 export const CHUNK_BOAT_MIN_WATER_TILES = 70 // Only real lakes/seas get boats
@@ -111,8 +110,37 @@ export const ROOF_EMIT_LIGHT_RADIUS = TILE_SIZE
 export const ROOF_EMIT_LIGHT_ALPHA = 0.22
 export const ROOF_PLAYER_LIGHT_RADIUS = TILE_SIZE * 2.5
 export const ROOF_PLAYER_LIGHT_ALPHA = 0.18
-export const BOMB_SIZE = 45
+export const BOMB_SIZE = 28
 export const APPLE_SIZE = 15
+
+// Grenades: a lighter, throwable bomb. The throw is charged by holding the
+// fire button, so the tuning below is expressed in charge time and travel
+// distance rather than a single fixed speed.
+export const GRENADE_SIZE = 16
+export const GRENADE_FUSE_MS = 2000 // Explodes this long after leaving the hand
+export const GRENADE_MAX_CHARGE_MS = 1100 // Hold time that reaches a full-power throw
+export const GRENADE_MIN_THROW_DISTANCE = 55 // A tap barely drops it at the player's feet
+export const GRENADE_MAX_THROW_DISTANCE_SCREENS = 1.15 // Full power lands just past the screen edge
+// Flight frames set the travel time, so a bigger number means a slower, more
+// readable lob rather than a flat bullet.
+export const GRENADE_MIN_FLIGHT_FRAMES = 26
+export const GRENADE_MAX_FLIGHT_FRAMES = 84
+export const GRENADE_MAX_ARC_HEIGHT = 74 // Peak height of a full-power lob, in pixels
+export const GRENADE_COLLIDE_HEIGHT = 20 // Above this height it sails over obstacles
+export const GRENADE_EXPLOSION_RADIUS = 55 // createExplosion doubles this and adds jitter, landing well under a bomb's blast
+// A grenade that drops into water keeps its fuse but sinks out of sight, so it
+// fades and shrinks down to these fractions right as it detonates.
+export const GRENADE_SINK_MIN_SCALE = 0.22
+export const GRENADE_SINK_MIN_ALPHA = 0.12
+// A bomb that ends up in water bobs along like a wooden crate until its
+// countdown runs out.
+export const BOMB_FLOAT_SPEED = 0.35
+// Bombs and grenades are only ever found inside wooden crates.
+export const BOX_BOMB_DROP_CHANCE = 0.16
+export const BOX_GRENADE_DROP_CHANCE = 0.26
+// A crate drop pops into view and stays uncollectable for this long, so the
+// player actually sees what the crate was hiding before it is picked up.
+export const CRATE_DROP_REVEAL_MS = 1100
 export const SLEDGEHAMMER_SIZE = 22
 export const SHOVEL_SIZE = 22
 export const SAW_SIZE = 22
@@ -224,15 +252,11 @@ export const MAX_SAWS = SAW_COUNT
 export const SPAWN_SLEDGEHAMMER_NEAR_PLAYER = true
 export const SPAWN_SHOVEL_NEAR_PLAYER = true
 export const SPAWN_SAW_NEAR_PLAYER = true
-export const INITIAL_BOMB_COUNT = Math.round(25 * WORLD_CONTENT_MULTIPLIER)
-export const MAX_BOMBS = Math.round(35 * WORLD_CONTENT_MULTIPLIER) // Hard cap for bombs in the world
 export const INITIAL_ENEMY_COUNT = INITIAL_RED_ENEMY_COUNT + INITIAL_YELLOW_ENEMY_COUNT
 export const INITIAL_APPLE_COUNT = Math.round(40 * WORLD_CONTENT_MULTIPLIER)
 export const MAX_APPLES = Math.round(80 * WORLD_CONTENT_MULTIPLIER) // Hard cap for apple pickups in the world
 export const APPLE_RESPAWN_THRESHOLD = 20
 export const APPLE_RESPAWN_BATCH = 5
-export const BOMB_RESPAWN_THRESHOLD = 20
-export const BOMB_RESPAWN_BATCH = 2
 export const WOODEN_BOX_RESPAWN_THRESHOLD = 15
 export const WOODEN_BOX_RESPAWN_BATCH = 1
 export const CAR_MAX_HEALTH = 3 // Maximum health of cars

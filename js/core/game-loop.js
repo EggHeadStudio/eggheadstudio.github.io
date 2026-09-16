@@ -15,6 +15,7 @@ import { drawAndUpdateSledgehammers } from "../entities/sledgehammers.js"
 import { drawAndUpdateShovels } from "../entities/shovels.js"
 import { drawAndUpdateSaws } from "../entities/saws.js"
 import { drawAndUpdateBombs } from "../entities/bombs.js"
+import { drawAndUpdateGrenades, drawAndUpdateThrownGrenades, drawGrenadeChargeIndicator } from "../entities/grenades.js"
 import { drawAndUpdateDeathEffects } from "../entities/death-effects.js"
 import { drawAndUpdateExplosions } from "../entities/explosions.js"
 import { drawPlayer } from "../entities/player.js"
@@ -118,6 +119,7 @@ export function update() {
 
   // Draw and update bombs
   drawAndUpdateBombs()
+  drawAndUpdateGrenades()
 
   // Draw and update wooden boxes before vehicles so boats and player render on top
   drawAndUpdateWoodenBoxes({ drawRoofs: false })
@@ -127,6 +129,7 @@ export function update() {
 
   // Draw and update thrown apples
   drawAndUpdateThrownApples()
+  drawAndUpdateThrownGrenades()
 
   // Draw and update explosions
   drawAndUpdateExplosions()
@@ -154,6 +157,8 @@ export function update() {
 
   // Draw world-space post effects and lightweight overlays last
   drawDayNightOverlay()
+  // Screen-space HUD element, so it is drawn after the lighting overlay.
+  drawGrenadeChargeIndicator()
   drawMinimap()
 
   // Continue game loop

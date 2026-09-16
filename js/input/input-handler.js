@@ -10,6 +10,7 @@ import { checkCarInteraction, enterCar, exitCar } from "../entities/cars.js" // 
 import { checkBoatInteraction, enterBoat, exitBoat } from "../entities/boats.js"
 import { queueOrDigHoleAtScreenPosition, isShovelActionLocked } from "../entities/shovels.js"
 import { tryUseSawOnTreeAtScreenPosition } from "../entities/trees.js"
+import { beginGrenadeCharge, releaseGrenadeThrow, isChargingGrenade, cancelGrenadeCharge } from "../entities/grenades.js"
 
 // Set up event listeners for keyboard and mouse
 export function setupEventListeners() {
@@ -28,11 +29,15 @@ export function setupEventListeners() {
   if (window.mouseListenersSet) {
     gameState.canvas.removeEventListener("mousemove", handleMouseMove)
     gameState.canvas.removeEventListener("mousedown", handleMouseDown)
+    window.removeEventListener("mouseup", handleMouseUp)
   }
 
   // Mouse events
   gameState.canvas.addEventListener("mousemove", handleMouseMove)
   gameState.canvas.addEventListener("mousedown", handleMouseDown)
+  // Bound on the window so a throw still fires if the button is released
+  // outside the canvas.
+  window.addEventListener("mouseup", handleMouseUp)
   window.mouseListenersSet = true
 
 }
@@ -172,11 +177,38 @@ export function handleMouseDown(e) {
         }
       }
 
+      // Grenades are charged by holding the button; the throw happens on
+      // release in handleMouseUp.
+      if (gameState.selectedWeapon === "grenade") {
+        if (beginGrenadeCharge()) {
+          return
+        }
+      }
+
       if (!canUseShovelFromBoat) {
         throwApple()
       }
     }
   }
+}
+
+// Handle mouse release
+export function handleMouseUp(e) {
+  if (e.button !== 0) {
+    return
+  }
+
+  if (!isChargingGrenade()) {
+    return
+  }
+
+  // A paused game must not launch the throw that was charged before pausing.
+  if (gameState.isPaused) {
+    cancelGrenadeCharge()
+    return
+  }
+
+  releaseGrenadeThrow()
 }
 
 import { init } from "../core/game.js"

@@ -36,11 +36,15 @@ const TIMESTAMP_KEYS = new Set([
   "createdAt",
   "cycleStartTime",
   "directionChangeTime",
+  "fuseAt",
   "knockbackTime",
   "lastEnemySpawnTime",
   "lastHit",
   "lastHitTime",
   "pauseStartedAt",
+  "pickupAt",
+  "revealedAt",
+  "sinkStartedAt",
   "startTime",
   "throwingApple",
   "throwStartTime",
@@ -128,6 +132,10 @@ export function init(config = gameState.startupConfig) {
   gameState.isInCar = false // Reset car state
   gameState.drivingCar = null // Reset driving car
   gameState.bombs = []
+  gameState.grenades = []
+  gameState.thrownGrenades = []
+  gameState.grenadePins = []
+  gameState.grenadeCharge = null
   gameState.enemies = []
   gameState.apples = []
   gameState.sledgehammers = []
@@ -191,6 +199,7 @@ export function init(config = gameState.startupConfig) {
     y: gameState.canvas.height / 2,
     apples: 0,
     bombs: 0,
+    grenades: 0,
     lastHit: 0,
     direction: 0, // Angle in radians
     isMoving: false,
