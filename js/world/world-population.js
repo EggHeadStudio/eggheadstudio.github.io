@@ -12,6 +12,8 @@ import {
   MAX_APPLES,
   MAX_BOATS,
   MAX_CARS,
+  MAX_TRAILERS,
+  CHUNK_TRAILER_CHANCE,
   MAX_ROCKS,
   MAX_SAWS,
   MAX_SAND_PILES,
@@ -54,6 +56,7 @@ import { createWoodenBox } from "../entities/wooden-boxes.js"
 import { createApple } from "../entities/apples.js"
 import { createCar, canPlaceCarAt } from "../entities/cars.js"
 import { createBoat } from "../entities/boats.js"
+import { createTrailer } from "../entities/trailers.js"
 import { createSledgehammer } from "../entities/sledgehammers.js"
 import { createShovel } from "../entities/shovels.js"
 import { createSaw } from "../entities/saws.js"
@@ -68,6 +71,7 @@ const STREAMED_COLLECTIONS = [
   "sandPiles",
   "cars",
   "boats",
+  "trailers",
   "sledgehammers",
   "shovels",
   "saws",
@@ -362,6 +366,36 @@ function spawnCar(tiles) {
   })
 }
 
+// Trailers are parked loose on land, waiting for a car to back onto them.
+function spawnTrailer(tiles) {
+  if (Math.random() > CHUNK_TRAILER_CHANCE) {
+    return
+  }
+
+  if (!gameState.trailers) {
+    gameState.trailers = []
+  }
+
+  if (gameState.trailers.length >= MAX_TRAILERS) {
+    return
+  }
+
+  tryPlace(tiles.land, (x, y) => {
+    const trailer = createTrailer(x, y)
+
+    if (!isSpawnPositionClear(x, y, trailer.size, { requireLand: true, playerDistanceBuffer: 220 })) {
+      return false
+    }
+
+    if (gameState.trailers.some((other) => getDistance(x, y, other.x, other.y) < trailer.size * 4)) {
+      return false
+    }
+
+    gameState.trailers.push(trailer)
+    return true
+  })
+}
+
 function spawnBoat(tiles) {
   const { water, openWater } = tiles
 
@@ -464,6 +498,7 @@ function populateChunk(key) {
   spawnWoodenBoxes(tiles)
   spawnApples(tiles)
   spawnCar(tiles)
+  spawnTrailer(tiles)
   spawnBoat(tiles)
   spawnTools(tiles)
 

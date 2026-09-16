@@ -1,6 +1,7 @@
 import { gameState } from "../core/game-state.js"
 import { TILE_SIZE, TERRAIN_TYPES } from "../core/constants.js"
 import { getDistance } from "./math-utils.js"
+import { isTrailerBlocking } from "./trailer-collision.js"
 
 function isFloodedHoleTile(tileX, tileY) {
   return Boolean(gameState.dugHoles?.[`${tileX},${tileY}`]?.flooded)
@@ -81,6 +82,10 @@ export function isPlayerPositionClear(x, y, options = {}) {
         return false
       }
     }
+  }
+
+  if (isTrailerBlocking(x, y, player.size * 0.7)) {
+    return false
   }
 
   return true

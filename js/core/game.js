@@ -16,6 +16,7 @@ import { generateSledgehammers } from "../entities/sledgehammers.js"
 import { generateShovels } from "../entities/shovels.js"
 import { generateSaws } from "../entities/saws.js"
 import { generateCars } from "../entities/cars.js" // Import cars generator
+import { generateTrailers } from "../entities/trailers.js"
 import { updateTimer } from "../ui/ui-manager.js"
 import { update } from "./game-loop.js"
 import { gameState } from "./game-state.js"
@@ -228,6 +229,9 @@ export function init(config = gameState.startupConfig) {
 
   // One car parked near the player to get going with
   generateCars(1, true)
+
+  // And a trailer to back onto
+  generateTrailers(1)
 
   // Set up event listeners
   setupEventListeners()

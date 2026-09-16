@@ -199,7 +199,6 @@ Per-color enemy tuning:
 ### Wooden box behavior
 
 - `WOODEN_BOX_SIZE`
-- `WOODEN_BOX_THROW_MULTIPLIER`
 - `WOODEN_BOX_FLOAT_SPEED`
 - `WOODEN_BOX_SNAP_DISTANCE`
 

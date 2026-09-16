@@ -3,7 +3,6 @@ import { gameState } from "../core/game-state.js"
 import {
   WOODEN_BOX_SIZE,
   TILE_SIZE,
-  WOODEN_BOX_THROW_MULTIPLIER,
   WOODEN_BOX_FLOAT_SPEED,
   WOODEN_BOX_SNAP_DISTANCE,
   MAX_WOODEN_BOXES,
@@ -172,59 +171,37 @@ export function releaseWoodenBox() {
   const { player, grabbedWoodenBox, woodenBoxes, terrain, rocks } = gameState
 
   if (grabbedWoodenBox) {
-    const canUseThrownMotion = Boolean(grabbedWoodenBox.isSledgeCube || grabbedWoodenBox.isSledgeSpiked)
+    // Every box, sledge module included, is set down directly in front of the
+    // player. Sledge modules used to be thrown and slide, which made them land
+    // somewhere other than where you were aiming.
+    const placeDistance = player.size + grabbedWoodenBox.size * 0.8
+    const newX = player.x + Math.cos(player.direction) * placeDistance
+    const newY = player.y + Math.sin(player.direction) * placeDistance
 
-    // If throwing, calculate throw parameters
-    if (canUseThrownMotion && (gameState.keys[" "] || gameState.buttonAActive)) {
-      // Space or A button
-      // Calculate position in front of player based on facing direction
-      const throwAngle = player.direction
+    grabbedWoodenBox.x = newX
+    grabbedWoodenBox.y = newY
 
-      // Set the box to be thrown with enhanced throw distance
-      grabbedWoodenBox.isBeingThrown = true
-      grabbedWoodenBox.throwStartTime = Date.now()
-      grabbedWoodenBox.throwVelocityX = Math.cos(throwAngle) * 10 * WOODEN_BOX_THROW_MULTIPLIER
-      grabbedWoodenBox.throwVelocityY = Math.sin(throwAngle) * 10 * WOODEN_BOX_THROW_MULTIPLIER
+    // Check if box is placed on water
+    const tileX = Math.floor(newX / TILE_SIZE)
+    const tileY = Math.floor(newY / TILE_SIZE)
 
-      // Update box position before releasing
-      const throwDistance = player.size * 2
-      const newX = player.x + Math.cos(throwAngle) * throwDistance
-      const newY = player.y + Math.sin(throwAngle) * throwDistance
-
-      grabbedWoodenBox.x = newX
-      grabbedWoodenBox.y = newY
+    if (
+      tileX >= 0 &&
+      tileX < terrain[0].length &&
+      tileY >= 0 &&
+      tileY < terrain.length &&
+      terrain[tileY][tileX] === 0 // TERRAIN_TYPES.WATER
+    ) {
+      grabbedWoodenBox.isFloating = true
+      grabbedWoodenBox.floatAngle = Math.random() * Math.PI * 2
     } else {
-      // Non-sledge items always place directly (no throw-slide), like rocks.
-      // Sledge modules also use this path when throw input is not active.
-      const placeDistance = player.size + grabbedWoodenBox.size * 0.8
-      const newX = player.x + Math.cos(player.direction) * placeDistance
-      const newY = player.y + Math.sin(player.direction) * placeDistance
+      grabbedWoodenBox.isFloating = false
 
-      grabbedWoodenBox.x = newX
-      grabbedWoodenBox.y = newY
-
-      // Check if box is placed on water
-      const tileX = Math.floor(newX / TILE_SIZE)
-      const tileY = Math.floor(newY / TILE_SIZE)
-
-      if (
-        tileX >= 0 &&
-        tileX < terrain[0].length &&
-        tileY >= 0 &&
-        tileY < terrain.length &&
-        terrain[tileY][tileX] === 0 // TERRAIN_TYPES.WATER
-      ) {
-        grabbedWoodenBox.isFloating = true
-        grabbedWoodenBox.floatAngle = Math.random() * Math.PI * 2
-      } else {
-        grabbedWoodenBox.isFloating = false
-
-        if (grabbedWoodenBox.isGlassCube) {
-          grabbedWoodenBox.lightDirection = player.direction
-        }
-
-        settleBoxOnLand(grabbedWoodenBox, woodenBoxes, rocks)
+      if (grabbedWoodenBox.isGlassCube) {
+        grabbedWoodenBox.lightDirection = player.direction
       }
+
+      settleBoxOnLand(grabbedWoodenBox, woodenBoxes, rocks)
     }
 
     woodenBoxes.push(grabbedWoodenBox)

@@ -771,7 +771,9 @@ function nudgePlayerAwayFromSnap(targetX, targetY, snappedObject) {
   }
 }
 
-function drawRockShape(ctx, rock) {
+// Paints a rock around the current origin using rock.size. Exported so trailers
+// can redraw a loaded rock module on their bed.
+export function drawRockShape(ctx, rock) {
   ctx.fillStyle = "#7f8c8d"
 
   if (rock.isHammerShaped) {

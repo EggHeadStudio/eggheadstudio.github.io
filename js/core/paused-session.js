@@ -195,6 +195,7 @@ export function restorePausedGameSessionRuntime() {
       waterDrips: snapshot.waterDrips || [],
       cars: snapshot.cars || [],
       boats: snapshot.boats || [],
+      trailers: snapshot.trailers || [],
       isGrabbing: Boolean(snapshot.isGrabbing),
       grabbedBomb: snapshot.grabbedBomb || null,
       grabbedRock: snapshot.grabbedRock || null,
@@ -225,6 +226,19 @@ export function restorePausedGameSessionRuntime() {
     clearPausedGameSession()
     return false
   }
+}
+
+// A hitched trailer points straight at a live car. Saving that reference would
+// write a second, detached copy of the car, so the link is stored as an index
+// into the cars array and rebuilt by relinkRestoredEntities().
+function createTrailersSnapshot() {
+  const cars = gameState.cars || []
+
+  return (gameState.trailers || []).map((trailer) => ({
+    ...trailer,
+    hitchedTo: null,
+    hitchedCarIndex: trailer.hitchedTo ? cars.indexOf(trailer.hitchedTo) : -1,
+  }))
 }
 
 function createPausedGameSnapshot() {
@@ -277,6 +291,7 @@ function createPausedGameSnapshot() {
     waterDrips: gameState.waterDrips,
     cars: gameState.cars,
     boats: gameState.boats,
+    trailers: createTrailersSnapshot(),
     isGrabbing: gameState.isGrabbing,
     grabbedBomb: gameState.grabbedBomb,
     grabbedRock: gameState.grabbedRock,
@@ -350,6 +365,16 @@ function relinkRestoredEntities() {
       box.isTowedByBoat = boat
       box.towedIndex = index
     })
+  }
+
+  for (const trailer of gameState.trailers || []) {
+    if (!trailer) {
+      continue
+    }
+
+    const carIndex = trailer.hitchedCarIndex
+    trailer.hitchedTo = carIndex >= 0 ? (gameState.cars || [])[carIndex] || null : null
+    delete trailer.hitchedCarIndex
   }
 }
 

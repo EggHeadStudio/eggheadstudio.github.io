@@ -94,6 +94,7 @@ export const gameState = {
   waterDrips: [], // Water drip effects for floating boxes
   cars: [], // Added cars array
   boats: [],
+  trailers: [],
 
   // Interaction state
   isGrabbing: false,

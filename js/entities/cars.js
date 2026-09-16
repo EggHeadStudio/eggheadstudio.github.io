@@ -28,6 +28,11 @@ import {
   CAR_STEER_SENSITIVITY_FALLOFF,
   CAR_LATERAL_DRAG,
   CAR_POWER_OVERSTEER,
+  TRAILER_TOW_SPEED_MULTIPLIER,
+  TRAILER_TOW_ACCELERATION_MULTIPLIER,
+  TRAILER_TOW_DRIFT_FACTOR,
+  TRAILER_TOW_POWER_OVERSTEER,
+  TRAILER_TOW_YAW_DAMPING_MULTIPLIER,
   VEHICLE_WRECK_DESPAWN_DELAY_MS,
 } from "../core/constants.js"
 import {
@@ -42,6 +47,8 @@ import { isSpawnPositionClear } from "../utils/spawn-utils.js"
 import { getRandomLoadedWorldPosition } from "../world/world-manager.js"
 import { isHoleBlockingCarPosition } from "./shovels.js"
 import { isTreeBlocking } from "./trees.js"
+import { tryHitchTrailerToCar, getTrailerFor } from "./trailers.js"
+import { isTrailerBlocking } from "../utils/trailer-collision.js"
 
 // Car constants
 export const CAR_SIZE = CAR_SIZE_CONST
@@ -305,6 +312,20 @@ export function updateCarPosition(car) {
 
   const motion = getCarMotion(car);
 
+  // Reversing onto a trailer's tow eye picks it up.
+  if (throttleInput < 0) {
+    tryHitchTrailerToCar(car);
+  }
+
+  // A loaded trailer makes the car heavier and far less willing to step out:
+  // pushing DRIFT_FACTOR towards 1 hands the rear tyres their grip back.
+  const towing = Boolean(getTrailerFor(car));
+  const towSpeedMultiplier = towing ? TRAILER_TOW_SPEED_MULTIPLIER : 1;
+  const towAccelerationMultiplier = towing ? TRAILER_TOW_ACCELERATION_MULTIPLIER : 1;
+  const towDriftFactor = towing ? TRAILER_TOW_DRIFT_FACTOR : CAR_DRIFT_FACTOR;
+  const towPowerOversteer = towing ? TRAILER_TOW_POWER_OVERSTEER : CAR_POWER_OVERSTEER;
+  const towYawDamping = towing ? CAR_YAW_DAMPING * TRAILER_TOW_YAW_DAMPING_MULTIPLIER : CAR_YAW_DAMPING;
+
   // While nearly stopped, keep the car nose aligned with player facing so
   // forward or reverse can instantly steer out of stuck situations.
   const standstillSpeed = Math.hypot(motion.longitudinalSpeed, motion.lateralSpeed);
@@ -332,8 +353,8 @@ export function updateCarPosition(car) {
     motion,
     { throttle: throttleInput, steer: steerInput },
     {
-      maxSpeed: CAR_MAX_SPEED * roadSpeedMultiplier,
-      acceleration: CAR_ACCELERATION,
+      maxSpeed: CAR_MAX_SPEED * roadSpeedMultiplier * towSpeedMultiplier,
+      acceleration: CAR_ACCELERATION * towAccelerationMultiplier,
       braking: CAR_DECELERATION,
       maxSteerAngle: CAR_MAX_STEER_ANGLE,
       steerSpeed: CAR_STEER_SPEED,
@@ -344,10 +365,10 @@ export function updateCarPosition(car) {
       rearGrip: CAR_REAR_GRIP,
       frontStiffness: CAR_FRONT_CORNERING_STIFFNESS,
       rearStiffness: CAR_REAR_CORNERING_STIFFNESS,
-      driftFactor: CAR_DRIFT_FACTOR,
-      powerOversteer: CAR_POWER_OVERSTEER,
+      driftFactor: towDriftFactor,
+      powerOversteer: towPowerOversteer,
       lateralDrag: CAR_LATERAL_DRAG,
-      yawDamping: CAR_YAW_DAMPING,
+      yawDamping: towYawDamping,
       steerSpeedSensitivity: CAR_STEER_SENSITIVITY_FALLOFF,
     }
   );
@@ -583,6 +604,12 @@ function isValidPositionForMovingCar(x, y, tileX, tileY, car) {
 
   // Trees block cars by trunk collision so vehicles cannot pass through forests.
   if (isTreeBlocking(x, y, car.size * 0.22)) {
+    return false;
+  }
+
+  // Trailers are solid to a car, except the one it is towing: that one is held
+  // on the tow ball on purpose and colliding with it would lock the car up.
+  if (isTrailerBlocking(x, y, car.size * 0.5, { ignoreTrailer: getTrailerFor(car) })) {
     return false;
   }
   

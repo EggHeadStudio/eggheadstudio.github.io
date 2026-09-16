@@ -8,6 +8,7 @@ import { tryGrabWoodenBox, releaseWoodenBox } from "../entities/wooden-boxes.js"
 import { tryGrabEnemy, releaseEnemy } from "../entities/enemies.js"
 import { checkCarInteraction, enterCar, exitCar } from "../entities/cars.js" // Import car interaction functions
 import { checkBoatInteraction, enterBoat, exitBoat } from "../entities/boats.js"
+import { tryTrailerInteraction } from "../entities/trailers.js"
 import { queueOrDigHoleAtScreenPosition, isShovelActionLocked } from "../entities/shovels.js"
 import { tryUseSawOnTreeAtScreenPosition } from "../entities/trees.js"
 import { beginGrenadeCharge, releaseGrenadeThrow, isChargingGrenade, cancelGrenadeCharge } from "../entities/grenades.js"
@@ -82,6 +83,10 @@ export function handleKeyDown(e) {
         const nearBoat = checkBoatInteraction()
         if (nearBoat) {
           enterBoat(nearBoat)
+          e.preventDefault()
+          return
+        } else if (!gameState.isGrabbing && tryTrailerInteraction()) {
+          // Unload a trailer, or drop an empty one off its car.
           e.preventDefault()
           return
         } else if (!gameState.isGrabbing && placeSelectedBomb()) {

@@ -10,6 +10,7 @@ import { drawAndUpdateSandPiles } from "../entities/sand-piles.js"
 import { drawAndUpdateWoodenBoxes, drawWoodenBoxRoofs } from "../entities/wooden-boxes.js" // Import wooden boxes update
 import { drawAndUpdateCars } from "../entities/cars.js" // Import cars update
 import { drawAndUpdateBoats } from "../entities/boats.js"
+import { drawAndUpdateTrailers } from "../entities/trailers.js"
 import { drawAndUpdateApples, drawAndUpdateThrownApples } from "../entities/apples.js"
 import { drawAndUpdateSledgehammers } from "../entities/sledgehammers.js"
 import { drawAndUpdateShovels } from "../entities/shovels.js"
@@ -134,8 +135,10 @@ export function update() {
   // Draw and update explosions
   drawAndUpdateExplosions()
 
-  // Draw and update cars (draw before player if player is in a car)
+  // Draw and update cars (draw before player if player is in a car). Trailers
+  // go first so the towing car overlaps the drawbar rather than the other way.
   if (gameState.isInCar) {
+    drawAndUpdateTrailers()
     drawAndUpdateCars()
     drawAndUpdateBoats()
     drawBrokenRaftEnemies()
@@ -144,6 +147,7 @@ export function update() {
     // Draw player
     drawPlayer()
     // Draw and update cars (draw after player if player is not in a car)
+    drawAndUpdateTrailers()
     drawAndUpdateCars()
     drawAndUpdateBoats()
     drawBrokenRaftEnemies()

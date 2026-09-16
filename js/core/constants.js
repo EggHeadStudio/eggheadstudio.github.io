@@ -212,7 +212,6 @@ export const ROCK_RUBBLE_RADIUS = 40 // Radius of each rubble patch
 export const WOODEN_BOX_SIZE = 45 // Size of wooden boxes
 export const WOODEN_BOX_COUNT = Math.round(120 * WORLD_CONTENT_MULTIPLIER) // Initial number of wooden boxes
 export const MAX_WOODEN_BOXES = Math.round(180 * WORLD_CONTENT_MULTIPLIER) // Hard cap for crates and trunks in the world
-export const WOODEN_BOX_THROW_MULTIPLIER = 0.3 // Reduced from 2 to 0.3 (4x reduction)
 export const WOODEN_BOX_FLOAT_SPEED = 0.5 // How fast boxes float in water
 export const WOODEN_BOX_SNAP_DISTANCE = 60 // Distance for boxes to snap to each other
 export const SAND_PILE_SIZE = 34
@@ -279,6 +278,35 @@ export const CAR_YAW_DAMPING = 0.2 // Bleeds off rotation so a slide settles ins
 export const CAR_STEER_SENSITIVITY_FALLOFF = 0.5 // How much the usable steering range shrinks at speed
 export const CAR_LATERAL_DRAG = 0.03 // Scrubbing tyres bleed sideways speed
 export const CAR_POWER_OVERSTEER = 0.55 // How much throttle steals from rear grip (friction circle)
+
+// --- Trailers ----------------------------------------------------------------
+// A trailer is a passive four-wheeled flatbed. It is hitched by reversing a car
+// onto its tow eye and then follows the car like a train wagon.
+export const TRAILER_SIZE = 92 // A bit longer than a car (CAR_SIZE is 70)
+export const MAX_TRAILERS = Math.round(6 * WORLD_CONTENT_MULTIPLIER)
+export const CHUNK_TRAILER_CHANCE = 0.18
+export const TRAILER_CARGO_CAPACITY = 15 // Sledge modules, trunks and crates
+export const TRAILER_INTERACTION_RANGE = 78 // On-foot range for unload/disconnect
+export const TRAILER_HITCH_RANGE = 46 // How close the car's tow ball must get to the eye
+// Deck footprint as a fraction of TRAILER_SIZE. Drawing and collision share
+// these, so the solid box always matches what you can see.
+export const TRAILER_BODY_LENGTH = 1.15
+export const TRAILER_BODY_WIDTH = 0.72
+// The tow eye sticks out this far in front of the bed CENTRE, so the difference
+// between this and half the body length is the drawbar gap that keeps the
+// trailer clear of the car's rear bumper.
+export const TRAILER_TONGUE_REACH = 1.0
+export const TRAILER_DETACH_BOUNCE_SPEED = 3.4 // Shove given to a trailer as it drops off
+// Loaded items keep their real size and pile up in layers, lifted this many
+// screen pixels per layer so the stack reads as height.
+export const TRAILER_CARGO_STACK_LIFT = 6
+// Towing penalties applied to the car while a trailer is attached. DRIFT_FACTOR
+// scales rear grip, so pushing it up towards 1 is what kills the drift.
+export const TRAILER_TOW_SPEED_MULTIPLIER = 0.76
+export const TRAILER_TOW_ACCELERATION_MULTIPLIER = 0.7
+export const TRAILER_TOW_DRIFT_FACTOR = 0.95
+export const TRAILER_TOW_POWER_OVERSTEER = 0.16
+export const TRAILER_TOW_YAW_DAMPING_MULTIPLIER = 1.8
 
 // --- Boat handling -----------------------------------------------------------
 // Boats steer from a rudder at the STERN and have very little sideways grip,

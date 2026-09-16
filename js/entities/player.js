@@ -18,6 +18,7 @@ import { damageBoat } from "../entities/boats.js"
 import { createDeathEffect, DEATH_EFFECT_DURATION } from "./death-effects.js"
 import { isWaterLikeTile, isHoleTile, isHoleFlooded } from "./shovels.js"
 import { movePlayerToNearestSafePosition } from "../utils/player-position-utils.js"
+import { isTrailerBlocking, getTrailerContaining } from "../utils/trailer-collision.js"
 
 // Animation constants
 const HAND_SIZE = 11
@@ -309,6 +310,16 @@ export function updatePlayerPosition() {
     }
   }
 
+  // A towed trailer can be dragged straight over someone standing still, which
+  // would otherwise leave them walled in on every side. Shove them back out.
+  if (!gameState.isInCar) {
+    const overlappingTrailer = getTrailerContaining(player.x, player.y, player.size * 0.7)
+
+    if (overlappingTrailer && movePlayerToNearestSafePosition(player.x, player.y, overlappingTrailer.x, overlappingTrailer.y)) {
+      updateGrabbedObjectPosition()
+    }
+  }
+
   // Check terrain
   if (tileX >= 0 && tileX < terrain[0].length && tileY >= 0 && tileY < terrain.length) {
     if (isWaterLikeTile(tileX, tileY)) {
@@ -360,6 +371,12 @@ export function updatePlayerPosition() {
         break
       }
     }
+  }
+
+  // The trailer deck is a solid rectangle, so you walk around it rather than
+  // straight through the middle of it.
+  if (canMove && !gameState.isInCar && isTrailerBlocking(newX, newY, player.size * 0.7)) {
+    canMove = false
   }
 
   // Standing trees block movement (collision is on the trunk, not the canopy)
