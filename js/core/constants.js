@@ -27,12 +27,15 @@ export const WORLD_RIVER_SCALE = 420 // Length/width of river systems
 export const WORLD_RIVER_WIDTH = 0.02 // Set to 0 to remove rivers entirely
 export const WORLD_RIVER_MAX_ELEVATION = 0.24 // Rivers stop before high ground
 export const WORLD_ROAD_SPACING = 160 // Distance between the major cross-country roads
-export const WORLD_ROAD_BEND_SCALE = 180 // Bigger = straighter roads, lower = more wandering
-export const WORLD_ROAD_BEND_AMOUNT = 18 // Side-to-side drift of the road centre line in tiles
-export const WORLD_ROAD_CURVE_SCALE = 320 // Low-frequency warp that bends the whole road network into smooth arcs
-export const WORLD_ROAD_CURVE_AMOUNT = 34 // How far those broad curves can pull the roads in tiles
-export const WORLD_ROAD_HALF_WIDTH_TILES = 2 // Full width = 4 tiles when tested from tile centers
-export const WORLD_ROAD_WATER_BUFFER_TILES = 1 // Keep roads one tile away from water/shore
+// A road centre line is offset from its base grid line by the two waves below.
+// Their combined amplitude MUST stay under WORLD_ROAD_SPACING / 2, otherwise
+// neighbouring roads would swing into each other and merge into open tarmac.
+export const WORLD_ROAD_BEND_SCALE = 110 // Wavelength of the short local curves
+export const WORLD_ROAD_BEND_AMOUNT = 26 // Amplitude of those local curves, in tiles
+export const WORLD_ROAD_CURVE_SCALE = 520 // Wavelength of the long sweeping arcs
+export const WORLD_ROAD_CURVE_AMOUNT = 46 // Amplitude of those long arcs, in tiles
+export const WORLD_ROAD_HALF_WIDTH_TILES = 3 // Full width = 6 tiles when measured from tile centres
+export const WORLD_ROAD_BRIDGE_MAX_TILES = 14 // Longest water gap a road spans; wider water ends the road
 export const WORLD_MOISTURE_SCALE = 140 // Size of forest regions
 export const WORLD_FOREST_LEVEL = 0.52 // Above this moisture is forest
 export const WORLD_GRAVEL_SCALE = 110 // Size of gravel fields

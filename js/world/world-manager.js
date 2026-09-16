@@ -26,7 +26,7 @@ import {
   WORLD_ROAD_CURVE_SCALE,
   WORLD_ROAD_CURVE_AMOUNT,
   WORLD_ROAD_HALF_WIDTH_TILES,
-  WORLD_ROAD_WATER_BUFFER_TILES,
+  WORLD_ROAD_BRIDGE_MAX_TILES,
   WORLD_MOISTURE_SCALE,
   WORLD_FOREST_LEVEL,
   WORLD_GRAVEL_SCALE,
@@ -163,32 +163,41 @@ function isRiverTile(tileX, tileY, elevation, seed) {
   return 1 - Math.abs(river * 2 - 1) > 1 - WORLD_RIVER_WIDTH
 }
 
-function getRoadAxisCenter(axisIndex, alongAxisCoordinate, seedOffset) {
+// A road centre line is a smooth offset from an evenly spaced base line.
+//
+// The previous version warped the whole coordinate space instead, which bent
+// the roads but also distorted the distance metric, so the measured width
+// drifted from tile to tile. Offsetting the centre line keeps the width exact
+// while still allowing long curves.
+function getRoadAxisCenter(axisIndex, alongAxisCoordinate, seedOffset, seed) {
   const baseCenter = axisIndex * WORLD_ROAD_SPACING + WORLD_ROAD_SPACING / 2
-  const drift = (valueNoise(axisIndex * 0.37 + seedOffset, alongAxisCoordinate / WORLD_ROAD_BEND_SCALE, getWorldMap().seed + seedOffset) - 0.5) * 2
-  return baseCenter + drift * WORLD_ROAD_BEND_AMOUNT
+  const sweep = valueNoise(axisIndex * 3.7 + seedOffset, alongAxisCoordinate / WORLD_ROAD_CURVE_SCALE, seed + seedOffset) - 0.5
+  const bend = valueNoise(axisIndex * 5.1 + seedOffset, alongAxisCoordinate / WORLD_ROAD_BEND_SCALE, seed + seedOffset + 991) - 0.5
+
+  return baseCenter + sweep * 2 * WORLD_ROAD_CURVE_AMOUNT + bend * 2 * WORLD_ROAD_BEND_AMOUNT
 }
 
-function getDistanceToRoadAxis(coordinate, alongAxisCoordinate, seedOffset) {
+// Only the neighbouring axes can ever be the closest one, because the centre
+// line offset is kept below half the spacing.
+function getDistanceToRoadAxis(coordinate, alongAxisCoordinate, seedOffset, seed) {
   const axisIndex = Math.floor(coordinate / WORLD_ROAD_SPACING)
   let minDistance = Infinity
 
   for (let index = axisIndex - 1; index <= axisIndex + 1; index++) {
-    const center = getRoadAxisCenter(index, alongAxisCoordinate, seedOffset)
+    const center = getRoadAxisCenter(index, alongAxisCoordinate, seedOffset, seed)
     minDistance = Math.min(minDistance, Math.abs(coordinate - center))
   }
 
   return minDistance
 }
 
-function getRoadWarpedCoordinates(tileX, tileY, seed) {
-  const warpedX = tileX + (fractalNoise(tileX / WORLD_ROAD_CURVE_SCALE, tileY / WORLD_ROAD_CURVE_SCALE, seed + 15001, 2) - 0.5) * 2 * WORLD_ROAD_CURVE_AMOUNT
-  const warpedY = tileY + (fractalNoise(tileX / WORLD_ROAD_CURVE_SCALE, tileY / WORLD_ROAD_CURVE_SCALE, seed + 17011, 2) - 0.5) * 2 * WORLD_ROAD_CURVE_AMOUNT
+function isProceduralWaterTile(tileX, tileY, seed) {
+  const worldMap = getWorldMap()
 
-  return { x: warpedX, y: warpedY }
-}
+  if (tileX < 0 || tileY < 0 || tileX >= worldMap.mapSize || tileY >= worldMap.mapSize) {
+    return true
+  }
 
-function isWaterLikeProceduralTile(tileX, tileY, seed) {
   const elevation = fractalNoise(
     tileX / WORLD_ELEVATION_SCALE,
     tileY / WORLD_ELEVATION_SCALE,
@@ -196,27 +205,53 @@ function isWaterLikeProceduralTile(tileX, tileY, seed) {
     WORLD_ELEVATION_OCTAVES,
   )
 
-  return elevation < WORLD_WATER_LEVEL + WORLD_SHORE_BAND * 0.35 || isRiverTile(tileX, tileY, elevation, seed)
+  return elevation < WORLD_WATER_LEVEL || isRiverTile(tileX, tileY, elevation, seed)
+}
+
+// Rivers and narrow inlets are carried on a causeway so a road stays followable,
+// but a real sea has to stay uncrossable, so the gap is only spanned when dry
+// land is close on both sides along the direction the road is running.
+function canBridgeWaterGap(tileX, tileY, stepX, stepY, seed) {
+  let hasLandAhead = false
+
+  for (let step = 1; step <= WORLD_ROAD_BRIDGE_MAX_TILES; step++) {
+    if (!isProceduralWaterTile(tileX + stepX * step, tileY + stepY * step, seed)) {
+      hasLandAhead = true
+      break
+    }
+  }
+
+  if (!hasLandAhead) {
+    return false
+  }
+
+  for (let step = 1; step <= WORLD_ROAD_BRIDGE_MAX_TILES; step++) {
+    if (!isProceduralWaterTile(tileX - stepX * step, tileY - stepY * step, seed)) {
+      return true
+    }
+  }
+
+  return false
 }
 
 function isRoadTileCandidate(tileX, tileY, seed) {
-  const warped = getRoadWarpedCoordinates(tileX + 0.5, tileY + 0.5, seed)
-  const verticalDistance = getDistanceToRoadAxis(warped.x, warped.y, 9101)
-  const horizontalDistance = getDistanceToRoadAxis(warped.y, warped.x, 12347)
+  // Measuring from the tile centre is what makes the road come out exactly
+  // WORLD_ROAD_HALF_WIDTH_TILES * 2 tiles wide.
+  const centerX = tileX + 0.5
+  const centerY = tileY + 0.5
+  const verticalDistance = getDistanceToRoadAxis(centerX, centerY, 9101, seed)
+  const horizontalDistance = getDistanceToRoadAxis(centerY, centerX, 12347, seed)
 
   if (verticalDistance >= WORLD_ROAD_HALF_WIDTH_TILES && horizontalDistance >= WORLD_ROAD_HALF_WIDTH_TILES) {
     return false
   }
 
-  for (let offsetY = -WORLD_ROAD_WATER_BUFFER_TILES; offsetY <= WORLD_ROAD_WATER_BUFFER_TILES; offsetY++) {
-    for (let offsetX = -WORLD_ROAD_WATER_BUFFER_TILES; offsetX <= WORLD_ROAD_WATER_BUFFER_TILES; offsetX++) {
-      if (isWaterLikeProceduralTile(tileX + offsetX, tileY + offsetY, seed)) {
-        return false
-      }
-    }
+  if (!isProceduralWaterTile(tileX, tileY, seed)) {
+    return true
   }
 
-  return true
+  const runsVertically = verticalDistance <= horizontalDistance
+  return canBridgeWaterGap(tileX, tileY, runsVertically ? 0 : 1, runsVertically ? 1 : 0, seed)
 }
 
 function getProceduralTerrainType(tileX, tileY) {
@@ -234,6 +269,12 @@ function getProceduralTerrainType(tileX, tileY) {
     WORLD_ELEVATION_OCTAVES,
   )
 
+  // Roads are resolved first so a causeway can be laid over a narrow river
+  // instead of that tile being claimed as water and cutting the network.
+  if (isRoadTileCandidate(tileX, tileY, seed)) {
+    return TERRAIN_TYPES.ROAD
+  }
+
   if (elevation < WORLD_WATER_LEVEL || isRiverTile(tileX, tileY, elevation, seed)) {
     return TERRAIN_TYPES.WATER
   }
@@ -242,10 +283,6 @@ function getProceduralTerrainType(tileX, tileY) {
   // it borders.
   if (elevation < WORLD_WATER_LEVEL + WORLD_SHORE_BAND) {
     return TERRAIN_TYPES.SAND
-  }
-
-  if (isRoadTileCandidate(tileX, tileY, seed)) {
-    return TERRAIN_TYPES.ROAD
   }
 
   const gravel = fractalNoise(tileX / WORLD_GRAVEL_SCALE, tileY / WORLD_GRAVEL_SCALE, seed + 3301, 2)

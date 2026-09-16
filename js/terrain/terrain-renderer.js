@@ -42,7 +42,9 @@ const TERRAIN_BLEND_PRIORITY = {
   1: 3,
   2: 4,
   5: 5,
-  6: 6,
+  // Roads sit low so the surrounding ground blends inwards over the tarmac,
+  // instead of the road bleeding outwards and losing its built shape.
+  6: 0.5,
 }
 
 function getTileVariant(tileX, tileY) {
@@ -115,10 +117,6 @@ function getTerrainTypeAt(tileX, tileY) {
 
 function shouldBlendTerrainIntoTile(sourceTerrainType, targetTerrainType) {
   if (sourceTerrainType == null || targetTerrainType == null || sourceTerrainType === targetTerrainType) {
-    return false
-  }
-
-  if (sourceTerrainType === TERRAIN_TYPES.ROAD || targetTerrainType === TERRAIN_TYPES.ROAD) {
     return false
   }
 
