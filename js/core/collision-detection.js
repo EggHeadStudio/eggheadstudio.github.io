@@ -4,6 +4,7 @@ import { getDistance } from "../utils/math-utils.js"
 import { damageCar } from "../entities/cars.js"
 import { damageBoat } from "../entities/boats.js"
 import { damageEnemy } from "../entities/enemies.js"
+import { markEnemyAttack } from "../entities/enemies.js"
 import { damagePlayer } from "../entities/player.js"
 import { triggerGameOver } from "./game.js"
 
@@ -50,6 +51,10 @@ export function checkCollisions() {
       // Normal player collision with enemy
       if (distance < player.size + enemy.size) {
         const didDamage = damagePlayer(1)
+
+        if (didDamage) {
+          markEnemyAttack(enemy)
+        }
 
         if (didDamage && player.health <= 0) {
           triggerGameOver()
@@ -112,6 +117,10 @@ export function handleEnemyCollisions() {
         }
       } else {
         const didDamage = damagePlayer(1)
+
+        if (didDamage) {
+          markEnemyAttack(enemy)
+        }
 
         if (didDamage && player.health <= 0) {
           triggerGameOver()

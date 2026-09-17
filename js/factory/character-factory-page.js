@@ -7,6 +7,7 @@ import {
   getSpecialCharacterConfig,
 } from "../entities/character-factory.js"
 import { drawCharacterPreview } from "../entities/player.js"
+import { ENEMY_TYPE_DEFINITIONS } from "../core/constants.js"
 
 const HAIR_STYLE_OPTIONS = ["none", "mohawk", "long", "ultraLong", "short", "bob", "curly", "bun"]
 
@@ -52,11 +53,30 @@ const PARAM_SCHEMA = [
   { key: "beardColor", label: "Beard Color", type: "color", defaultValue: "#554535" },
 ]
 
+const ENEMY_STATS_SCHEMA = [
+  { key: "health", inputId: "enemyHealth", min: 1, max: 40, step: 1, defaultValue: 5 },
+  { key: "speed", inputId: "enemySpeed", min: 0.1, max: 10, step: 0.01, defaultValue: 2 },
+  { key: "chaseSpeed", inputId: "enemyChaseSpeed", min: 0.1, max: 12, step: 0.01, defaultValue: 3 },
+  { key: "swimSpeed", inputId: "enemySwimSpeed", min: 0.1, max: 12, step: 0.01, defaultValue: 2 },
+]
+
+const ENEMY_CUSTOMIZATION_KEYS = PARAM_SCHEMA.map((schema) => schema.key).filter(
+  (key) => !["size", "health", "speed", "color"].includes(key),
+)
+
 const ui = {
+  buildTarget: document.getElementById("buildTarget"),
   templateType: document.getElementById("templateType"),
   characterKey: document.getElementById("characterKey"),
   displayLabel: document.getElementById("displayLabel"),
   addToSelectable: document.getElementById("addToSelectable"),
+  enemyFields: document.getElementById("enemyFields"),
+  enemyTypeKey: document.getElementById("enemyTypeKey"),
+  enemyLabel: document.getElementById("enemyLabel"),
+  enemyHealth: document.getElementById("enemyHealth"),
+  enemySpeed: document.getElementById("enemySpeed"),
+  enemyChaseSpeed: document.getElementById("enemyChaseSpeed"),
+  enemySwimSpeed: document.getElementById("enemySwimSpeed"),
   isSpecialHero: document.getElementById("isSpecialHero"),
   specialFields: document.getElementById("specialFields"),
   specialHeroId: document.getElementById("specialHeroId"),
@@ -79,10 +99,19 @@ const ui = {
 }
 
 const state = {
+  buildTarget: "character",
   templateType: "default",
   characterKey: "newHero",
   displayLabel: "New Hero",
   addToSelectable: false,
+  enemyTypeKey: "red",
+  enemyLabel: "Red Enemy",
+  enemyStats: {
+    health: 5,
+    speed: 2,
+    chaseSpeed: 3,
+    swimSpeed: 2,
+  },
   isSpecialHero: false,
   special: {
     heroId: "newhero",
@@ -101,7 +130,7 @@ function init() {
   populateTemplateOptions()
   bindMetaFields()
   buildParameterControls()
-  loadTemplate("default")
+  loadBuildTarget("character")
   bindCopyButton()
   bindJsonDraftTools()
   startPreviewLoop()
@@ -137,14 +166,98 @@ function getNormalizedPropertiesFromTemplate(type) {
   return resolved
 }
 
+function getEnemyTypeKeys() {
+  return Object.keys(ENEMY_TYPE_DEFINITIONS)
+}
+
+function getEnemyDefinition(type) {
+  return ENEMY_TYPE_DEFINITIONS[type] || null
+}
+
+function getNormalizedEnemyStats(config = {}) {
+  const resolved = {}
+
+  for (const schema of ENEMY_STATS_SCHEMA) {
+    const incomingValue = Number(config[schema.key])
+    const fallback = schema.defaultValue
+    const value = Number.isFinite(incomingValue) ? incomingValue : fallback
+    resolved[schema.key] = Math.max(schema.min, Math.min(schema.max, value))
+  }
+
+  return resolved
+}
+
+function loadEnemyType(typeKey) {
+  const knownTypes = getEnemyTypeKeys()
+  const resolvedType = knownTypes.includes(typeKey) ? typeKey : knownTypes[0] || "newEnemy"
+  const enemyDefinition = getEnemyDefinition(resolvedType)
+
+  state.enemyTypeKey = sanitizeKey(resolvedType)
+  state.enemyLabel = `${resolvedType.charAt(0).toUpperCase()}${resolvedType.slice(1)} Enemy`
+
+  if (!enemyDefinition) {
+    state.templateType = "default"
+    state.enemyStats = getNormalizedEnemyStats()
+    state.properties = getNormalizedPropertiesFromTemplate("default")
+    syncEnemyInputsFromState()
+    syncPropertyInputsFromState()
+    updateOutput()
+    return
+  }
+
+  const enemyAppearance = enemyDefinition.appearance || {}
+  const characterTemplate = enemyAppearance.characterType || "default"
+  const customization = enemyAppearance.customization || {}
+
+  state.templateType = characterTemplate
+  state.enemyStats = getNormalizedEnemyStats(enemyDefinition)
+
+  const templateProps = getNormalizedPropertiesFromTemplate(characterTemplate)
+  state.properties = {
+    ...templateProps,
+    ...customization,
+    size: enemyDefinition.size,
+    color: enemyDefinition.color,
+    health: enemyDefinition.health,
+    speed: enemyDefinition.speed,
+  }
+
+  ui.templateType.value = state.templateType
+  syncEnemyInputsFromState()
+  syncPropertyInputsFromState()
+  updateOutput()
+}
+
+function loadBuildTarget(target) {
+  state.buildTarget = target === "enemy" ? "enemy" : "character"
+  ui.buildTarget.value = state.buildTarget
+  ui.enemyFields.classList.toggle("hidden", state.buildTarget !== "enemy")
+  ui.specialFields.classList.toggle("hidden", !state.isSpecialHero || state.buildTarget !== "character")
+
+  if (state.buildTarget === "enemy") {
+    loadEnemyType(state.enemyTypeKey)
+    return
+  }
+
+  loadTemplate(state.templateType)
+}
+
 function loadTemplate(type) {
   state.templateType = type
   state.properties = getNormalizedPropertiesFromTemplate(type)
+  if (state.buildTarget === "enemy") {
+    state.properties.health = state.enemyStats.health
+    state.properties.speed = state.enemyStats.speed
+  }
   syncPropertyInputsFromState()
   updateOutput()
 }
 
 function bindMetaFields() {
+  ui.buildTarget.addEventListener("change", (event) => {
+    loadBuildTarget(event.target.value)
+  })
+
   ui.templateType.addEventListener("change", (event) => {
     loadTemplate(event.target.value)
   })
@@ -170,9 +283,39 @@ function bindMetaFields() {
     updateOutput()
   })
 
+  ui.enemyTypeKey.addEventListener("input", (event) => {
+    state.enemyTypeKey = sanitizeKey(event.target.value)
+    event.target.value = state.enemyTypeKey
+    updateOutput()
+  })
+
+  ui.enemyLabel.addEventListener("input", (event) => {
+    state.enemyLabel = String(event.target.value || "")
+    updateOutput()
+  })
+
+  for (const schema of ENEMY_STATS_SCHEMA) {
+    const input = ui[schema.inputId]
+    if (!input) {
+      continue
+    }
+
+    input.addEventListener("input", () => {
+      const incoming = Number(input.value)
+      const safeValue = Number.isFinite(incoming) ? incoming : schema.defaultValue
+      const clamped = Math.max(schema.min, Math.min(schema.max, safeValue))
+      state.enemyStats[schema.key] = clamped
+      if (schema.key === "health" || schema.key === "speed") {
+        state.properties[schema.key] = clamped
+        syncPropertyInputsFromState()
+      }
+      updateOutput()
+    })
+  }
+
   ui.isSpecialHero.addEventListener("change", (event) => {
     state.isSpecialHero = event.target.checked
-    ui.specialFields.classList.toggle("hidden", !state.isSpecialHero)
+    ui.specialFields.classList.toggle("hidden", !state.isSpecialHero || state.buildTarget !== "character")
     updateOutput()
   })
 
@@ -217,11 +360,26 @@ function bindMetaFields() {
   })
 
   syncMetaOutputFields()
+  syncEnemyInputsFromState()
 }
 
 function syncMetaOutputFields() {
   ui.characterKey.value = state.characterKey
   ui.displayLabel.value = state.displayLabel
+}
+
+function syncEnemyInputsFromState() {
+  ui.enemyTypeKey.value = state.enemyTypeKey
+  ui.enemyLabel.value = state.enemyLabel
+
+  for (const schema of ENEMY_STATS_SCHEMA) {
+    const input = ui[schema.inputId]
+    if (!input) {
+      continue
+    }
+
+    input.value = String(state.enemyStats[schema.key])
+  }
 }
 
 function sanitizeKey(value) {
@@ -458,10 +616,19 @@ function buildDraftObject() {
 
   return {
     version: 1,
+    buildTarget: state.buildTarget,
     templateType: state.templateType,
     characterKey: sanitizeKey(state.characterKey),
     displayLabel: state.displayLabel,
     addToSelectable: state.addToSelectable,
+    enemyTypeKey: sanitizeKey(state.enemyTypeKey),
+    enemyLabel: state.enemyLabel,
+    enemyStats: {
+      health: state.enemyStats.health,
+      speed: state.enemyStats.speed,
+      chaseSpeed: state.enemyStats.chaseSpeed,
+      swimSpeed: state.enemyStats.swimSpeed,
+    },
     isSpecialHero: state.isSpecialHero,
     special: {
       heroId: sanitizeKey(state.special.heroId),
@@ -497,10 +664,14 @@ function applyDraftObject(draft) {
   const availableTypes = new Set(getAvailableCharacterTypes())
   const resolvedTemplate = availableTypes.has(draft?.templateType) ? draft.templateType : "default"
 
+  state.buildTarget = draft?.buildTarget === "enemy" ? "enemy" : "character"
   state.templateType = resolvedTemplate
   state.characterKey = sanitizeKey(draft?.characterKey)
   state.displayLabel = String(draft?.displayLabel ?? state.displayLabel)
   state.addToSelectable = Boolean(draft?.addToSelectable)
+  state.enemyTypeKey = sanitizeKey(draft?.enemyTypeKey ?? state.enemyTypeKey)
+  state.enemyLabel = String(draft?.enemyLabel ?? state.enemyLabel)
+  state.enemyStats = getNormalizedEnemyStats(draft?.enemyStats || state.enemyStats)
   state.isSpecialHero = Boolean(draft?.isSpecialHero)
 
   state.special.heroId = sanitizeKey(draft?.special?.heroId ?? state.special.heroId)
@@ -525,17 +696,20 @@ function applyDraftObject(draft) {
   state.previewMoving = draft?.preview?.moving == null ? state.previewMoving : Boolean(draft.preview.moving)
 
   ui.templateType.value = state.templateType
+  ui.buildTarget.value = state.buildTarget
   ui.characterKey.value = state.characterKey
   ui.displayLabel.value = state.displayLabel
   ui.addToSelectable.checked = state.addToSelectable
   ui.isSpecialHero.checked = state.isSpecialHero
-  ui.specialFields.classList.toggle("hidden", !state.isSpecialHero)
+  ui.enemyFields.classList.toggle("hidden", state.buildTarget !== "enemy")
+  ui.specialFields.classList.toggle("hidden", !state.isSpecialHero || state.buildTarget !== "character")
   ui.specialHeroId.value = state.special.heroId
   ui.specialLabel.value = state.special.label
   ui.specialTitle.value = state.special.title
   ui.specialRarity.value = state.special.rarity
   ui.specialDescription.value = state.special.description
   ui.specialPerk.value = state.special.perk
+  syncEnemyInputsFromState()
   ui.previewDirection.value = String(Math.round(state.previewDirectionDeg))
   ui.previewDirectionValue.textContent = `${Math.round(state.previewDirectionDeg)}deg`
   ui.previewMovingToggle.checked = state.previewMoving
@@ -621,6 +795,37 @@ function buildCharacterTypeSnippet() {
   return lines.join("\n")
 }
 
+function buildEnemyCustomizationSnippet() {
+  const lines = []
+
+  for (const key of ENEMY_CUSTOMIZATION_KEYS) {
+    lines.push(`      ${key}: ${formatJsValue(state.properties[key])},`)
+  }
+
+  return lines.join("\n")
+}
+
+function buildEnemyTypeSnippet() {
+  const key = sanitizeKey(state.enemyTypeKey || state.characterKey)
+
+  return [
+    `${key}: {`,
+    `  color: ${formatJsValue(state.properties.color)},`,
+    `  size: ${formatJsValue(state.properties.size)},`,
+    `  health: ${formatJsValue(state.enemyStats.health)},`,
+    `  speed: ${formatJsValue(state.enemyStats.speed)},`,
+    `  chaseSpeed: ${formatJsValue(state.enemyStats.chaseSpeed)},`,
+    `  swimSpeed: ${formatJsValue(state.enemyStats.swimSpeed)},`,
+    "  appearance: {",
+    `    characterType: ${formatJsValue(state.templateType)},`,
+    "    customization: {",
+    buildEnemyCustomizationSnippet(),
+    "    },",
+    "  },",
+    "},",
+  ].join("\n")
+}
+
 function buildDisplayLabelSnippet() {
   const key = sanitizeKey(state.characterKey)
   return `${key}: ${formatJsValue(state.displayLabel || key)},`
@@ -656,19 +861,28 @@ function buildSpecialSnippet() {
 }
 
 function updateOutput() {
-  const sections = [
-    "// Paste into CHARACTER_TYPES",
-    buildCharacterTypeSnippet(),
-    "",
-    "// Paste into CHARACTER_DISPLAY_LABELS",
-    buildDisplayLabelSnippet(),
-    "",
-    "// Optional: add into SELECTABLE_CHARACTER_TYPES array",
-    buildSelectableSnippet(),
-    "",
-    "// Optional: paste into SPECIAL_CHARACTER_DEFINITIONS",
-    buildSpecialSnippet(),
-  ]
+  const sections = state.buildTarget === "enemy"
+    ? [
+      "// Paste into ENEMY_TYPE_DEFINITIONS",
+      buildEnemyTypeSnippet(),
+      "",
+      "// Optional notes",
+      `// Label: ${state.enemyLabel || sanitizeKey(state.enemyTypeKey)}`,
+      "// Add this enemy key to ENEMY_PHASE_SPAWN_CONFIG initial/ambient plans where needed.",
+    ]
+    : [
+      "// Paste into CHARACTER_TYPES",
+      buildCharacterTypeSnippet(),
+      "",
+      "// Paste into CHARACTER_DISPLAY_LABELS",
+      buildDisplayLabelSnippet(),
+      "",
+      "// Optional: add into SELECTABLE_CHARACTER_TYPES array",
+      buildSelectableSnippet(),
+      "",
+      "// Optional: paste into SPECIAL_CHARACTER_DEFINITIONS",
+      buildSpecialSnippet(),
+    ]
 
   ui.outputSnippet.value = sections.join("\n")
   ui.jsonDraft.value = JSON.stringify(buildDraftObject(), null, 2)

@@ -170,6 +170,66 @@ export const ENEMY_BLACK_HEALTH = 12
 export const ENEMY_BLACK_SPEED = 1.45
 export const ENEMY_BLACK_CHASE_SPEED = 2.2
 export const ENEMY_BLACK_SWIM_SPEED = 1.5
+// Canonical enemy definitions. Add new enemy types here and include them in
+// spawn plans to make them appear in the world.
+export const ENEMY_TYPE_DEFINITIONS = {
+  red: {
+    color: ENEMY_RED_COLOR,
+    size: ENEMY_RED_SIZE,
+    health: ENEMY_RED_HEALTH,
+    speed: ENEMY_RED_SPEED,
+    chaseSpeed: ENEMY_RED_CHASE_SPEED,
+    swimSpeed: ENEMY_RED_SWIM_SPEED,
+    appearance: {
+      characterType: "default",
+      customization: {
+        handColor: "#f5bf87",
+        footColor: "#4a3631",
+        eyelidColor: "#cb8f6b",
+        hasLashes: false,
+        hairStyle: "short",
+        hairColor: "#4a2f24",
+      },
+    },
+  },
+  yellow: {
+    color: ENEMY_YELLOW_COLOR,
+    size: ENEMY_YELLOW_SIZE,
+    health: ENEMY_YELLOW_HEALTH,
+    speed: ENEMY_YELLOW_SPEED,
+    chaseSpeed: ENEMY_YELLOW_CHASE_SPEED,
+    swimSpeed: ENEMY_YELLOW_SWIM_SPEED,
+    appearance: {
+      characterType: "street",
+      customization: {
+        handColor: "#ffd9a3",
+        footColor: "#594a34",
+        eyelidColor: "#deb47c",
+        hasLashes: true,
+        hairStyle: "mohawk",
+        hairColor: "#6a4f22",
+      },
+    },
+  },
+  black: {
+    color: ENEMY_BLACK_COLOR,
+    size: ENEMY_BLACK_SIZE,
+    health: ENEMY_BLACK_HEALTH,
+    speed: ENEMY_BLACK_SPEED,
+    chaseSpeed: ENEMY_BLACK_CHASE_SPEED,
+    swimSpeed: ENEMY_BLACK_SWIM_SPEED,
+    appearance: {
+      characterType: "ghost",
+      customization: {
+        handColor: "#8c8c8c",
+        footColor: "#2a2a2a",
+        eyelidColor: "#252525",
+        hasLashes: false,
+        hairStyle: "none",
+      },
+    },
+  },
+}
 export const INITIAL_RED_ENEMY_COUNT = 3
 export const INITIAL_YELLOW_ENEMY_COUNT = 1
 export const INITIAL_BLACK_ENEMY_COUNT = 1

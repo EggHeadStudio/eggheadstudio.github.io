@@ -2,36 +2,11 @@
 import { gameState } from "../core/game-state.js"
 import { getRandomLoadedWorldPosition } from "../world/world-manager.js"
 import {
-  ENEMY_SIZE,
   TILE_SIZE,
   SPAWN_ATTEMPT_LIMIT,
   ENEMY_SPAWN_INTERVAL,
-  ENEMY_SPAWN_BATCH_RED,
-  ENEMY_SPAWN_BATCH_YELLOW,
-  ENEMY_SPAWN_BATCH_BLACK,
   ENEMY_PHASE_SPAWN_CONFIG,
-  ENEMY_RED_COLOR,
-  ENEMY_RED_SIZE,
-  ENEMY_RED_HEALTH,
-  ENEMY_RED_SPEED,
-  ENEMY_RED_CHASE_SPEED,
-  ENEMY_RED_SWIM_SPEED,
-  ENEMY_YELLOW_COLOR,
-  ENEMY_YELLOW_SIZE,
-  ENEMY_YELLOW_HEALTH,
-  ENEMY_YELLOW_SPEED,
-  ENEMY_YELLOW_CHASE_SPEED,
-  ENEMY_YELLOW_SWIM_SPEED,
-  ENEMY_BLACK_COLOR,
-  ENEMY_BLACK_SIZE,
-  ENEMY_BLACK_HEALTH,
-  ENEMY_BLACK_SPEED,
-  ENEMY_BLACK_CHASE_SPEED,
-  ENEMY_BLACK_SWIM_SPEED,
-  INITIAL_RED_ENEMY_COUNT,
-  INITIAL_YELLOW_ENEMY_COUNT,
-  INITIAL_BLACK_ENEMY_COUNT,
-  TERRAIN_TYPES,
+  ENEMY_TYPE_DEFINITIONS,
 } from "../core/constants.js"
 import { getDistance } from "../utils/math-utils.js"
 import { createShadow } from "../utils/rendering-utils.js"
@@ -43,8 +18,8 @@ import { isSpawnPositionClear } from "../utils/spawn-utils.js"
 import { createDeathEffect } from "./death-effects.js"
 import { isEnemyFullyInsideHole } from "./shovels.js"
 import { isWaterLikeTile } from "./shovels.js"
+import { createCharacter } from "./character-factory.js"
 
-const ENEMY_MAX_HEALTH = 5
 const ENEMY_HIT_INVULNERABILITY = 180
 const ENEMY_FLOAT_SPEED = 0.42
 const ENEMY_FLOAT_BOB = 2.2
@@ -53,32 +28,22 @@ const ENEMY_CLEANUP_EFFECT_DURATION = 900
 const ENEMY_HOLE_FALL_DURATION = 420
 const ENEMY_HOLE_FALL_MIN_SCALE = 0.34
 const ENEMY_HOLE_FALL_SPLATTER_SCALE = 0.5
+const ENEMY_WALK_ANIMATION_SPEED = 0.042
+const ENEMY_IDLE_ANIMATION_SPEED = 0.018
+const ENEMY_LIMB_SWING = 8
+const ENEMY_ATTACK_SWING_DURATION = 230
+const ENEMY_ATTACK_RECOVERY_DURATION = 140
 
-const ENEMY_TYPE_CONFIG = {
-  red: {
-    color: ENEMY_RED_COLOR,
-    size: ENEMY_RED_SIZE,
-    health: ENEMY_RED_HEALTH,
-    speed: ENEMY_RED_SPEED,
-    chaseSpeed: ENEMY_RED_CHASE_SPEED,
-    swimSpeed: ENEMY_RED_SWIM_SPEED,
-  },
-  yellow: {
-    color: ENEMY_YELLOW_COLOR,
-    size: ENEMY_YELLOW_SIZE,
-    health: ENEMY_YELLOW_HEALTH,
-    speed: ENEMY_YELLOW_SPEED,
-    chaseSpeed: ENEMY_YELLOW_CHASE_SPEED,
-    swimSpeed: ENEMY_YELLOW_SWIM_SPEED,
-  },
-  black: {
-    color: ENEMY_BLACK_COLOR,
-    size: ENEMY_BLACK_SIZE,
-    health: ENEMY_BLACK_HEALTH,
-    speed: ENEMY_BLACK_SPEED,
-    chaseSpeed: ENEMY_BLACK_CHASE_SPEED,
-    swimSpeed: ENEMY_BLACK_SWIM_SPEED,
-  },
+const ENEMY_TYPE_KEYS = Object.keys(ENEMY_TYPE_DEFINITIONS)
+
+function buildSpawnPlan(counts = {}) {
+  const spawnPlan = {}
+
+  for (const type of ENEMY_TYPE_KEYS) {
+    spawnPlan[type] = Math.max(0, Number(counts[type]) || 0)
+  }
+
+  return spawnPlan
 }
 
 function getPhaseSpawnConfig(phase = gameState.dayNight?.currentPhase) {
@@ -88,26 +53,32 @@ function getPhaseSpawnConfig(phase = gameState.dayNight?.currentPhase) {
 
 export function getInitialEnemySpawnPlan(phase = gameState.dayNight?.currentPhase) {
   const phaseConfig = getPhaseSpawnConfig(phase)
-  return {
-    red: phaseConfig.initial.red,
-    yellow: phaseConfig.initial.yellow,
-    black: phaseConfig.initial.black,
-  }
+  return buildSpawnPlan(phaseConfig.initial || {})
 }
 
 function getAmbientEnemySpawnPlan(phase = gameState.dayNight?.currentPhase) {
   const phaseConfig = getPhaseSpawnConfig(phase)
-  return {
-    red: phaseConfig.ambient.red,
-    yellow: phaseConfig.ambient.yellow,
-    black: phaseConfig.ambient.black,
-  }
+  return buildSpawnPlan(phaseConfig.ambient || {})
 }
 
 function createEnemy(type, x, y) {
-  const config = ENEMY_TYPE_CONFIG[type]
+  const config = ENEMY_TYPE_DEFINITIONS[type]
+  if (!config) {
+    return null
+  }
+
+  const appearance = config.appearance || {}
+  const baseCharacter = createCharacter(appearance.characterType || "default", {
+    ...(appearance.customization || {}),
+    color: config.color,
+    size: config.size,
+    health: config.health,
+    maxHealth: config.health,
+    speed: config.speed,
+  })
 
   return {
+    ...baseCharacter,
     x,
     y,
     type,
@@ -139,7 +110,23 @@ function createEnemy(type, x, y) {
     isSwimming: false,
     isFallingIntoHole: false,
     holeFallStartedAt: 0,
+    isMoving: false,
+    animationTime: 0,
+    blinkCycleOffset: Math.random() * 2200,
+    lastAttackAt: 0,
   }
+}
+
+function updateEnemyAnimationState(enemy, distanceMoved) {
+  const movementAmount = Number(distanceMoved) || 0
+  enemy.isMoving = movementAmount > 0.08
+
+  if (enemy.isMoving) {
+    enemy.animationTime += ENEMY_WALK_ANIMATION_SPEED * Math.max(1, movementAmount * 0.34)
+    return
+  }
+
+  enemy.animationTime += ENEMY_IDLE_ANIMATION_SPEED
 }
 
 function spawnEnemyCleanupEffects(enemiesToClear) {
@@ -280,10 +267,25 @@ function drawEnemy(ctx, enemy, camera) {
     ctx.restore()
   }
 
+  drawEnemyFeet(ctx, enemy, screenX, screenY, renderSize)
+
   ctx.fillStyle = enemy.color
   ctx.beginPath()
-  ctx.arc(screenX, screenY, renderSize * (enemy.isSwimming ? 0.92 : 1), 0, Math.PI * 2)
+  ctx.arc(screenX, screenY, renderSize * (enemy.isSwimming ? 0.9 : 0.95), 0, Math.PI * 2)
   ctx.fill()
+
+  if (enemy.hairStyle && enemy.hairStyle !== "none") {
+    const hairRadius = renderSize * 0.65
+    const hairX = screenX + Math.cos(enemy.direction + Math.PI) * renderSize * 0.08
+    const hairY = screenY + Math.sin(enemy.direction + Math.PI) * renderSize * 0.08
+
+    ctx.fillStyle = enemy.hairColor || "#3b2f26"
+    ctx.beginPath()
+    ctx.arc(hairX, hairY, hairRadius, enemy.direction + Math.PI * 0.55, enemy.direction - Math.PI * 0.55, true)
+    ctx.lineTo(hairX, hairY)
+    ctx.closePath()
+    ctx.fill()
+  }
 
   if (!raft && (enemy.isSwimming || enemy.floatOffset !== 0)) {
     ctx.strokeStyle = "rgba(255, 255, 255, 0.28)"
@@ -294,51 +296,8 @@ function drawEnemy(ctx, enemy, camera) {
   }
 
   drawEnemyBruises(ctx, enemy, screenX, screenY, renderScale)
-
-  const eyeOffset = renderSize / 3
-  const eyeSize = renderSize / 5
-
-  ctx.fillStyle = "white"
-  ctx.beginPath()
-  ctx.arc(
-    screenX - eyeOffset * Math.cos(enemy.direction),
-    screenY - eyeOffset * Math.sin(enemy.direction),
-    eyeSize,
-    0,
-    Math.PI * 2,
-  )
-  ctx.fill()
-
-  ctx.beginPath()
-  ctx.arc(
-    screenX + eyeOffset * Math.sin(enemy.direction),
-    screenY - eyeOffset * Math.cos(enemy.direction),
-    eyeSize,
-    0,
-    Math.PI * 2,
-  )
-  ctx.fill()
-
-  ctx.fillStyle = "black"
-  ctx.beginPath()
-  ctx.arc(
-    screenX - eyeOffset * Math.cos(enemy.direction) + (eyeSize / 3) * Math.cos(enemy.direction),
-    screenY - eyeOffset * Math.sin(enemy.direction) + (eyeSize / 3) * Math.sin(enemy.direction),
-    eyeSize / 2,
-    0,
-    Math.PI * 2,
-  )
-  ctx.fill()
-
-  ctx.beginPath()
-  ctx.arc(
-    screenX + eyeOffset * Math.sin(enemy.direction) + (eyeSize / 3) * Math.cos(enemy.direction),
-    screenY - eyeOffset * Math.cos(enemy.direction) + (eyeSize / 3) * Math.sin(enemy.direction),
-    eyeSize / 2,
-    0,
-    Math.PI * 2,
-  )
-  ctx.fill()
+  drawEnemyFace(ctx, enemy, screenX, screenY, renderSize)
+  drawEnemyHands(ctx, enemy, screenX, screenY, renderSize)
 
   if (enemy.isChasing) {
     const alertSize = Math.sin(Date.now() / 100) * 3 + 10
@@ -376,10 +335,168 @@ function drawEnemy(ctx, enemy, camera) {
   }
 }
 
+function getEnemyBlinkOpenness(enemy) {
+  const cycle = 1900 + (enemy.blinkCycleOffset || 0) % 900
+  const phase = (Date.now() + (enemy.blinkCycleOffset || 0)) % cycle
+
+  if (phase < cycle - 150) {
+    return 1
+  }
+
+  const closeProgress = (phase - (cycle - 150)) / 150
+  return Math.max(0.08, Math.abs(Math.cos(closeProgress * Math.PI)))
+}
+
+function getEnemyEyeAnchorPoints(screenX, screenY, enemy, renderSize) {
+  const dirX = Math.cos(enemy.direction)
+  const dirY = Math.sin(enemy.direction)
+  const tangentX = -dirY
+  const tangentY = dirX
+  const eyeForward = renderSize * 0.18
+  const eyeSpacing = renderSize * 0.34
+
+  return [
+    {
+      x: screenX + dirX * eyeForward - tangentX * eyeSpacing,
+      y: screenY + dirY * eyeForward - tangentY * eyeSpacing,
+    },
+    {
+      x: screenX + dirX * eyeForward + tangentX * eyeSpacing,
+      y: screenY + dirY * eyeForward + tangentY * eyeSpacing,
+    },
+  ]
+}
+
+function drawEnemyFace(ctx, enemy, screenX, screenY, renderSize) {
+  const eyes = getEnemyEyeAnchorPoints(screenX, screenY, enemy, renderSize)
+  const eyeSize = renderSize * 0.2
+  const openness = getEnemyBlinkOpenness(enemy)
+  const dirX = Math.cos(enemy.direction)
+  const dirY = Math.sin(enemy.direction)
+
+  for (const eye of eyes) {
+    ctx.fillStyle = "white"
+    ctx.beginPath()
+    ctx.ellipse(eye.x, eye.y, eyeSize, eyeSize * Math.max(0.08, openness), 0, 0, Math.PI * 2)
+    ctx.fill()
+
+    ctx.fillStyle = "black"
+    ctx.beginPath()
+    ctx.ellipse(
+      eye.x + dirX * eyeSize * 0.32,
+      eye.y + dirY * eyeSize * 0.32,
+      eyeSize * 0.46,
+      eyeSize * 0.46 * Math.max(0.3, openness),
+      0,
+      0,
+      Math.PI * 2,
+    )
+    ctx.fill()
+
+    if (openness < 0.98) {
+      const lidColor = enemy.eyelidColor || enemy.color
+      const lidHeight = eyeSize * 1.55 * (1 - openness)
+      ctx.fillStyle = lidColor
+
+      ctx.beginPath()
+      ctx.ellipse(eye.x, eye.y - eyeSize + lidHeight * 0.5, eyeSize * 1.7, lidHeight * 0.5, 0, 0, Math.PI * 2)
+      ctx.fill()
+
+      ctx.beginPath()
+      ctx.ellipse(eye.x, eye.y + eyeSize - lidHeight * 0.5, eyeSize * 1.7, lidHeight * 0.5, 0, 0, Math.PI * 2)
+      ctx.fill()
+    }
+  }
+
+  const mouthCenterX = screenX + dirX * renderSize * 0.35
+  const mouthCenterY = screenY + dirY * renderSize * 0.35
+  const tangentX = -dirY
+  const tangentY = dirX
+  const mouthHalf = renderSize * 0.12
+
+  ctx.strokeStyle = enemy.mouthColor || "#5e3f2c"
+  ctx.lineWidth = Math.max(1.2, renderSize * 0.08)
+  ctx.lineCap = "round"
+  ctx.beginPath()
+  ctx.moveTo(mouthCenterX - tangentX * mouthHalf, mouthCenterY - tangentY * mouthHalf)
+  ctx.lineTo(mouthCenterX + tangentX * mouthHalf, mouthCenterY + tangentY * mouthHalf)
+  ctx.stroke()
+}
+
+function getEnemyAttackPose(enemy) {
+  if (!enemy.lastAttackAt) {
+    return { attacking: false, thrust: 0 }
+  }
+
+  const elapsed = Date.now() - enemy.lastAttackAt
+  const attackDuration = ENEMY_ATTACK_SWING_DURATION + ENEMY_ATTACK_RECOVERY_DURATION
+
+  if (elapsed < 0 || elapsed > attackDuration) {
+    return { attacking: false, thrust: 0 }
+  }
+
+  if (elapsed <= ENEMY_ATTACK_SWING_DURATION) {
+    return { attacking: true, thrust: elapsed / ENEMY_ATTACK_SWING_DURATION }
+  }
+
+  const recoverElapsed = elapsed - ENEMY_ATTACK_SWING_DURATION
+  return {
+    attacking: true,
+    thrust: 1 - recoverElapsed / ENEMY_ATTACK_RECOVERY_DURATION,
+  }
+}
+
+function drawEnemyHands(ctx, enemy, screenX, screenY, renderSize) {
+  const handSize = Math.max(6, renderSize * 0.22)
+  const handDistance = renderSize * 0.92
+  const swing = enemy.isMoving ? Math.sin(enemy.animationTime) * ENEMY_LIMB_SWING : 0
+  const rightAngle = enemy.direction + Math.PI / 2
+  const leftAngle = enemy.direction - Math.PI / 2
+  const attackPose = getEnemyAttackPose(enemy)
+  const thrust = attackPose.attacking ? attackPose.thrust * (renderSize * 0.55) : 0
+
+  const rightHandX = screenX + Math.cos(rightAngle) * handDistance + Math.cos(enemy.direction) * swing + Math.cos(enemy.direction) * thrust
+  const rightHandY = screenY + Math.sin(rightAngle) * handDistance + Math.sin(enemy.direction) * swing + Math.sin(enemy.direction) * thrust
+  const leftHandX = screenX + Math.cos(leftAngle) * handDistance - Math.cos(enemy.direction) * swing
+  const leftHandY = screenY + Math.sin(leftAngle) * handDistance - Math.sin(enemy.direction) * swing
+
+  ctx.fillStyle = enemy.handColor || "#d4b189"
+  ctx.beginPath()
+  ctx.arc(rightHandX, rightHandY, handSize, 0, Math.PI * 2)
+  ctx.fill()
+
+  ctx.beginPath()
+  ctx.arc(leftHandX, leftHandY, handSize, 0, Math.PI * 2)
+  ctx.fill()
+}
+
+function drawEnemyFeet(ctx, enemy, screenX, screenY, renderSize) {
+  const footSize = Math.max(7, renderSize * 0.26)
+  const footDistance = renderSize * 0.62
+  const step = enemy.isMoving ? Math.sin(enemy.animationTime) * ENEMY_LIMB_SWING : 0
+  const rightFootAngle = enemy.direction + Math.PI + Math.PI / 2
+  const leftFootAngle = enemy.direction + Math.PI - Math.PI / 2
+
+  const rightFootX = screenX + Math.cos(rightFootAngle) * footDistance + Math.cos(enemy.direction) * step
+  const rightFootY = screenY + Math.sin(rightFootAngle) * footDistance + Math.sin(enemy.direction) * step
+  const leftFootX = screenX + Math.cos(leftFootAngle) * footDistance - Math.cos(enemy.direction) * step
+  const leftFootY = screenY + Math.sin(leftFootAngle) * footDistance - Math.sin(enemy.direction) * step
+
+  ctx.fillStyle = enemy.footColor || "#444444"
+  ctx.beginPath()
+  ctx.arc(rightFootX, rightFootY, footSize, 0, Math.PI * 2)
+  ctx.fill()
+
+  ctx.beginPath()
+  ctx.arc(leftFootX, leftFootY, footSize, 0, Math.PI * 2)
+  ctx.fill()
+}
+
 // Generate enemies
 export function generateEnemies(countOrPlan) {
   const { enemies } = gameState
-  const spawnPlan = typeof countOrPlan === "number" ? { red: countOrPlan } : countOrPlan
+  const requestedPlan = typeof countOrPlan === "number" ? { red: countOrPlan } : countOrPlan
+  const spawnPlan = buildSpawnPlan(requestedPlan || {})
 
   for (const [type, requestedCount] of Object.entries(spawnPlan)) {
     const count = Math.max(0, requestedCount || 0)
@@ -393,6 +510,9 @@ export function generateEnemies(countOrPlan) {
 
         const position = getRandomLoadedWorldPosition(320)
         const enemy = createEnemy(type, position.x, position.y)
+        if (!enemy) {
+          break
+        }
 
         if (
           isSpawnPositionClear(enemy.x, enemy.y, enemy.size, {
@@ -544,6 +664,14 @@ export function damageEnemy(enemy, amount = 1, options = {}) {
   }
 
   return true
+}
+
+export function markEnemyAttack(enemy) {
+  if (!enemy) {
+    return
+  }
+
+  enemy.lastAttackAt = Date.now()
 }
 
 function createEnemyBruiseMarks() {
@@ -963,6 +1091,8 @@ function checkThrownEnemyCollisions(thrownEnemy) {
 // Update enemy movement
 export function updateEnemyMovement(enemy, canSeePlayer) {
   const { player, terrain, rocks, bombs, enemies, woodenBoxes } = gameState
+  const previousX = enemy.x
+  const previousY = enemy.y
 
   // If this is the grabbed enemy, don't update its movement
   if (gameState.grabbedEnemy === enemy) return
@@ -1007,6 +1137,7 @@ export function updateEnemyMovement(enemy, canSeePlayer) {
         enemy.y = Math.max(0, Math.min(terrain.length * TILE_SIZE - 1, enemy.y))
       }
 
+      updateEnemyAnimationState(enemy, Math.hypot(enemy.x - previousX, enemy.y - previousY))
       return // Skip normal movement while being knocked back
     } else {
       // End knockback state
@@ -1045,6 +1176,7 @@ export function updateEnemyMovement(enemy, canSeePlayer) {
         enemy.floatAngle = Math.random() * Math.PI * 2
         enemy.floatOffset = 0
         enemy.isSwimming = false
+        updateEnemyAnimationState(enemy, Math.hypot(enemy.x - previousX, enemy.y - previousY))
         return
       }
     }
@@ -1072,6 +1204,7 @@ export function updateEnemyMovement(enemy, canSeePlayer) {
       enemy.y = Math.max(0, Math.min(terrain.length * TILE_SIZE - 1, enemy.y))
     }
 
+    updateEnemyAnimationState(enemy, Math.hypot(enemy.x - previousX, enemy.y - previousY))
     return
   }
 
@@ -1135,6 +1268,7 @@ export function updateEnemyMovement(enemy, canSeePlayer) {
     }
   } else {
     if (updateEnemyFloating(enemy)) {
+      updateEnemyAnimationState(enemy, Math.hypot(enemy.x - previousX, enemy.y - previousY))
       return
     }
 
@@ -1259,6 +1393,8 @@ export function updateEnemyMovement(enemy, canSeePlayer) {
       break
     }
   }
+
+  updateEnemyAnimationState(enemy, Math.hypot(enemy.x - previousX, enemy.y - previousY))
 }
 
 // Draw and update enemies
