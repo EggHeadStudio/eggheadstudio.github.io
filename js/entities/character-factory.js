@@ -341,6 +341,7 @@ export function createCharacter(type = "default", customProps = {}) {
     // Always include animation properties
     isMoving: false,
     animationTime: 0,
+    draggingTrailer: null,
     throwingApple: null,
     shovelDig: null,
     // Character type for reference

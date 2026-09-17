@@ -96,10 +96,6 @@ export function createWoodenBox(x, y) {
     isFloating: false, // Whether the box is floating on water
     floatAngle: 0, // Direction of floating movement
     floatOffset: 0, // Visual float bobbing effect
-    isBeingThrown: false,
-    throwStartTime: 0,
-    throwVelocityX: 0,
-    throwVelocityY: 0,
     lastHitTime: 0, // For damage animation
     snappedTo: null, // Reference to another box this box is snapped to
     type: "box", // Identify this as a box for roof detection
@@ -107,7 +103,7 @@ export function createWoodenBox(x, y) {
 }
 
 // Create a trunk left behind by a chopped tree. Trunks live in the wooden box
-// array so they inherit all box behaviour (grab, throw, float, damage, snap).
+// array so they inherit all box behaviour (grab, float, damage, snap).
 export function createTrunk(x, y) {
   const trunk = createWoodenBox(x, y)
 
@@ -220,7 +216,7 @@ export function releaseWoodenBox() {
 // Check if a box should snap to another box or rock
 function checkForBoxSnapping(box, allBoxes, allRocks) {
   // Don't snap if the box is being thrown or is floating
-  if (box.isBeingThrown || box.isFloating) return
+  if (box.isFloating) return
 
   // Non-sledge pieces use free drop + tile settle only.
   const isGridWall = isGridWallBox(box)
@@ -238,7 +234,7 @@ function checkForBoxSnapping(box, allBoxes, allRocks) {
   // Find the closest box within snapping distance
   for (const otherBox of allBoxes) {
     // Skip self or boxes being thrown or floating
-    if (otherBox === box || otherBox.isBeingThrown || otherBox.isFloating) continue
+    if (otherBox === box || otherBox.isFloating) continue
 
     if (isGridWall && !isGridWallBox(otherBox)) continue
 
@@ -326,7 +322,7 @@ function snapBoxToOtherBox(box, otherObject) {
 }
 
 function settleBoxOnLand(box, allBoxes, allRocks) {
-  if (!box || box.isFloating || box.isBeingThrown) {
+  if (!box || box.isFloating) {
     return
   }
 
@@ -569,7 +565,7 @@ function isBoxOverlappingAnyObjectAt(x, y, box, allBoxes, allRocks) {
   const movingHalfSize = getBoxEffectiveSize(box)
 
   for (const otherBox of allBoxes) {
-    if (!otherBox || otherBox === box || otherBox.isBeingThrown || otherBox.isFloating) {
+    if (!otherBox || otherBox === box || otherBox.isFloating) {
       continue
     }
 
@@ -764,8 +760,8 @@ function createBoxDestructionEffect(box) {  if (!gameState.boxDestructionEffects
   }
 
   // If box was being thrown, inherit some of its velocity
-  const baseVelX = box.isBeingThrown ? box.throwVelocityX * 0.3 : 0
-  const baseVelY = box.isBeingThrown ? box.throwVelocityY * 0.3 : 0
+  const baseVelX = 0
+  const baseVelY = 0
 
   for (let i = 0; i < particleCount; i++) {
     // Random angle for particle dispersion
@@ -895,131 +891,6 @@ function drawAndUpdateBoxDestructionEffects() {
   }
 }
 
-// Check for collisions between thrown boxes and other objects
-function checkThrownBoxCollisions(box) {
-  const { enemies, rocks, woodenBoxes } = gameState
-
-  // Only check collisions if the box is being thrown and has significant velocity
-  if (!box.isBeingThrown || (Math.abs(box.throwVelocityX) < 2 && Math.abs(box.throwVelocityY) < 2)) {
-    return
-  }
-
-  // Check collisions with enemies
-  for (let i = 0; i < enemies.length; i++) {
-    const enemy = enemies[i]
-
-    // Skip if enemy is already being thrown or carried
-    if (enemy.isBeingThrown || enemy === gameState.grabbedEnemy) {
-      continue
-    }
-
-    // Check for collision
-    const distance = getDistance(box.x, box.y, enemy.x, enemy.y)
-    if (distance < box.size + enemy.size) {
-      // Calculate impact force based on throw velocity
-      const impactForce = Math.sqrt(box.throwVelocityX * box.throwVelocityX + box.throwVelocityY * box.throwVelocityY)
-
-      // Apply knockback to the hit enemy
-      applyKnockbackToEnemy(
-        enemy,
-        box.x,
-        box.y,
-        Math.min(impactForce * 0.8, 10), // Cap the force at 10
-      )
-
-      // Reduce the box's velocity and apply damage to it
-      box.throwVelocityX *= 0.5
-      box.throwVelocityY *= 0.5
-
-      // Damage the box when it hits enemies hard enough
-      if (impactForce > 5) {
-        damageWoodenBox(box)
-      }
-    }
-  }
-
-  // Check collisions with rocks
-  for (let i = 0; i < rocks.length; i++) {
-    const rock = rocks[i]
-
-    // Skip if rock is being carried
-    if (rock === gameState.grabbedRock) {
-      continue
-    }
-
-    // Check for collision
-    const distance = getDistance(box.x, box.y, rock.x, rock.y)
-    if (distance < box.size + rock.size * 0.8) {
-      // Calculate impact force
-      const impactForce = Math.sqrt(box.throwVelocityX * box.throwVelocityX + box.throwVelocityY * box.throwVelocityY)
-
-      // If the impact is not too hard, snap the box to the rock
-      if (impactForce < 8) {
-        // Stop the box from being thrown
-        box.isBeingThrown = false
-        box.throwVelocityX = 0
-        box.throwVelocityY = 0
-
-        // Apply snapping logic
-        snapBoxToOtherBox(box, rock)
-      } else {
-        // Bounce off the rock if impact is too hard
-        const angle = Math.atan2(box.y - rock.y, box.x - rock.x)
-        box.throwVelocityX = Math.cos(angle) * impactForce * 0.5
-        box.throwVelocityY = Math.sin(angle) * impactForce * 0.5
-
-        // Damage the box on hard impact
-        if (impactForce > 5) {
-          damageWoodenBox(box)
-        }
-      }
-
-      break
-    }
-  }
-
-  // Check collisions with other wooden boxes
-  for (let i = 0; i < woodenBoxes.length; i++) {
-    const otherBox = woodenBoxes[i]
-
-    // Skip self, carried box, or thrown box
-    if (otherBox === box || otherBox === gameState.grabbedWoodenBox || otherBox.isBeingThrown) {
-      continue
-    }
-
-    // Check for collision
-    const distance = getDistance(box.x, box.y, otherBox.x, otherBox.y)
-    if (distance < box.size + otherBox.size * 0.8) {
-      // Calculate impact force
-      const impactForce = Math.sqrt(box.throwVelocityX * box.throwVelocityX + box.throwVelocityY * box.throwVelocityY)
-
-      // If impact is hard enough, damage both boxes
-      if (impactForce > 5) {
-        damageWoodenBox(box)
-        damageWoodenBox(otherBox)
-      }
-
-      // If the impact is not too hard, snap the box to the other box
-      if (impactForce < 8) {
-        // Stop the box from being thrown
-        box.isBeingThrown = false
-        box.throwVelocityX = 0
-        box.throwVelocityY = 0
-
-        // Apply snapping logic
-        snapBoxToOtherBox(box, otherBox)
-      } else {
-        // Bounce off the other box if impact is too hard
-        const angle = Math.atan2(box.y - otherBox.y, box.x - otherBox.x)
-        box.throwVelocityX = Math.cos(angle) * impactForce * 0.5
-        box.throwVelocityY = Math.sin(angle) * impactForce * 0.5
-      }
-
-      break
-    }
-  }
-}
-
 // Add a function to create a visual effect when objects snap together
 export function createSnapEffect(object1, object2) {
   // Calculate the midpoint between the objects
@@ -1098,89 +969,6 @@ export function drawAndUpdateWoodenBoxes(options = {}) {
     for (let i = woodenBoxes.length - 1; i >= 0; i--) {
       const box = woodenBoxes[i]
       if (!box) continue // Skip if box is undefined
-
-      // Handle thrown box physics
-      if (box.isBeingThrown) {
-        // Update position based on throw velocity
-        box.x += box.throwVelocityX
-        box.y += box.throwVelocityY
-
-        // After updating position, check if the box has entered water
-        const waterTileX = Math.floor(box.x / TILE_SIZE)
-        const waterTileY = Math.floor(box.y / TILE_SIZE)
-
-        // Check if the box is now over water
-        if (waterTileX >= 0 && waterTileX < terrain[0].length && waterTileY >= 0 && waterTileY < terrain.length) {
-          // If the box was not floating and is now over water
-          if (!box.isFloating && terrain[waterTileY][waterTileX] === 0) {
-            // Create a splash effect
-            createWaterSplashEffect(box)
-
-            // Set the box to floating mode
-            setBoxFloating(box, true)
-
-            // Reduce velocity when hitting water
-            box.throwVelocityX *= 0.7
-            box.throwVelocityY *= 0.7
-          }
-          // If the box was floating and is now over land
-          else if (box.isFloating && terrain[waterTileY][waterTileX] !== 0) {
-            setBoxFloating(box, false)
-          }
-        }
-
-        // Check for collisions with enemies
-        checkThrownBoxCollisions(box)
-
-        // Slow down the throw over time (friction)
-        box.throwVelocityX *= 0.97
-        box.throwVelocityY *= 0.97
-
-        // Check if the box has landed
-        if (Math.abs(box.throwVelocityX) < 0.5 && Math.abs(box.throwVelocityY) < 0.5) {
-          box.isBeingThrown = false
-
-          // Check if box landed in water
-          const tileX = Math.floor(box.x / TILE_SIZE)
-          const tileY = Math.floor(box.y / TILE_SIZE)
-
-          if (
-            tileX >= 0 &&
-            tileX < terrain[0].length &&
-            tileY >= 0 &&
-            tileY < terrain.length &&
-            terrain[tileY][tileX] === 0 // TERRAIN_TYPES.WATER
-          ) {
-            // Box landed in water, set floating state
-            setBoxFloating(box, true)
-          } else {
-            // Box landed on land
-            setBoxFloating(box, false)
-            settleBoxOnLand(box, woodenBoxes, gameState.rocks)
-          }
-        }
-
-        // Check for collisions with terrain boundaries
-        const tileX = Math.floor(box.x / TILE_SIZE)
-        const tileY = Math.floor(box.y / TILE_SIZE)
-
-        if (tileX < 0 || tileX >= terrain[0].length || tileY < 0 || tileY >= terrain.length) {
-          // Bounce off terrain boundaries
-          if (tileX < 0 || tileX >= terrain[0].length) {
-            box.throwVelocityX *= -0.7
-          }
-          if (tileY < 0 || tileY >= terrain.length) {
-            box.throwVelocityY *= -0.7
-          }
-
-          // Move box back to valid position
-          box.x = Math.max(0, Math.min(terrain[0].length * TILE_SIZE - 1, box.x))
-          box.y = Math.max(0, Math.min(terrain.length * TILE_SIZE - 1, box.y))
-
-          // Damage box on hard impact with boundaries
-          damageWoodenBox(box)
-        }
-      }
 
       // Handle floating on water\
       if (box.isFloating) {
@@ -1383,7 +1171,7 @@ function detectRoofAreas() {
 
   if (woodenBoxes && woodenBoxes.length > 0) {
     woodenBoxes.forEach((box) => {
-      if (!box.isFloating && !box.isBeingThrown) {
+      if (!box.isFloating) {
         buildingObjects.push({
           ...box,
           type: "box",
@@ -1890,7 +1678,7 @@ function createWaterSplashEffect(box) {
   }
 
   // Calculate splash force based on velocity
-  const splashForce = Math.sqrt(box.throwVelocityX * box.throwVelocityX + box.throwVelocityY * box.throwVelocityY)
+  const splashForce = 0
 
   // Create a new splash effect
   const splash = {
@@ -2258,7 +2046,7 @@ function getWallModuleNeighborMask(object) {
 
 function isWallModuleAtTile(tileX, tileY, selfObject) {
   for (const box of gameState.woodenBoxes || []) {
-    if (!box || box === selfObject || box.isBeingThrown || box.isFloating || !isGridWallBox(box)) {
+    if (!box || box === selfObject || box.isFloating || !isGridWallBox(box)) {
       continue
     }
 

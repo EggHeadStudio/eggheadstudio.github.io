@@ -8,6 +8,30 @@
 import { gameState } from "../core/game-state.js"
 import { TRAILER_BODY_LENGTH, TRAILER_BODY_WIDTH } from "../core/constants.js"
 
+// Where the player's left hand grips a hand-pulled trailer, as an offset from
+// the player centre. The trailer's tow eye and the drawn left hand both read
+// this, so the black tip stays welded to the hand at every facing angle.
+const GRIP_FORWARD_REACH = 0.18
+const GRIP_SIDE_REACH = 1.2
+
+export function getTrailerGripOffset(player) {
+  const sideAngle = player.direction - Math.PI / 2
+
+  return {
+    x: Math.cos(player.direction) * player.size * GRIP_FORWARD_REACH + Math.cos(sideAngle) * player.size * GRIP_SIDE_REACH,
+    y: Math.sin(player.direction) * player.size * GRIP_FORWARD_REACH + Math.sin(sideAngle) * player.size * GRIP_SIDE_REACH,
+  }
+}
+
+export function getTrailerGripPoint(player) {
+  const offset = getTrailerGripOffset(player)
+
+  return {
+    x: player.x + offset.x,
+    y: player.y + offset.y,
+  }
+}
+
 // Distance from a world point to the trailer's deck rectangle, measured in the
 // trailer's own frame so the box turns with it.
 export function getDistanceToTrailerBody(trailer, x, y) {

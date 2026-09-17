@@ -18,7 +18,7 @@ import { damageBoat } from "../entities/boats.js"
 import { createDeathEffect, DEATH_EFFECT_DURATION } from "./death-effects.js"
 import { isWaterLikeTile, isHoleTile, isHoleFlooded } from "./shovels.js"
 import { movePlayerToNearestSafePosition } from "../utils/player-position-utils.js"
-import { isTrailerBlocking, getTrailerContaining } from "../utils/trailer-collision.js"
+import { isTrailerBlocking, getTrailerContaining, getTrailerGripOffset } from "../utils/trailer-collision.js"
 
 // Animation constants
 const HAND_SIZE = 11
@@ -185,6 +185,10 @@ function getPlayerBodyScale(player) {
 }
 
 function getCarrySpeedMultiplier(player) {
+  if (player?.draggingTrailer) {
+    return 0.12
+  }
+
   if (!gameState.isGrabbing) {
     return 1
   }
@@ -313,7 +317,9 @@ export function updatePlayerPosition() {
   // A towed trailer can be dragged straight over someone standing still, which
   // would otherwise leave them walled in on every side. Shove them back out.
   if (!gameState.isInCar) {
-    const overlappingTrailer = getTrailerContaining(player.x, player.y, player.size * 0.7)
+    const overlappingTrailer = getTrailerContaining(player.x, player.y, player.size * 0.7, {
+      ignoreTrailer: player.draggingTrailer || null,
+    })
 
     if (overlappingTrailer && movePlayerToNearestSafePosition(player.x, player.y, overlappingTrailer.x, overlappingTrailer.y)) {
       updateGrabbedObjectPosition()
@@ -374,8 +380,13 @@ export function updatePlayerPosition() {
   }
 
   // The trailer deck is a solid rectangle, so you walk around it rather than
-  // straight through the middle of it.
-  if (canMove && !gameState.isInCar && isTrailerBlocking(newX, newY, player.size * 0.7)) {
+  // straight through the middle of it. The one you are pulling is exempt: it is
+  // attached to your hand on purpose and would otherwise wall you in.
+  if (
+    canMove &&
+    !gameState.isInCar &&
+    isTrailerBlocking(newX, newY, player.size * 0.7, { ignoreTrailer: player.draggingTrailer || null })
+  ) {
     canMove = false
   }
 
@@ -1685,6 +1696,37 @@ function drawHands(ctx, x, y, player) {
       ctx.beginPath();
       ctx.arc(rightHandX, rightHandY, HAND_SIZE, 0, Math.PI * 2);
       ctx.fill();
+
+      drawEquippedHandItems(ctx, player, rightHandX, rightHandY, leftHandX, leftHandY, {
+        isInCar,
+        isGrabbing,
+      })
+    }
+    else if (player.draggingTrailer) {
+      const isMovingForward = player.isMoving && 
+        (isMobile ? joystickActive && joystickDistance > 0.1 : (keys["ArrowUp"] || keys["w"]));
+      const dragSwing = isMovingForward ? Math.sin(player.animationTime) * LIMB_MOVEMENT_RANGE : 0
+
+      // The right arm keeps its normal walking swing.
+      const rightHandAngle = player.direction + Math.PI / 2
+      const rightHandDistance = player.size * 1.2
+      const rightHandX = x + Math.cos(rightHandAngle) * rightHandDistance + Math.cos(player.direction) * dragSwing
+      const rightHandY = y + Math.sin(rightHandAngle) * rightHandDistance + Math.sin(player.direction) * dragSwing
+
+      // The left hand is locked onto the trailer's tow eye. Both use the same
+      // grip offset, so the black tip stays in the hand however the player turns.
+      const gripOffset = getTrailerGripOffset(player)
+      const leftHandX = x + gripOffset.x
+      const leftHandY = y + gripOffset.y
+
+      ctx.fillStyle = player.handColor || "#AAAAAA"
+      ctx.beginPath()
+      ctx.arc(rightHandX, rightHandY, HAND_SIZE, 0, Math.PI * 2)
+      ctx.fill()
+
+      ctx.beginPath()
+      ctx.arc(leftHandX, leftHandY, HAND_SIZE, 0, Math.PI * 2)
+      ctx.fill()
 
       drawEquippedHandItems(ctx, player, rightHandX, rightHandY, leftHandX, leftHandY, {
         isInCar,

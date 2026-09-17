@@ -27,7 +27,7 @@ import { getDistance } from "../utils/math-utils.js"
 import { isTreeBlocking } from "./trees.js"
 import { drawWoodenBox } from "./wooden-boxes.js"
 import { drawRockShape } from "./rocks.js"
-import { getDistanceToTrailerBody } from "../utils/trailer-collision.js"
+import { getDistanceToTrailerBody, getTrailerGripPoint } from "../utils/trailer-collision.js"
 
 const BED_COLOR = "#6b5b45"
 const BED_PLANK_COLOR = "#7d6a51"
@@ -53,6 +53,7 @@ export function createTrailer(x, y) {
     vehicleType: "trailer",
     direction: Math.random() * Math.PI * 2,
     hitchedTo: null,
+    draggedByPlayer: null,
     cargo: [],
     wheelRotation: 0,
     bounceVelocityX: 0,
@@ -209,6 +210,35 @@ export function unhitchTrailer(trailer) {
   return true
 }
 
+export function attachTrailerToPlayer(trailer, player) {
+  if (!trailer || !player) {
+    return false
+  }
+
+  trailer.draggedByPlayer = player
+  trailer.hitchedTo = null
+  player.draggingTrailer = trailer
+  trailer.bounceVelocityX = 0
+  trailer.bounceVelocityY = 0
+  return true
+}
+
+export function releaseTrailerFromPlayer(trailer) {
+  if (!trailer) {
+    return false
+  }
+
+  if (gameState.player && gameState.player.draggingTrailer === trailer) {
+    gameState.player.draggingTrailer = null
+  }
+
+  if (trailer.draggedByPlayer) {
+    trailer.draggedByPlayer = null
+  }
+
+  return true
+}
+
 // ---------------------------------------------------------------------------
 // Cargo
 // ---------------------------------------------------------------------------
@@ -342,6 +372,33 @@ export function tryUnhitchNearbyTrailer() {
 
 // Single entry point for the space bar / A button while on foot.
 export function tryTrailerInteraction() {
+  const { player, trailers } = gameState
+
+  if (!player) {
+    return false
+  }
+
+  if (player.draggingTrailer) {
+    releaseTrailerFromPlayer(player.draggingTrailer)
+    return true
+  }
+
+  if (!Array.isArray(trailers)) {
+    return tryTakeFromTrailer() || tryUnhitchNearbyTrailer()
+  }
+
+  for (const trailer of trailers) {
+    if (trailer.hitchedTo || trailer.draggedByPlayer) {
+      continue
+    }
+
+    const hitchPoint = getTrailerHitchPoint(trailer)
+    if (getDistance(player.x, player.y, hitchPoint.x, hitchPoint.y) <= TRAILER_INTERACTION_RANGE) {
+      attachTrailerToPlayer(trailer, player)
+      return true
+    }
+  }
+
   return tryTakeFromTrailer() || tryUnhitchNearbyTrailer()
 }
 
@@ -372,6 +429,27 @@ function followTowCar(trailer) {
   trailer.y = towBall.y + Math.sin(trailAngle) * reach
 
   trailer.wheelRotation += (car.currentSpeed || 0) * 0.2
+}
+
+function dragTrailerWithPlayer(trailer) {
+  const { player } = gameState
+
+  if (!player || trailer.draggedByPlayer !== player) {
+    return
+  }
+
+  // The left hand is the tow ball. Using the tongue reach here puts the black
+  // tow eye exactly in the hand, and the bed swings in behind it the same way
+  // it does behind a car, so turning on the spot never breaks the connection.
+  const grip = getTrailerGripPoint(player)
+  const reach = trailer.size * TRAILER_TONGUE_REACH
+
+  const trailAngle = Math.atan2(trailer.y - grip.y, trailer.x - grip.x)
+
+  trailer.direction = trailAngle + Math.PI
+  trailer.x = grip.x + Math.cos(trailAngle) * reach
+  trailer.y = grip.y + Math.sin(trailAngle) * reach
+  trailer.wheelRotation += 0.08
 }
 
 // A loose trailer only moves when something shoved it.
@@ -647,6 +725,8 @@ export function drawAndUpdateTrailers() {
 
     if (trailer.hitchedTo) {
       followTowCar(trailer)
+    } else if (trailer.draggedByPlayer) {
+      dragTrailerWithPlayer(trailer)
     } else {
       applyBounce(trailer)
       separateFromObstacles(trailer)
@@ -711,10 +791,17 @@ export function drawAndUpdateTrailers() {
     const cargoCount = getTrailerCargoCount(trailer)
     let prompt = null
 
-    if (cargoCount > 0) {
+    if (trailer.draggedByPlayer === player) {
+      prompt = "Press SPACE to release the trailer"
+    } else if (cargoCount > 0) {
       prompt = `Press SPACE to take (${cargoCount}/${TRAILER_CARGO_CAPACITY})`
     } else if (trailer.hitchedTo) {
       prompt = "Press SPACE to disconnect the trailer"
+    } else {
+      const hitchPoint = getTrailerHitchPoint(trailer)
+      if (getDistance(player.x, player.y, hitchPoint.x, hitchPoint.y) <= TRAILER_INTERACTION_RANGE) {
+        prompt = "Press SPACE to pull the trailer"
+      }
     }
 
     if (!prompt) {
